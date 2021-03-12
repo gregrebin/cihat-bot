@@ -1,10 +1,8 @@
 from events import Emitter, Listener
+from module import Module
 
 
-class Trader(Emitter):
-
-    def __init__(self, event_listener: Listener):
-        super().__init__(event_listener)
+class Trader(Module):
 
     def buy(self):
         pass

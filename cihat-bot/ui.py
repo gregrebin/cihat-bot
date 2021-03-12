@@ -1,10 +1,8 @@
 from events import Emitter, Listener
+from module import Module
 
 
-class Ui(Emitter):
-
-    def __init__(self, event_listener: Listener):
-        super().__init__(event_listener)
+class Ui(Module):
 
     def bought(self):
         pass
