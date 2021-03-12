@@ -9,5 +9,5 @@ class Module:
     def on_event(self, listener: Listener):
         self.emitter.add_listener(listener)
 
-    def event(self, event: str):
+    def emit_event(self, event: str):
         self.emitter.emit(event)

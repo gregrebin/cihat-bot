@@ -1,11 +1,10 @@
-from events import Emitter, Listener
 from module import Module
 
 
 class Trader(Module):
 
     def buy(self):
-        pass
+        self.emit_event("BOUGHT")
 
     def sell(self):
-        pass
+        self.emit_event("SOLD")
