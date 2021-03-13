@@ -14,19 +14,19 @@ class Binance(Trader):
 
     def buy(self, data: Dict[str, str]):
         order = self.client.create_test_order(
-            symbol="BTCBUSD",
+            symbol=data["symbol"],
             side=self.client.SIDE_BUY,
             type=self.client.ORDER_TYPE_MARKET,
-            quantity=0.0002
+            quantity=float(data["quantity"])
         )
         print(order)
 
     def sell(self, data: Dict[str, str]):
         order = self.client.create_test_order(
-            symbol="BTCBUSD",
+            symbol=data["symbol"],
             side=self.client.SIDE_SELL,
             type=self.client.ORDER_TYPE_MARKET,
-            quantity=0.0002
+            quantity=float(data["quantity"])
         )
         print(order)
 
