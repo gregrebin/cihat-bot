@@ -1,4 +1,4 @@
-from cihatbot.events import Listener, Emitter
+from cihatbot.events import Listener, Emitter, Event
 
 
 class Module:
@@ -10,7 +10,7 @@ class Module:
     def on_event(self, listener: Listener):
         self.emitter.add_listener(listener)
 
-    def emit_event(self, event: str):
+    def emit_event(self, event: Event):
         self.emitter.emit(event)
 
     def run(self):

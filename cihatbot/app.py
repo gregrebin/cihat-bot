@@ -1,9 +1,8 @@
 from cihatbot.const import *
 from cihatbot.ui import Ui
 from cihatbot.trader import Trader
-from cihatbot.events import Listener, Emitter
+from cihatbot.events import Listener, Event
 from configparser import ConfigParser
-import asyncio
 
 
 class Application:
@@ -21,14 +20,14 @@ class Application:
         self.trader.on_event(Listener(self.trader_event_handler))
 
     def run(self):
-        self.trader.run()
         self.ui.run()
+        self.trader.run()
 
-    def ui_event_handler(self, event: str) -> None:
+    def ui_event_handler(self, event: Event) -> None:
         if event in UI_EVENTS:
-            UI_EVENTS[event](self.trader)
+            UI_EVENTS[event.name](self.trader, event.data)
 
-    def trader_event_handler(self, event: str):
+    def trader_event_handler(self, event: Event):
         if event in TRADER_EVENTS:
-            TRADER_EVENTS[event](self.ui)
+            TRADER_EVENTS[event.name](self.ui, event.data)
 

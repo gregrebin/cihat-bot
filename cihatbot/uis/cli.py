@@ -1,4 +1,5 @@
 from cihatbot.ui import Ui
+from typing import Dict
 
 COMMANDS = {
     "buy": lambda cli: cli.emit_event("BUY"),
@@ -15,8 +16,8 @@ class Cli(Ui):
         cmd = input("cihatbot: ")
         COMMANDS[cmd](self)
 
-    def bought(self):
+    def bought(self, data: Dict[str, str]):
         print("bought")
 
-    def sold(self):
+    def sold(self, data: Dict[str, str]):
         print("sold")

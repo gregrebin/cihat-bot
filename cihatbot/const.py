@@ -16,13 +16,13 @@ TRADERS: Dict[str, Type[Trader]] = {
 }
 
 """ Events that can be emitted by ui, and the relative function on the trader """
-UI_EVENTS: Dict[str, Callable[[Trader], None]] = {
-    "BUY": lambda trader: trader.buy(),
-    "SELL": lambda trader: trader.sell()
+UI_EVENTS: Dict[str, Callable[[Trader, Dict[str, str]], None]] = {
+    "BUY": lambda trader, data: trader.buy(data),
+    "SELL": lambda trader, data: trader.sell(data)
 }
 
 """ Events that can be emitted by trader, and the relative function on the ui """
-TRADER_EVENTS: Dict[str, Callable[[Ui], None]] = {
-    "BOUGHT": lambda ui: ui.bought(),
-    "SOLD": lambda ui: ui.sold()
+TRADER_EVENTS: Dict[str, Callable[[Ui, Dict[str, str]], None]] = {
+    "BOUGHT": lambda ui, data: ui.bought(data),
+    "SOLD": lambda ui, data: ui.sold(data)
 }

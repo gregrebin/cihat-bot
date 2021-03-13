@@ -1,12 +1,19 @@
-from typing import Callable, List
+from typing import Callable, List, Dict
+
+
+class Event:
+
+    def __init__(self, name: str, data: Dict[str, str]):
+        self.name: str = name
+        self.data: Dict[str, str] = data
 
 
 class Listener:
 
-    def __init__(self, handler: Callable[[str], None]):
-        self.handler = handler
+    def __init__(self, handler: Callable[[Event], None]):
+        self.handler: Callable[[Event], None] = handler
 
-    def event(self, event: str) -> None:
+    def event(self, event: Event) -> None:
         self.handler(event)
 
 
@@ -21,7 +28,7 @@ class Emitter:
     def remove_listener(self, listener: Listener):
         self.listeners.remove(listener)
 
-    def emit(self, event: str) -> None:
+    def emit(self, event: Event) -> None:
         for listener in self.listeners:
             listener.event(event)
 

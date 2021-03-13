@@ -1,5 +1,6 @@
 from cihatbot.trader import Trader
 from binance.client import Client
+from typing import Dict
 
 
 class Binance(Trader):
@@ -11,7 +12,7 @@ class Binance(Trader):
     def run(self):
         print(self.client.ping())
 
-    def buy(self):
+    def buy(self, data: Dict[str, str]):
         order = self.client.create_test_order(
             symbol="BTCBUSD",
             side=self.client.SIDE_BUY,
@@ -20,7 +21,7 @@ class Binance(Trader):
         )
         print(order)
 
-    def sell(self):
+    def sell(self, data: Dict[str, str]):
         order = self.client.create_test_order(
             symbol="BTCBUSD",
             side=self.client.SIDE_SELL,
