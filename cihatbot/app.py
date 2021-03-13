@@ -6,6 +6,19 @@ from configparser import ConfigParser
 
 
 class Application:
+    """
+    Application contains an ui and a trader,
+    ui and trader must inherit module class.
+
+    1. Ui or trader fires an event via emit_event method
+    2. Application receives the event and validates it
+    3. Application call the apposite method on trader or ui
+
+    List of events and relative method are contained in const.py file.
+    An event will have a name and some data:
+    The name defines the event and the data will be passed to the relative method.
+
+    """
 
     def __init__(self, ui_name: str, trader_name: str, config_file: str) -> None:
         """ Initialize an ui and a trader based on given names """
