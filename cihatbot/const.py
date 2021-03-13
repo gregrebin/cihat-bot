@@ -1,14 +1,18 @@
-from ui import Ui
-from trader import Trader
+from cihatbot.ui import Ui
+from cihatbot.trader import Trader
+from cihatbot.traders.binance import Binance
+from cihatbot.uis.cli import Cli
 from typing import Dict, Type, Callable
 
 
 """ Concrete ui implementation classes """
 UIS: Dict[str, Type[Ui]] = {
+    "cli": Cli
 }
 
 """ Concrete trader implementation classes """
 TRADERS: Dict[str, Type[Trader]] = {
+    "binance": Binance
 }
 
 """ Events that can be emitted by ui, and the relative function on the trader """

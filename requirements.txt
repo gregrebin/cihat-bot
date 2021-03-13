@@ -1,1 +1,2 @@
-backtrader
+requests
+python-binance
