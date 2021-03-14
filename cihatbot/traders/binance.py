@@ -1,5 +1,5 @@
-from cihatbot.trader import Trader
 from cihatbot.events import Event
+from cihatbot.modules.trader import Trader
 from binance.client import Client
 
 

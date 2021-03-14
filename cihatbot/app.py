@@ -1,7 +1,7 @@
 from cihatbot.const import *
-from cihatbot.ui import Ui
-from cihatbot.trader import Trader
 from cihatbot.events import Listener, Event
+from cihatbot.modules.ui import Ui
+from cihatbot.modules.trader import Trader
 from configparser import ConfigParser
 
 

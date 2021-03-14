@@ -1,8 +1,8 @@
-from cihatbot.ui import Ui
-from cihatbot.trader import Trader
+from cihatbot.events import Event
+from cihatbot.modules.ui import Ui
+from cihatbot.modules.trader import Trader
 from cihatbot.traders.binance import Binance
 from cihatbot.uis.cli import Cli
-from cihatbot.events import Event
 from typing import Dict, Type, Callable, Set
 
 

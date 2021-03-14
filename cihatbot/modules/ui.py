@@ -1,6 +1,5 @@
-from cihatbot.module import Module
+from cihatbot.modules.module import Module
 from cihatbot.events import Event
-from typing import Dict, Any
 
 
 class Ui(Module):

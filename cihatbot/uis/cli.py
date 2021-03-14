@@ -1,6 +1,5 @@
-from cihatbot.ui import Ui
 from cihatbot.events import Event
-from cihatbot.order import Parser
+from cihatbot.modules.ui import Ui
 
 
 class Cli(Ui):
@@ -8,8 +7,7 @@ class Cli(Ui):
     def __init__(self, config):
         super().__init__(config)
 
-    @staticmethod
-    def _parse_cmd(cmd: str) -> Event:
+    def _parse_cmd(self, cmd: str) -> Event:
 
         if cmd.startswith("connect "):
             args = cmd.lstrip("connect ").split()
@@ -19,8 +17,7 @@ class Cli(Ui):
             })
 
         elif cmd.startswith("execute "):
-            parser = Parser()
-            order = parser.parse(cmd.lstrip("execute "))
+            order = self.parser.parse(cmd.lstrip("execute "))
             return Event("EXECUTE", {
                 "order": order
             })

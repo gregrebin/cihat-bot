@@ -1,4 +1,4 @@
-from cihatbot.module import Module
+from cihatbot.modules.module import Module
 from cihatbot.events import Event
 
 
