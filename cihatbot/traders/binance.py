@@ -1,7 +1,6 @@
 from cihatbot.trader import Trader
 from cihatbot.events import Event
 from binance.client import Client
-from typing import Dict, Any
 
 
 class Binance(Trader):
@@ -15,7 +14,9 @@ class Binance(Trader):
 
     def connect(self, event: Event):
         print("Connecting")
-        self.client = Client(api_key=event.data["user"], api_secret=event.data["password"])
+        print("User", event.data["user"])
+        print("Password", event.data["password"])
+        # self.client = Client(api_key=event.data["user"], api_secret=event.data["password"])
 
     def execute(self, event: Event):
         print("Executing order: ", event.data["order"])

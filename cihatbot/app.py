@@ -38,9 +38,15 @@ class Application:
 
     def ui_event_handler(self, ui_event: Event) -> None:
         if ui_event.name in UI_EVENTS:
+            for data_entry in UI_EVENTS_DATA:
+                if data_entry not in ui_event.data:
+                    return
             UI_EVENTS[ui_event.name](self.trader, ui_event)
 
     def trader_event_handler(self, trader_event: Event):
         if trader_event.name in TRADER_EVENTS:
+            for data_entry in TRADER_EVENTS_DATA:
+                if data_entry not in trader_event.data:
+                    return
             TRADER_EVENTS[trader_event.name](self.ui, trader_event)
 

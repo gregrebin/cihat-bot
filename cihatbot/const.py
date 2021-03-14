@@ -3,7 +3,7 @@ from cihatbot.trader import Trader
 from cihatbot.traders.binance import Binance
 from cihatbot.uis.cli import Cli
 from cihatbot.events import Event
-from typing import Dict, Type, Callable, Any
+from typing import Dict, Type, Callable, Set
 
 
 """ Concrete ui implementation classes """
@@ -22,8 +22,18 @@ UI_EVENTS: Dict[str, Callable[[Trader, Event], None]] = {
     "EXECUTE": lambda trader, event: trader.execute(event)
 }
 
+UI_EVENTS_DATA: Dict[str, Set[str]] = {
+    "CONNECT": {"user", "password"},
+    "EXECUTE": {"order"}
+}
+
 """ Events that can be emitted by trader, and the relative function on the ui """
 TRADER_EVENTS: Dict[str, Callable[[Ui, Event], None]] = {
     "BOUGHT": lambda ui, event: ui.bought(event),
     "SOLD": lambda ui, event: ui.sold(event)
+}
+
+TRADER_EVENTS_DATA: Dict[str, Set[str]] = {
+    "BOUGHT": set(),
+    "SOLD": set()
 }
