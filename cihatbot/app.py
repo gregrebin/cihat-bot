@@ -36,11 +36,11 @@ class Application:
         self.ui.run()
         self.trader.run()
 
-    def ui_event_handler(self, event: Event) -> None:
-        if event.name in UI_EVENTS:
-            UI_EVENTS[event.name](self.trader, event.data)
+    def ui_event_handler(self, ui_event: Event) -> None:
+        if ui_event.name in UI_EVENTS:
+            UI_EVENTS[ui_event.name](self.trader, ui_event)
 
-    def trader_event_handler(self, event: Event):
-        if event.name in TRADER_EVENTS:
-            TRADER_EVENTS[event.name](self.ui, event.data)
+    def trader_event_handler(self, trader_event: Event):
+        if trader_event.name in TRADER_EVENTS:
+            TRADER_EVENTS[trader_event.name](self.ui, trader_event)
 

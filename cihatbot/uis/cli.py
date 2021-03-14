@@ -1,6 +1,6 @@
 from cihatbot.ui import Ui
 from cihatbot.events import Event
-from typing import Dict, Tuple
+from cihatbot.order import Parser
 
 
 class Cli(Ui):
@@ -19,7 +19,8 @@ class Cli(Ui):
             })
 
         elif cmd.startswith("execute "):
-            order = cmd.lstrip("execute ")
+            parser = Parser()
+            order = parser.parse(cmd.lstrip("execute "))
             return Event("EXECUTE", {
                 "order": order
             })
@@ -32,8 +33,8 @@ class Cli(Ui):
         else:
             print("Invalid command")
 
-    def bought(self, data: Dict[str, str]):
+    def bought(self, event: Event):
         print("bought")
 
-    def sold(self, data: Dict[str, str]):
+    def sold(self, event: Event):
         print("sold")

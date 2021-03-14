@@ -1,6 +1,7 @@
 from cihatbot.trader import Trader
+from cihatbot.events import Event
 from binance.client import Client
-from typing import Dict
+from typing import Dict, Any
 
 
 class Binance(Trader):
@@ -12,28 +13,28 @@ class Binance(Trader):
     def run(self):
         print(self.client.get_system_status())
 
-    def connect(self, data: Dict[str, str]):
+    def connect(self, event: Event):
         print("Connecting")
-        self.client = Client(api_key=data["user"], api_secret=data["password"])
+        self.client = Client(api_key=event.data["user"], api_secret=event.data["password"])
 
-    def execute(self, data: Dict[str, str]):
-        print("Executing order: ", data["order"])
+    def execute(self, event: Event):
+        print("Executing order: ", event.data["order"])
 
-    def buy(self, data: Dict[str, str]):
-        order = self.client.create_test_order(
-            symbol=data["symbol"],
-            side=self.client.SIDE_BUY,
-            type=self.client.ORDER_TYPE_MARKET,
-            quantity=float(data["quantity"])
-        )
-        print(order)
-
-    def sell(self, data: Dict[str, str]):
-        order = self.client.create_test_order(
-            symbol=data["symbol"],
-            side=self.client.SIDE_SELL,
-            type=self.client.ORDER_TYPE_MARKET,
-            quantity=float(data["quantity"])
-        )
-        print(order)
+    # def buy(self, data: Dict[str, str]):
+    #     order = self.client.create_test_order(
+    #         symbol=data["symbol"],
+    #         side=self.client.SIDE_BUY,
+    #         type=self.client.ORDER_TYPE_MARKET,
+    #         quantity=float(data["quantity"])
+    #     )
+    #     print(order)
+    #
+    # def sell(self, data: Dict[str, str]):
+    #     order = self.client.create_test_order(
+    #         symbol=data["symbol"],
+    #         side=self.client.SIDE_SELL,
+    #         type=self.client.ORDER_TYPE_MARKET,
+    #         quantity=float(data["quantity"])
+    #     )
+    #     print(order)
 

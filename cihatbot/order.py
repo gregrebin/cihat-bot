@@ -63,6 +63,8 @@ class Parser:
 
     def parse(self, order_description: str) -> ExecutionOrder:
 
+        order_description = order_description.lstrip().rstrip()
+
         single_match = self.single_pattern.fullmatch(order_description)
         parallel_match = self.parallel_pattern.fullmatch(order_description)
         sequent_match = self.sequent_pattern.fullmatch(order_description)

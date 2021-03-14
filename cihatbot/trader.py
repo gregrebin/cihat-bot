@@ -1,11 +1,11 @@
 from cihatbot.module import Module
-from typing import Dict
+from cihatbot.events import Event
 
 
 class Trader(Module):
 
-    def connect(self, data: Dict[str, str]):
+    def connect(self, event: Event):
         pass
 
-    def execute(self, data: Dict[str, str]):
+    def execute(self, event: Event):
         pass

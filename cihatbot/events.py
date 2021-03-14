@@ -1,11 +1,11 @@
-from typing import Callable, List, Dict
+from typing import Callable, List, Dict, Any
 
 
 class Event:
 
-    def __init__(self, name: str, data: Dict[str, str]):
+    def __init__(self, name: str, data: Dict[str, Any]):
         self.name: str = name
-        self.data: Dict[str, str] = data
+        self.data: Dict[str, Any] = data
 
 
 class Listener:

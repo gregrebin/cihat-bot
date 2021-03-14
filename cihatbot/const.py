@@ -2,6 +2,7 @@ from cihatbot.ui import Ui
 from cihatbot.trader import Trader
 from cihatbot.traders.binance import Binance
 from cihatbot.uis.cli import Cli
+from cihatbot.events import Event
 from typing import Dict, Type, Callable, Any
 
 
@@ -16,13 +17,13 @@ TRADERS: Dict[str, Type[Trader]] = {
 }
 
 """ Events that can be emitted by ui, and the relative function on the trader """
-UI_EVENTS: Dict[str, Callable[[Trader, Dict[str, str]], None]] = {
-    "CONNECT": lambda trader, data: trader.connect(data),
-    "EXECUTE": lambda trader, data: trader.execute(data)
+UI_EVENTS: Dict[str, Callable[[Trader, Event], None]] = {
+    "CONNECT": lambda trader, event: trader.connect(event),
+    "EXECUTE": lambda trader, event: trader.execute(event)
 }
 
 """ Events that can be emitted by trader, and the relative function on the ui """
-TRADER_EVENTS: Dict[str, Callable[[Ui, Dict[str, str]], None]] = {
-    "BOUGHT": lambda ui, data: ui.bought(data),
-    "SOLD": lambda ui, data: ui.sold(data)
+TRADER_EVENTS: Dict[str, Callable[[Ui, Event], None]] = {
+    "BOUGHT": lambda ui, event: ui.bought(event),
+    "SOLD": lambda ui, event: ui.sold(event)
 }

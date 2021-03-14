@@ -1,11 +1,12 @@
 from cihatbot.module import Module
-from typing import Dict
+from cihatbot.events import Event
+from typing import Dict, Any
 
 
 class Ui(Module):
 
-    def bought(self, data: Dict[str, str]):
+    def bought(self, event: Event):
         pass
 
-    def sold(self, data: Dict[str, str]):
+    def sold(self, event: Event):
         pass
