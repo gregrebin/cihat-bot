@@ -10,7 +10,14 @@ class Binance(Trader):
         self.client = Client(api_key=config["api"], api_secret=config["secret"])
 
     def run(self):
-        print(self.client.ping())
+        print(self.client.get_system_status())
+
+    def connect(self, data: Dict[str, str]):
+        print("Connecting")
+        self.client = Client(api_key=data["user"], api_secret=data["password"])
+
+    def execute(self, data: Dict[str, str]):
+        print("Executing order: ", data["order"])
 
     def buy(self, data: Dict[str, str]):
         order = self.client.create_test_order(
