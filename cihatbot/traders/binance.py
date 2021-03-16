@@ -21,19 +21,11 @@ class Binance(Module):
         self.execution_order: ExecutionOrder = ExecutionOrder("empty")
         self.open_orders: List[SingleExecutionOrder] = []
 
-    def run(self) -> None:
-        while True:
-            try:
-                event = self.queue.get(block=False)
-            except Empty:
-                event = None
-            self.loop(event)
-
     def loop(self, event: Event) -> None:
         if event.name == Binance.CONNECT_EVENT:
             self.connect(event)
         elif event.name == Binance.EXECUTE_EVENT:
-            self.execute(event)
+            self.set_execute(event)
         else:
             self.submit()
             self.check()
@@ -41,7 +33,7 @@ class Binance(Module):
     def connect(self, event: Event):
         self.client = Client(api_key=event.data["user"], api_secret=event.data["password"])
 
-    def execute(self, event: Event):
+    def set_execute(self, event: Event):
         self.open_orders = []
         self.execution_order = event.data["order"]
 

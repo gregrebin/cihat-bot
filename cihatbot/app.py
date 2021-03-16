@@ -1,7 +1,21 @@
-from cihatbot.const import *
-from cihatbot.events import Listener, Event
+from cihatbot.module import Module
+from cihatbot.events import Event, UI_EVENTS, TRADER_EVENTS
+from cihatbot.uis.cli import Cli
+from cihatbot.traders.binance import Binance
 from configparser import ConfigParser
 from queue import Queue
+from typing import Type, Dict
+
+
+""" Concrete ui implementation classes """
+UIS: Dict[str, Type[Module]] = {
+    "cli": Cli
+}
+
+""" Concrete trader implementation classes """
+TRADERS: Dict[str, Type[Module]] = {
+    "binance": Binance
+}
 
 
 class Application:
@@ -12,7 +26,7 @@ class Application:
     2. Application receives the event, validates it, and places into apposite queue
     3. Trader or ui will retrieve a relative event.
 
-    List of valid events is specified in const.py file.
+    List of valid events is specified in events.py file.
     An event will have a name and some data.
 
     """
@@ -26,9 +40,6 @@ class Application:
         self.ui_events = Queue()
         self.trader_events = Queue()
 
-        self.ui_listener = Listener(self.ui_event_handler)
-        self.trader_listener = Listener(self.trader_event_handler)
-
         self.ui_class = UIS[ui_name]
         self.trader_class = TRADERS[trader_name]
 
@@ -38,8 +49,8 @@ class Application:
         self.ui: Module = self.ui_class(self.ui_config, self.trader_events)
         self.trader: Module = self.trader_class(self.trader_config, self.ui_events)
 
-        self.ui.on_event(self.ui_listener)
-        self.trader.on_event(self.trader_listener)
+        self.ui.on_event(self.ui_event_handler)
+        self.trader.on_event(self.trader_event_handler)
 
     def run(self):
 

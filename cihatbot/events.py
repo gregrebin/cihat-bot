@@ -1,4 +1,15 @@
-from typing import Callable, List, Dict, Any
+from typing import Dict, Any, Set
+
+
+UI_EVENTS: Dict[str, Set[str]] = {
+    "CONNECT": {"user", "password"},
+    "EXECUTE": {"order"}
+}
+
+TRADER_EVENTS: Dict[str, Set[str]] = {
+    "BOUGHT": set(),
+    "SOLD": set()
+}
 
 
 class Event:
@@ -8,27 +19,7 @@ class Event:
         self.data: Dict[str, Any] = data
 
 
-class Listener:
+class NoEvent(Event):
 
-    def __init__(self, handler: Callable[[Event], None]):
-        self.handler: Callable[[Event], None] = handler
-
-    def event(self, event: Event) -> None:
-        self.handler(event)
-
-
-class Emitter:
-
-    def __init__(self) -> None:
-        self.listeners: List[Listener] = []
-
-    def add_listener(self, listener: Listener):
-        self.listeners.append(listener)
-
-    def remove_listener(self, listener: Listener):
-        self.listeners.remove(listener)
-
-    def emit(self, event: Event) -> None:
-        for listener in self.listeners:
-            listener.event(event)
-
+    def __init__(self):
+        super().__init__("NONE", {})

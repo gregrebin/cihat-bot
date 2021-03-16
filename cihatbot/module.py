@@ -1,29 +1,34 @@
-from cihatbot.events import Listener, Emitter, Event
-from cihatbot.utils.execution_order import Parser, ExecutionOrder
+from cihatbot.events import Event, NoEvent
 from threading import Thread
 from queue import Queue, Empty
+from typing import List, Callable
 
 
 class Module(Thread):
 
     def __init__(self, config, queue) -> None:
         super().__init__()
-        self.emitter: Emitter = Emitter()
         self.config = config
         self.queue: Queue = queue
+        self.listeners: List[Callable[[Event], None]] = []
 
-    def on_event(self, listener: Listener) -> None:
-        self.emitter.add_listener(listener)
+    def on_event(self, listener: Callable[[Event], None]) -> None:
+        self.listeners.append(listener)
 
     def emit_event(self, event: Event) -> None:
-        self.emitter.emit(event)
+        for listener in self.listeners:
+            listener(event)
+
+    def receive_event(self) -> Event:
+        try:
+            event = self.queue.get(block=False)
+        except Empty:
+            event = NoEvent()
+        return event
 
     def run(self) -> None:
         while True:
-            try:
-                event = self.queue.get(block=False)
-            except Empty:
-                event = None
+            event = self.receive_event()
             self.loop(event)
 
     def loop(self, event: Event) -> None:
