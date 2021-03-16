@@ -24,7 +24,7 @@ class Cli(Ui):
 
     def run(self):
         cmd = input("cihatbot: ")
-        event = Cli._parse_cmd(cmd)
+        event = self._parse_cmd(cmd)
         if event:
             self.emit_event(event)
         else:

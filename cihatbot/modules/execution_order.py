@@ -4,8 +4,21 @@ from typing import List
 
 class ExecutionOrder:
 
+    CMD_BUY = "buy"
+    CMD_SELL = "sell"
+
     def __init__(self, order_type: str):
-        self.order_type = order_type
+        self.order_type: str = order_type
+        self.order_id: int = 0
+
+    def __str__(self):
+        return f"{self.order_type} order"
+
+
+class EmptyExecutionOrder(ExecutionOrder):
+
+    def __init__(self):
+        super().__init__("empty")
 
 
 class SingleExecutionOrder(ExecutionOrder):
@@ -13,10 +26,16 @@ class SingleExecutionOrder(ExecutionOrder):
     def __init__(self, command: str, symbol: str, price: float, quantity: float):
         super().__init__("single")
 
-        self.command = command
-        self.symbol = symbol
-        self.price = price
-        self.quantity = quantity
+        if command != ExecutionOrder.CMD_BUY or command != ExecutionOrder.CMD_SELL:
+            command = ExecutionOrder.CMD_BUY
+
+        self.command: str = command
+        self.symbol: str = symbol
+        self.price: float = price
+        self.quantity: float = quantity
+
+    def __str__(self):
+        return f"{super.__str__(self)}: {self.command} {self.symbol} {self.price} {self.quantity}"
 
 
 class MultipleExecutionOrder(ExecutionOrder):
@@ -25,6 +44,19 @@ class MultipleExecutionOrder(ExecutionOrder):
         super().__init__(order_type)
 
         self.orders = orders
+
+    def add_order(self, execution_order: ExecutionOrder):
+        self.orders.append(execution_order)
+
+    def remove_order(self, execution_order: ExecutionOrder):
+
+        for order in self.orders:
+
+            if order == execution_order:
+                self.orders.remove(order)
+
+            elif isinstance(order, MultipleExecutionOrder):
+                order.remove_order(execution_order)
 
 
 class ParallelExecutionOrder(MultipleExecutionOrder):
