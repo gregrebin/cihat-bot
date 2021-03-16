@@ -5,7 +5,9 @@ from cihatbot.utils.execution_order import \
 from binance.client import Client
 from typing import List
 from time import sleep
-from queue import Queue, Empty
+from queue import Queue
+from configparser import SectionProxy
+from threading import Event as ThreadEvent
 
 
 class Binance(Module):
@@ -15,8 +17,8 @@ class Binance(Module):
     CONNECT_EVENT = "CONNECT"
     EXECUTE_EVENT = "EXECUTE"
 
-    def __init__(self, config, queue: Queue):
-        super().__init__(config, queue)
+    def __init__(self, config: SectionProxy, queue: Queue, exit_event: ThreadEvent):
+        super().__init__(config, queue, exit_event)
         self.client: Client = Client(api_key=config["api"], api_secret=config["secret"])
         self.execution_order: ExecutionOrder = ExecutionOrder("empty")
         self.open_orders: List[SingleExecutionOrder] = []

@@ -1,15 +1,19 @@
 from cihatbot.module import Module
 from cihatbot.events import Event, UI_EVENTS, TRADER_EVENTS
 from cihatbot.uis.cli import Cli
+from cihatbot.uis.telegram import Telegram
 from cihatbot.traders.binance import Binance
-from configparser import ConfigParser
+from configparser import ConfigParser, SectionProxy
 from queue import Queue
 from typing import Type, Dict
+from threading import Event as ThreadEvent
+from signal import signal, SIGINT
 
 
 """ Concrete ui implementation classes """
 UIS: Dict[str, Type[Module]] = {
-    "cli": Cli
+    "cli": Cli,
+    "telegram": Telegram
 }
 
 """ Concrete trader implementation classes """
@@ -37,17 +41,20 @@ class Application:
         config = ConfigParser()
         config.read(config_file)
 
-        self.ui_events = Queue()
-        self.trader_events = Queue()
+        signal(SIGINT, self.exit)
+        self.exit_event = ThreadEvent()
 
-        self.ui_class = UIS[ui_name]
-        self.trader_class = TRADERS[trader_name]
+        self.ui_events: Queue = Queue()
+        self.trader_events: Queue = Queue()
 
-        self.ui_config = config[ui_name]
-        self.trader_config = config[trader_name]
+        self.ui_class: Type[Module] = UIS[ui_name]
+        self.trader_class: Type[Module] = TRADERS[trader_name]
 
-        self.ui: Module = self.ui_class(self.ui_config, self.trader_events)
-        self.trader: Module = self.trader_class(self.trader_config, self.ui_events)
+        self.ui_config: SectionProxy = config[ui_name]
+        self.trader_config: SectionProxy = config[trader_name]
+
+        self.ui: Module = self.ui_class(self.ui_config, self.trader_events, self.exit_event)
+        self.trader: Module = self.trader_class(self.trader_config, self.ui_events, self.exit_event)
 
         self.ui.on_event(self.ui_event_handler)
         self.trader.on_event(self.trader_event_handler)
@@ -59,6 +66,9 @@ class Application:
 
         self.ui.join()
         self.trader.join()
+
+    def exit(self, signum, frame):
+        self.exit_event.set()
 
     def ui_event_handler(self, ui_event: Event) -> None:
         if ui_event.name in UI_EVENTS:

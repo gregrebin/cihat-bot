@@ -2,6 +2,7 @@ from cihatbot.events import Event
 from cihatbot.module import Module
 from cihatbot.utils.execution_order import Parser
 from queue import Queue
+from threading import Event as ThreadEvent
 
 
 class Cli(Module):
@@ -9,8 +10,8 @@ class Cli(Module):
     BOUGHT_EVENT = "BOUGHT"
     SOLD_EVENT = "SOLD"
 
-    def __init__(self, config, queue: Queue):
-        super().__init__(config, queue)
+    def __init__(self, config, queue: Queue, exit_event: ThreadEvent):
+        super().__init__(config, queue, exit_event)
         self.parser: Parser = Parser()
 
     def loop(self, event: Event):

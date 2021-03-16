@@ -4,7 +4,7 @@ import asyncio
 
 print("Starting Cihat-traders")
 
-application = Application("cli", "binance", "cihatbot.cfg")
+application = Application("telegram", "binance", "cihatbot.cfg")
 application.run()
 
 
