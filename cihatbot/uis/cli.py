@@ -1,11 +1,39 @@
 from cihatbot.events import Event
-from cihatbot.modules.ui import Ui
+from cihatbot.module import Module
+from cihatbot.utils.execution_order import Parser
+from queue import Queue
 
 
-class Cli(Ui):
+class Cli(Module):
 
-    def __init__(self, config):
-        super().__init__(config)
+    BOUGHT_EVENT = "BOUGHT"
+    SOLD_EVENT = "SOLD"
+
+    def __init__(self, config, queue: Queue):
+        super().__init__(config, queue)
+        self.parser: Parser = Parser()
+
+    def loop(self, event: Event):
+        if event.name == Cli.BOUGHT_EVENT:
+            self.bought(event)
+        elif event.name == Cli.SOLD_EVENT:
+            self.sold(event)
+        else:
+            self.pull()
+
+    def pull(self):
+        cmd = input("cihatbot: ")
+        event = self._parse_cmd(cmd)
+        if event:
+            self.emit_event(event)
+        else:
+            print("Invalid command")
+
+    def bought(self, event: Event):
+        print("bought")
+
+    def sold(self, event: Event):
+        print("sold")
 
     def _parse_cmd(self, cmd: str) -> Event:
 
@@ -21,17 +49,3 @@ class Cli(Ui):
             return Event("EXECUTE", {
                 "order": order
             })
-
-    def run(self):
-        cmd = input("cihatbot: ")
-        event = self._parse_cmd(cmd)
-        if event:
-            self.emit_event(event)
-        else:
-            print("Invalid command")
-
-    def bought(self, event: Event):
-        print("bought")
-
-    def sold(self, event: Event):
-        print("sold")

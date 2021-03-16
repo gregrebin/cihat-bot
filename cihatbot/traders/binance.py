@@ -1,22 +1,42 @@
 from cihatbot.events import Event
-from cihatbot.modules.trader import Trader
-from cihatbot.modules.execution_order import \
+from cihatbot.module import Module
+from cihatbot.utils.execution_order import \
     ExecutionOrder, EmptyExecutionOrder, SingleExecutionOrder, MultipleExecutionOrder, ParallelExecutionOrder, SequentExecutionOrder
 from binance.client import Client
 from typing import List
 from time import sleep
+from queue import Queue, Empty
 
 
-class Binance(Trader):
+class Binance(Module):
 
     ORDER_TIME = 0.5
     QUERY_TIME = 0.005
+    CONNECT_EVENT = "CONNECT"
+    EXECUTE_EVENT = "EXECUTE"
 
-    def __init__(self, config):
-        super().__init__(config)
+    def __init__(self, config, queue: Queue):
+        super().__init__(config, queue)
         self.client: Client = Client(api_key=config["api"], api_secret=config["secret"])
         self.execution_order: ExecutionOrder = ExecutionOrder("empty")
         self.open_orders: List[SingleExecutionOrder] = []
+
+    def run(self) -> None:
+        while True:
+            try:
+                event = self.queue.get(block=False)
+            except Empty:
+                event = None
+            self.loop(event)
+
+    def loop(self, event: Event) -> None:
+        if event.name == Binance.CONNECT_EVENT:
+            self.connect(event)
+        elif event.name == Binance.EXECUTE_EVENT:
+            self.execute(event)
+        else:
+            self.submit()
+            self.check()
 
     def connect(self, event: Event):
         self.client = Client(api_key=event.data["user"], api_secret=event.data["password"])
@@ -25,8 +45,10 @@ class Binance(Trader):
         self.open_orders = []
         self.execution_order = event.data["order"]
 
-    def run(self):
+    def submit(self):
         self._submit_order(self.execution_order)
+
+    def check(self):
         for order in self.open_orders:
             self._check_order(order)
 
