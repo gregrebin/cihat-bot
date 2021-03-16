@@ -29,10 +29,18 @@ class Module(Thread):
             event = NoEvent()
         return event
 
+    def pre_run(self) -> None:
+        pass
+
     def run(self) -> None:
+        self.pre_run()
         while not self.exit_event.isSet():
             event = self.receive_event()
             self.loop(event)
+        self.post_run()
 
     def loop(self, event: Event) -> None:
+        pass
+
+    def post_run(self):
         pass
