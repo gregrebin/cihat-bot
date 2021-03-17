@@ -1,10 +1,13 @@
 from cihatbot.app import Application
-import asyncio
 
 
-print("Starting Cihat-traders")
+def main():
+    print("Starting Cihat-traders")
 
-application = Application("telegram", "binance", "cihatbot.cfg")
-application.run()
+    application = Application("telegram", "binance", "cihatbot.cfg")
+    application.run()
 
+
+if __name__ == '__main__':
+    main()
 

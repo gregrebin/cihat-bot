@@ -1,18 +1,45 @@
+from __future__ import annotations
+from typing import List, Callable
 import re
-from typing import List
 
 
-class ExecutionOrder:
+class ExecutionParams:
 
     CMD_BUY = "buy"
     CMD_SELL = "sell"
 
+    def __init__(self, command: str, symbol: str, price: float, quantity: float) -> None:
+
+        if not (command == ExecutionParams.CMD_BUY or command == ExecutionParams.CMD_SELL):
+            command = ExecutionParams.CMD_BUY
+
+        self.command: str = command
+        self.symbol: str = symbol
+        self.price: float = price
+        self.quantity: float = quantity
+
+
+class ExecutionOrder:
+
     def __init__(self, order_type: str):
         self.order_type: str = order_type
         self.order_id: int = 0
+        self.filled: float = False
 
     def __str__(self):
         return f"{self.order_type} order"
+
+    def execute(self, execute_function: Callable[[SingleExecutionOrder], None]):
+        pass
+
+    def add_parallel(self, execution_order: ExecutionOrder) -> ExecutionOrder:
+        return ParallelExecutionOrder([execution_order])
+
+    def add_sequential(self, execution_order: ExecutionOrder) -> ExecutionOrder:
+        return SequentExecutionOrder([execution_order])
+
+    def remove(self, execution_order: ExecutionOrder) -> ExecutionOrder:
+        return EmptyExecutionOrder()
 
 
 class EmptyExecutionOrder(ExecutionOrder):
@@ -23,19 +50,30 @@ class EmptyExecutionOrder(ExecutionOrder):
 
 class SingleExecutionOrder(ExecutionOrder):
 
-    def __init__(self, command: str, symbol: str, price: float, quantity: float):
+    def __init__(self, execution_params: ExecutionParams):
         super().__init__("single")
 
-        if command != ExecutionOrder.CMD_BUY or command != ExecutionOrder.CMD_SELL:
-            command = ExecutionOrder.CMD_BUY
-
-        self.command: str = command
-        self.symbol: str = symbol
-        self.price: float = price
-        self.quantity: float = quantity
+        self.params: ExecutionParams = execution_params
 
     def __str__(self):
-        return f"{super.__str__(self)}: {self.command} {self.symbol} {self.price} {self.quantity}"
+        return f"{super.__str__(self)}: {self.params.command} {self.params.symbol} {self.params.price} {self.params.quantity}"
+
+    def execute(self, execute_function: Callable[[SingleExecutionOrder], None]):
+        if not self.filled:
+            execute_function(self)
+            self.filled = True
+
+    def add_parallel(self, execution_order: ExecutionOrder) -> ExecutionOrder:
+        return ParallelExecutionOrder([self, execution_order])
+
+    def add_sequential(self, execution_order: ExecutionOrder) -> ExecutionOrder:
+        return SequentExecutionOrder([self, execution_order])
+
+    def remove(self, execution_order: ExecutionOrder) -> ExecutionOrder:
+        if self == execution_order:
+            return EmptyExecutionOrder()
+        else:
+            return self
 
 
 class MultipleExecutionOrder(ExecutionOrder):
@@ -45,18 +83,26 @@ class MultipleExecutionOrder(ExecutionOrder):
 
         self.orders = orders
 
-    def add_order(self, execution_order: ExecutionOrder):
-        self.orders.append(execution_order)
-
-    def remove_order(self, execution_order: ExecutionOrder):
-
+    def _check_filled(self):
         for order in self.orders:
+            if not order.filled:
+                return
+        self.filled = True
 
-            if order == execution_order:
-                self.orders.remove(order)
+    def remove(self, execution_order: ExecutionOrder) -> ExecutionOrder:
 
-            elif isinstance(order, MultipleExecutionOrder):
-                order.remove_order(execution_order)
+        if self == execution_order:
+            return EmptyExecutionOrder()
+
+        for index in range(len(self.orders)):
+            order = self.orders[index].remove(execution_order)
+
+            if isinstance(order, EmptyExecutionOrder):
+                self.orders.pop(index)
+            else:
+                self.orders[index] = order
+
+        return self
 
 
 class ParallelExecutionOrder(MultipleExecutionOrder):
@@ -64,11 +110,37 @@ class ParallelExecutionOrder(MultipleExecutionOrder):
     def __init__(self, orders: List[ExecutionOrder]):
         super().__init__("parallel", orders)
 
+    def execute(self, execute_function: Callable[[SingleExecutionOrder], None]):
+        for order in self.orders:
+            order.execute(execute_function)
+        self._check_filled()
+
+    def add_parallel(self, execution_order: ExecutionOrder) -> ExecutionOrder:
+        self.orders.append(execution_order)
+        return self
+
+    def add_sequential(self, execution_order: ExecutionOrder) -> ExecutionOrder:
+        return SequentExecutionOrder([self, execution_order])
+
 
 class SequentExecutionOrder(MultipleExecutionOrder):
 
     def __init__(self, orders: List[ExecutionOrder]):
         super().__init__("sequent", orders)
+
+    def execute(self, execute_function: Callable[[SingleExecutionOrder], None]):
+        for order in self.orders:
+            if not order.filled:
+                order.execute(execute_function)
+                break
+        self._check_filled()
+
+    def add_parallel(self, execution_order: ExecutionOrder) -> ExecutionOrder:
+        return ParallelExecutionOrder([self, execution_order])
+
+    def add_sequential(self, execution_order: ExecutionOrder) -> ExecutionOrder:
+        self.orders.append(execution_order)
+        return self
 
 
 class Parser:
@@ -103,10 +175,12 @@ class Parser:
 
         if single_match:
             return SingleExecutionOrder(
-                single_match.group("command"),
-                single_match.group("symbol"),
-                float(single_match.group("price")),
-                float(single_match.group("quantity"))
+                ExecutionParams(
+                    single_match.group("command"),
+                    single_match.group("symbol"),
+                    float(single_match.group("price")),
+                    float(single_match.group("quantity"))
+                )
             )
 
         elif parallel_match:

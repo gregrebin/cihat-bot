@@ -1,7 +1,7 @@
 from cihatbot.events import Event
 from cihatbot.module import Module
 from cihatbot.utils.execution_order import \
-    ExecutionOrder, EmptyExecutionOrder, SingleExecutionOrder, MultipleExecutionOrder, ParallelExecutionOrder, SequentExecutionOrder
+    ExecutionOrder, EmptyExecutionOrder, SingleExecutionOrder, ExecutionParams
 from binance.client import Client
 from typing import List
 from time import sleep
@@ -20,7 +20,7 @@ class Binance(Module):
     def __init__(self, config: SectionProxy, queue: Queue, exit_event: ThreadEvent):
         super().__init__(config, queue, exit_event)
         self.client: Client = Client(api_key=config["api"], api_secret=config["secret"])
-        self.execution_order: ExecutionOrder = ExecutionOrder("empty")
+        self.execution_order: ExecutionOrder = EmptyExecutionOrder()
         self.open_orders: List[SingleExecutionOrder] = []
 
     def loop(self, event: Event) -> None:
@@ -29,7 +29,7 @@ class Binance(Module):
         elif event.name == Binance.EXECUTE_EVENT:
             self.set_execute(event)
         else:
-            self.submit()
+            self.execute()
             self.check()
 
     def connect(self, event: Event):
@@ -39,38 +39,25 @@ class Binance(Module):
         self.open_orders = []
         self.execution_order = event.data["order"]
 
-    def submit(self):
-        self._submit_order(self.execution_order)
+    def execute(self):
+        self.execution_order.execute(self._execute_order)
 
     def check(self):
         for order in self.open_orders:
             self._check_order(order)
 
-    def _submit_order(self, execution_order: ExecutionOrder):
+    def _execute_order(self, execution_order: SingleExecutionOrder):
 
-        if isinstance(execution_order, SingleExecutionOrder):
-            self._exec_submit_order(execution_order)
-
-        elif isinstance(execution_order, ParallelExecutionOrder):
-            for order in execution_order.orders:
-                self._submit_order(order)
-
-        elif isinstance(execution_order, SequentExecutionOrder):
-            self._submit_order(execution_order.orders[0])
-
-    def _exec_submit_order(self, execution_order: SingleExecutionOrder):
-
-        if execution_order in self.open_orders:
-            return
+        execution_params = execution_order.params
 
         side = self.client.SIDE_BUY
-        if execution_order.command == ExecutionOrder.CMD_SELL:
+        if execution_params.command == ExecutionParams.CMD_SELL:
             side = self.client.SIDE_SELL
 
         binance_order = self.client.create_order(
-            symbol=execution_order.symbol,
-            quantity=execution_order.quantity,
-            price=execution_order.price,
+            symbol=execution_params.symbol,
+            quantity=execution_params.quantity,
+            price=execution_params.price,
             side=side,
             type=self.client.ORDER_TYPE_LIMIT,
             timeInForce=self.client.TIME_IN_FORCE_GTC
@@ -84,24 +71,15 @@ class Binance(Module):
     def _check_order(self, execution_order: SingleExecutionOrder):
 
         binance_order = self.client.get_order(
-            symbol=execution_order.symbol,
+            symbol=execution_order.params.symbol,
             orderId=execution_order.order_id
         )
 
         if binance_order["status"] == self.client.ORDER_STATUS_FILLED:
-            self._fill_order(execution_order)
+            self.execution_order.remove(execution_order)
 
         sleep(Binance.QUERY_TIME)
 
-    def _fill_order(self, execution_order: SingleExecutionOrder):
-
-        if isinstance(self.execution_order, SingleExecutionOrder) and self.execution_order == execution_order:
-            self.execution_order = EmptyExecutionOrder()
-
-        elif isinstance(self.execution_order, MultipleExecutionOrder):
-            self.execution_order.remove_order(execution_order)
-
-        self.open_orders.remove(execution_order)
 
 
 

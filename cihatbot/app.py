@@ -7,7 +7,7 @@ from configparser import ConfigParser, SectionProxy
 from queue import Queue
 from typing import Type, Dict
 from threading import Event as ThreadEvent
-from signal import signal, SIGINT
+from signal import signal, SIGINT, SIGTERM
 
 
 """ Concrete ui implementation classes """
@@ -41,8 +41,9 @@ class Application:
         config = ConfigParser()
         config.read(config_file)
 
-        signal(SIGINT, self.exit)
         self.exit_event = ThreadEvent()
+        signal(SIGINT, self.exit)
+        signal(SIGTERM, self.exit)
 
         self.ui_events: Queue = Queue()
         self.trader_events: Queue = Queue()
