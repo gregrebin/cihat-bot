@@ -35,7 +35,7 @@ class ExecutionOrder:
     def __str__(self):
         return f"{self.order_type} order"
 
-    def execute(self, execute_function: Callable[[SingleExecutionOrder], None]):
+    def execute(self, execute_function: Callable[[SingleExecutionOrder], bool]):
         pass
 
     def add_parallel(self, execution_order: ExecutionOrder) -> ExecutionOrder:
@@ -67,10 +67,10 @@ class SingleExecutionOrder(ExecutionOrder):
     def __str__(self):
         return f"{super.__str__(self)}: {self.params.command} {self.params.symbol} {self.params.price} {self.params.quantity}"
 
-    def execute(self, execute_function: Callable[[SingleExecutionOrder], None]):
+    def execute(self, execute_function: Callable[[SingleExecutionOrder], bool]):
         if not self.filled:
-            execute_function(self)
-            self.filled = True
+            success = execute_function(self)
+            self.filled = success
 
     def add_parallel(self, execution_order: ExecutionOrder) -> ExecutionOrder:
         return ParallelExecutionOrder([self, execution_order])
@@ -119,7 +119,7 @@ class ParallelExecutionOrder(MultipleExecutionOrder):
     def __init__(self, orders: List[ExecutionOrder]):
         super().__init__("parallel", orders)
 
-    def execute(self, execute_function: Callable[[SingleExecutionOrder], None]):
+    def execute(self, execute_function: Callable[[SingleExecutionOrder], bool]):
         for order in self.orders:
             order.execute(execute_function)
         self._check_filled()
@@ -137,7 +137,7 @@ class SequentExecutionOrder(MultipleExecutionOrder):
     def __init__(self, orders: List[ExecutionOrder]):
         super().__init__("sequent", orders)
 
-    def execute(self, execute_function: Callable[[SingleExecutionOrder], None]):
+    def execute(self, execute_function: Callable[[SingleExecutionOrder], bool]):
         for order in self.orders:
             if not order.filled:
                 order.execute(execute_function)

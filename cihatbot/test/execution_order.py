@@ -1,4 +1,5 @@
-from cihatbot.utils.execution_order import Parser, SingleExecutionOrder, ExecutionParams
+from cihatbot.utils.execution_order import Parser, SingleExecutionOrder, ExecutionParams, ExecutionConditions
+import time
 
 
 class ExecutionOrderTest:
@@ -13,15 +14,20 @@ class ExecutionOrderTest:
         print("Initialized order:", self.order)
 
     def test_execute(self):
-        self.order.execute(lambda order: print("Executing single order", order))
+        def execute_func(order: SingleExecutionOrder):
+            print("Executing single order", order)
+            return True
+        self.order.execute(execute_func)
         print("Order after execution:", self.order)
 
     def test_add(self):
         to_add_par = SingleExecutionOrder(
-            ExecutionParams("buy", "BTCBUSD", 60000.0, 1)
+            ExecutionParams("buy", "BTCBUSD", 60000.0, 1),
+            ExecutionConditions(time.time())
         )
         to_add_seq = SingleExecutionOrder(
-            ExecutionParams("sell", "BTCBUSD", 80000.0, 1)
+            ExecutionParams("sell", "BTCBUSD", 80000.0, 1),
+            ExecutionConditions(time.time())
         )
         self.order = self.order.add_parallel(to_add_par)
         self.order = self.order.add_sequential(to_add_seq)

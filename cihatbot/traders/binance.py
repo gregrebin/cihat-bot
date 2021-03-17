@@ -46,13 +46,13 @@ class Binance(Module):
         for order in self.open_orders:
             self._check_order(order)
 
-    def _execute_order(self, execution_order: SingleExecutionOrder) -> None:
+    def _execute_order(self, execution_order: SingleExecutionOrder) -> bool:
 
         execution_params = execution_order.params
         execution_conditions = execution_order.conditions
 
         if not self._satisfies_conditions(execution_conditions):
-            return
+            return False
 
         side = self.client.SIDE_BUY
         if execution_params.command == ExecutionParams.CMD_SELL:
@@ -71,6 +71,7 @@ class Binance(Module):
         self.open_orders.append(execution_order)
 
         sleep(Binance.ORDER_TIME)
+        return True
 
     def _satisfies_conditions(self, execution_conditions: ExecutionConditions) -> bool:
         return time() >= execution_conditions.from_time
