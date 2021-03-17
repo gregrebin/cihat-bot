@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import List, Callable
 import re
+import time
 
 
 class ExecutionParams:
@@ -19,11 +20,16 @@ class ExecutionParams:
         self.quantity: float = quantity
 
 
+class ExecutionConditions:
+
+    def __init__(self, from_time: float):
+        self.from_time: float = from_time
+
+
 class ExecutionOrder:
 
     def __init__(self, order_type: str):
         self.order_type: str = order_type
-        self.order_id: int = 0
         self.filled: float = False
 
     def __str__(self):
@@ -50,10 +56,13 @@ class EmptyExecutionOrder(ExecutionOrder):
 
 class SingleExecutionOrder(ExecutionOrder):
 
-    def __init__(self, execution_params: ExecutionParams):
+    def __init__(self, execution_params: ExecutionParams, execution_conditions: ExecutionConditions):
         super().__init__("single")
 
         self.params: ExecutionParams = execution_params
+        self.conditions: ExecutionConditions = execution_conditions
+
+        self.order_id: int = 0
 
     def __str__(self):
         return f"{super.__str__(self)}: {self.params.command} {self.params.symbol} {self.params.price} {self.params.quantity}"
@@ -180,6 +189,9 @@ class Parser:
                     single_match.group("symbol"),
                     float(single_match.group("price")),
                     float(single_match.group("quantity"))
+                ),
+                ExecutionConditions(
+                    time.time()
                 )
             )
 

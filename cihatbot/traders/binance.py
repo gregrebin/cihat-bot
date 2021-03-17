@@ -1,10 +1,10 @@
 from cihatbot.events import Event
 from cihatbot.module import Module
 from cihatbot.utils.execution_order import \
-    ExecutionOrder, EmptyExecutionOrder, SingleExecutionOrder, ExecutionParams
+    ExecutionOrder, EmptyExecutionOrder, SingleExecutionOrder, ExecutionParams, ExecutionConditions
 from binance.client import Client
 from typing import List
-from time import sleep
+from time import sleep, time
 from queue import Queue
 from configparser import SectionProxy
 from threading import Event as ThreadEvent
@@ -12,12 +12,12 @@ from threading import Event as ThreadEvent
 
 class Binance(Module):
 
-    ORDER_TIME = 0.5
-    QUERY_TIME = 0.005
-    CONNECT_EVENT = "CONNECT"
-    EXECUTE_EVENT = "EXECUTE"
+    ORDER_TIME: float = 0.5
+    QUERY_TIME: float = 0.005
+    CONNECT_EVENT: str = "CONNECT"
+    EXECUTE_EVENT: str = "EXECUTE"
 
-    def __init__(self, config: SectionProxy, queue: Queue, exit_event: ThreadEvent):
+    def __init__(self, config: SectionProxy, queue: Queue, exit_event: ThreadEvent) -> None:
         super().__init__(config, queue, exit_event)
         self.client: Client = Client(api_key=config["api"], api_secret=config["secret"])
         self.execution_order: ExecutionOrder = EmptyExecutionOrder()
@@ -32,23 +32,27 @@ class Binance(Module):
             self.execute()
             self.check()
 
-    def connect(self, event: Event):
+    def connect(self, event: Event) -> None:
         self.client = Client(api_key=event.data["user"], api_secret=event.data["password"])
 
-    def set_execute(self, event: Event):
+    def set_execute(self, event: Event) -> None:
         self.open_orders = []
         self.execution_order = event.data["order"]
 
-    def execute(self):
+    def execute(self) -> None:
         self.execution_order.execute(self._execute_order)
 
-    def check(self):
+    def check(self) -> None:
         for order in self.open_orders:
             self._check_order(order)
 
-    def _execute_order(self, execution_order: SingleExecutionOrder):
+    def _execute_order(self, execution_order: SingleExecutionOrder) -> None:
 
         execution_params = execution_order.params
+        execution_conditions = execution_order.conditions
+
+        if not self._satisfies_conditions(execution_conditions):
+            return
 
         side = self.client.SIDE_BUY
         if execution_params.command == ExecutionParams.CMD_SELL:
@@ -68,7 +72,10 @@ class Binance(Module):
 
         sleep(Binance.ORDER_TIME)
 
-    def _check_order(self, execution_order: SingleExecutionOrder):
+    def _satisfies_conditions(self, execution_conditions: ExecutionConditions) -> bool:
+        return time() >= execution_conditions.from_time
+
+    def _check_order(self, execution_order: SingleExecutionOrder) -> None:
 
         binance_order = self.client.get_order(
             symbol=execution_order.params.symbol,
