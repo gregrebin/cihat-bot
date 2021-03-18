@@ -30,10 +30,10 @@ class ExecutionOrder:
 
     def __init__(self, order_type: str):
         self.order_type: str = order_type
-        self.filled: float = False
+        self.executed: float = False
 
     def __str__(self):
-        return f"{self.order_type} order"
+        return f'''{self.order_type} order'''
 
     def execute(self, execute_function: Callable[[SingleExecutionOrder], bool]):
         pass
@@ -65,12 +65,12 @@ class SingleExecutionOrder(ExecutionOrder):
         self.order_id: int = 0
 
     def __str__(self):
-        return f"{self.params.command} {self.params.symbol} {self.params.price} {self.params.quantity}"
+        return f'''{self.params.command} {self.params.symbol} {self.params.price} {self.params.quantity}'''
 
     def execute(self, execute_function: Callable[[SingleExecutionOrder], bool]):
-        if not self.filled:
+        if not self.executed:
             success = execute_function(self)
-            self.filled = success
+            self.executed = success
 
     def add_parallel(self, execution_order: ExecutionOrder) -> ExecutionOrder:
         return ParallelExecutionOrder([self, execution_order])
@@ -93,13 +93,13 @@ class MultipleExecutionOrder(ExecutionOrder):
         self.orders = orders
 
     def __str__(self):
-        return f"[{self.order_type} {', '.join([str(order) for order in self.orders])}]"
+        return f'''[{self.order_type} {', '.join([str(order) for order in self.orders])}]'''
 
-    def _check_filled(self):
+    def _check_executed(self):
         for order in self.orders:
-            if not order.filled:
+            if not order.executed:
                 return
-        self.filled = True
+        self.executed = True
 
     def remove(self, execution_order: ExecutionOrder) -> ExecutionOrder:
 
@@ -125,7 +125,7 @@ class ParallelExecutionOrder(MultipleExecutionOrder):
     def execute(self, execute_function: Callable[[SingleExecutionOrder], bool]):
         for order in self.orders:
             order.execute(execute_function)
-        self._check_filled()
+        self._check_executed()
 
     def add_parallel(self, execution_order: ExecutionOrder) -> ExecutionOrder:
         self.orders.append(execution_order)
@@ -142,10 +142,10 @@ class SequentExecutionOrder(MultipleExecutionOrder):
 
     def execute(self, execute_function: Callable[[SingleExecutionOrder], bool]):
         for order in self.orders:
-            if not order.filled:
+            if not order.executed:
                 order.execute(execute_function)
                 break
-        self._check_filled()
+        self._check_executed()
 
     def add_parallel(self, execution_order: ExecutionOrder) -> ExecutionOrder:
         return ParallelExecutionOrder([self, execution_order])

@@ -8,6 +8,7 @@ UI_EVENTS: Dict[str, Set[str]] = {
 
 TRADER_EVENTS: Dict[str, Set[str]] = {
     "FILLED": {"single_order"},
+    "REJECTED": {"all", "single"}
 }
 
 

@@ -29,6 +29,7 @@ class Telegram(Module):
     BUY_COMMAND = "comprare"
     SELL_COMMAND = "vendere"
     FILLED_EVENT = "FILLED"
+    REJECTED_EVENT = "REJECTED"
 
     command = re.compile("^(?P<datetime>(\d\d\.\d\d\.\d\d\d\d \d\d:\d\d )?)(?P<sequent_actions>.+)$")
     datetime = re.compile("^(?P<day>\d\d)\.(?P<month>\d\d)\.(?P<year>\d\d\d\d) (?P<hour>\d\d):(?P<minute>\d\d)$")
@@ -61,7 +62,9 @@ class Telegram(Module):
 
     def loop(self, event: Event) -> None:
         if event.name == Telegram.FILLED_EVENT:
-            self.updater.bot.send_message(self.chat_id, str(event.data["single_order"]))
+            self._send_message(str(event.data["single_order"]))
+        elif event.name == Telegram.REJECTED_EVENT:
+            self._send_message(f'''Rejected order: {event.data["single"]}\nRemaining: {event.data["all"]}''')
 
     def start_chat_handler(self, update: Update, _: CallbackContext) -> None:
         if not self.chat_id:
@@ -81,8 +84,8 @@ class Telegram(Module):
 
         try:
             order = Telegram._make_sequent_order(all_actions, datetime)
-        except InvalidCommand:
-            self._send_message("Invalid command")
+        except InvalidCommand as invalid_command:
+            self._send_message(f'''Invalid command: {invalid_command.command}''')
             return
 
         self.emit_event(Event("EXECUTE", {
@@ -132,7 +135,7 @@ class Telegram(Module):
         elif short_left_match:
             return Telegram._from_short_left(short_left_match, first, datetime)
         else:
-            raise InvalidCommand
+            raise InvalidCommand(action)
 
     @staticmethod
     def _from_right(match: re.Match, datetime: float) -> SingleExecutionOrder:
@@ -200,4 +203,5 @@ class Telegram(Module):
 
 
 class InvalidCommand(Exception):
-    pass
+    def __init__(self, command: str):
+        self.command = command

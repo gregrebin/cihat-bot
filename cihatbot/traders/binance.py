@@ -3,6 +3,7 @@ from cihatbot.module import Module
 from cihatbot.utils.execution_order import \
     ExecutionOrder, EmptyExecutionOrder, SingleExecutionOrder, ExecutionParams, ExecutionConditions
 from binance.client import Client
+from binance.exceptions import BinanceOrderException
 from typing import List
 from time import sleep, time
 from queue import Queue
@@ -34,13 +35,18 @@ class Binance(Module):
 
     def connect(self, event: Event) -> None:
         self.client = Client(api_key=event.data["user"], api_secret=event.data["password"])
+        self._clean()
 
     def set_execute(self, event: Event) -> None:
-        self.open_orders = []
         self.execution_order = event.data["order"]
+        self.open_orders = []
 
     def execute(self) -> None:
-        self.execution_order.execute(self._execute_order)
+        try:
+            self.execution_order.execute(self._execute_order)
+        except RejectedOrder as rejected_order:
+            self.emit_event(Event("REJECTED", {"all": self.execution_order, "single": rejected_order.order}))
+            self._clean()
 
     def check(self) -> None:
         for order in self.open_orders:
@@ -60,14 +66,17 @@ class Binance(Module):
         if execution_params.command == ExecutionParams.CMD_SELL:
             side = self.client.SIDE_SELL
 
-        binance_order = self.client.create_order(
-            symbol=execution_params.symbol,
-            quantity=execution_params.quantity,
-            price=execution_params.price,
-            side=side,
-            type=self.client.ORDER_TYPE_LIMIT,
-            timeInForce=self.client.TIME_IN_FORCE_GTC
-        )
+        try:
+            binance_order = self.client.create_order(
+                symbol=execution_params.symbol,
+                quantity=execution_params.quantity,
+                price=execution_params.price,
+                side=side,
+                type=self.client.ORDER_TYPE_LIMIT,
+                timeInForce=self.client.TIME_IN_FORCE_GTC
+            )
+        except BinanceOrderException:
+            raise RejectedOrder(execution_order)
 
         execution_order.order_id = binance_order["orderId"]
         self.open_orders.append(execution_order)
@@ -92,6 +101,14 @@ class Binance(Module):
         sleep(Binance.QUERY_TIME)
         return filled
 
+    def _clean(self):
+        self.execution_order = EmptyExecutionOrder()
+        self.open_orders = []
+
+
+class RejectedOrder(Exception):
+    def __init__(self, order: SingleExecutionOrder):
+        self.order = order
 
 
 
