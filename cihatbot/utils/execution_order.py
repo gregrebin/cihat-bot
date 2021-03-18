@@ -1,7 +1,5 @@
 from __future__ import annotations
 from typing import List, Callable
-import re
-import time
 
 
 class ExecutionParams:
@@ -33,7 +31,7 @@ class ExecutionOrder:
         self.executed: float = False
 
     def __str__(self):
-        return f'''{self.order_type} order'''
+        return f"""{self.order_type} order"""
 
     def execute(self, execute_function: Callable[[SingleExecutionOrder], bool]):
         pass
@@ -65,7 +63,7 @@ class SingleExecutionOrder(ExecutionOrder):
         self.order_id: int = 0
 
     def __str__(self):
-        return f'''{self.params.command} {self.params.symbol} {self.params.price} {self.params.quantity}'''
+        return f"""{self.params.command} {self.params.symbol} {self.params.price} {self.params.quantity}"""
 
     def execute(self, execute_function: Callable[[SingleExecutionOrder], bool]):
         if not self.executed:
@@ -93,7 +91,7 @@ class MultipleExecutionOrder(ExecutionOrder):
         self.orders = orders
 
     def __str__(self):
-        return f'''[{self.order_type} {', '.join([str(order) for order in self.orders])}]'''
+        return f"""[{self.order_type} {', '.join([str(order) for order in self.orders])}]"""
 
     def _check_executed(self):
         for order in self.orders:
@@ -153,66 +151,6 @@ class SequentExecutionOrder(MultipleExecutionOrder):
     def add_sequential(self, execution_order: ExecutionOrder) -> ExecutionOrder:
         self.orders.append(execution_order)
         return self
-
-
-class Parser:
-
-    single_pattern = re.compile("(?P<command>buy|sell) (?P<symbol>[A-Z]+) (?P<price>[0-9]+[.][0-9]+) (?P<quantity>[0-9]+[.][0-9]+)")
-    parallel_pattern = re.compile("\[p (?P<list>[A-Za-z0-9., \[\]]*)\]")
-    sequent_pattern = re.compile("\[s (?P<list>[A-Za-z0-9., \[\]]*)\]")
-
-    @staticmethod
-    def _split_order_list(order_list: str) -> List[str]:
-        parenthesis = 0
-        start = 0
-        result_list = []
-        for char in range(len(order_list)):
-            if order_list[char] == "," and parenthesis == 0:
-                result_list.append(order_list[start:char].lstrip().rstrip())
-                start = char + 1
-            elif order_list[char] == "[":
-                parenthesis += 1
-            elif order_list[char] == "]":
-                parenthesis -= 1
-        result_list.append(order_list[start:len(order_list)].lstrip().rstrip())
-        return result_list
-
-    def parse(self, order_description: str) -> ExecutionOrder:
-
-        order_description = order_description.lstrip().rstrip()
-
-        single_match = self.single_pattern.fullmatch(order_description)
-        parallel_match = self.parallel_pattern.fullmatch(order_description)
-        sequent_match = self.sequent_pattern.fullmatch(order_description)
-
-        if single_match:
-            return SingleExecutionOrder(
-                ExecutionParams(
-                    single_match.group("command"),
-                    single_match.group("symbol"),
-                    float(single_match.group("price")),
-                    float(single_match.group("quantity"))
-                ),
-                ExecutionConditions(
-                    time.time()
-                )
-            )
-
-        elif parallel_match:
-            orders_str = parallel_match.group("list")
-            orders = []
-            for order in Parser._split_order_list(orders_str):
-                orders.append(self.parse(order))
-            return ParallelExecutionOrder(orders)
-
-        elif sequent_match:
-            orders_str = sequent_match.group("list")
-            orders = []
-            for order in Parser._split_order_list(orders_str):
-                orders.append(self.parse(order))
-            return SequentExecutionOrder(orders)
-
-
 
 
 

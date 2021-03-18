@@ -1,4 +1,5 @@
-from cihatbot.utils.execution_order import Parser, SingleExecutionOrder, ExecutionParams, ExecutionConditions
+from cihatbot.utils.execution_order import SingleExecutionOrder, ExecutionParams, ExecutionConditions
+from cihatbot.utils.parser import CompleteParser
 import time
 
 
@@ -10,7 +11,7 @@ class ExecutionOrderTest:
                  "[s [p buy ADABUSD 0.9 10.0, buy ADABUSD 1.0 10.0, buy ADABUSD 1.2 10.0], sell ADABUSD 1.5 30.0], " \
                  "[s [p buy ETHBUSD 1700.0 0.5, buy ETHBUSD 1500.0 0.5], sell ETHBUSD 2000.0 1.0], " \
                  "buy DOTBUSD 35.0 10.0]"
-        self.order = Parser().parse(string)
+        self.order = CompleteParser().parse(string)
         print("Initialized order:", self.order)
 
     def test_execute(self):

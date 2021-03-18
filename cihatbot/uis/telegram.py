@@ -64,7 +64,7 @@ class Telegram(Module):
         if event.name == Telegram.FILLED_EVENT:
             self._send_message(str(event.data["single_order"]))
         elif event.name == Telegram.REJECTED_EVENT:
-            self._send_message(f'''Rejected order: {event.data["single"]}\nRemaining: {event.data["all"]}''')
+            self._send_message(f"""Rejected order: {event.data["single"]}\nRemaining: {event.data["all"]}""")
 
     def start_chat_handler(self, update: Update, _: CallbackContext) -> None:
         if not self.chat_id:
@@ -85,7 +85,7 @@ class Telegram(Module):
         try:
             order = Telegram._make_sequent_order(all_actions, datetime)
         except InvalidCommand as invalid_command:
-            self._send_message(f'''Invalid command: {invalid_command.command}''')
+            self._send_message(f"""Invalid command: {invalid_command.command}""")
             return
 
         self.emit_event(Event("EXECUTE", {
