@@ -44,7 +44,9 @@ class Binance(Module):
 
     def check(self) -> None:
         for order in self.open_orders:
-            self._check_order(order)
+            filled = self._check_order(order)
+            if filled:
+                self.emit_event(Event("FILLED", {"single_order": order}))
 
     def _execute_order(self, execution_order: SingleExecutionOrder) -> bool:
 
@@ -76,17 +78,19 @@ class Binance(Module):
     def _satisfies_conditions(self, execution_conditions: ExecutionConditions) -> bool:
         return time() >= execution_conditions.from_time
 
-    def _check_order(self, execution_order: SingleExecutionOrder) -> None:
+    def _check_order(self, execution_order: SingleExecutionOrder) -> bool:
 
         binance_order = self.client.get_order(
             symbol=execution_order.params.symbol,
             orderId=execution_order.order_id
         )
 
-        if binance_order["status"] == self.client.ORDER_STATUS_FILLED:
+        filled = binance_order["status"] == self.client.ORDER_STATUS_FILLED
+        if filled:
             self.execution_order.remove(execution_order)
 
         sleep(Binance.QUERY_TIME)
+        return filled
 
 
 

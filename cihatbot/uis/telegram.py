@@ -4,7 +4,7 @@ from cihatbot.utils.execution_order import SequentExecutionOrder, ParallelExecut
 from configparser import SectionProxy
 from queue import Queue
 from telegram import Update
-from telegram.ext import Updater, MessageHandler, Filters, CallbackContext
+from telegram.ext import Updater, MessageHandler, CommandHandler, Filters, CallbackContext
 from threading import Event as ThreadEvent
 from calendar import timegm
 from typing import List, Optional
@@ -28,6 +28,7 @@ class Telegram(Module):
 
     BUY_COMMAND = "comprare"
     SELL_COMMAND = "vendere"
+    FILLED_EVENT = "FILLED"
 
     command = re.compile("^(?P<datetime>(\d\d\.\d\d\.\d\d\d\d \d\d:\d\d )?)(?P<sequent_actions>.+)$")
     datetime = re.compile("^(?P<day>\d\d)\.(?P<month>\d\d)\.(?P<year>\d\d\d\d) (?P<hour>\d\d):(?P<minute>\d\d)$")
@@ -46,7 +47,10 @@ class Telegram(Module):
 
         self.updater = Updater(config["token"])
         self.dispatcher = self.updater.dispatcher
+        self.bot = self.updater.bot
+        self.chat_id = None
 
+        self.dispatcher.add_handler(CommandHandler("start", self.start_chat_handler))
         self.dispatcher.add_handler(MessageHandler(Filters.regex(Telegram.command), self.command_handler))
         self.dispatcher.add_handler(MessageHandler(Filters.text, self.message_handler))
 
@@ -56,10 +60,19 @@ class Telegram(Module):
     def post_run(self) -> None:
         self.updater.stop()
 
-    def message_handler(self, update: Update, context: CallbackContext) -> None:
-        update.message.reply_text("invalid command")
+    def loop(self, event: Event) -> None:
+        if event.name == Telegram.FILLED_EVENT:
+            self.updater.bot.send_message(self.chat_id, str(event.data["single_order"]))
 
-    def command_handler(self, update: Update, context: CallbackContext) -> None:
+    def start_chat_handler(self, update: Update, _: CallbackContext) -> None:
+        if not self.chat_id:
+            self.chat_id = update.effective_chat.id
+
+    def message_handler(self, update: Update, _: CallbackContext) -> None:
+        self._send_message("Invalid command")
+        # update.message.reply_text("invalid command")
+
+    def command_handler(self, update: Update, _: CallbackContext) -> None:
         match = Telegram.command.match(update.message.text)
         all_actions = []
 
@@ -78,13 +91,17 @@ class Telegram(Module):
             order = Telegram._make_sequent_order(all_actions, datetime)
 
         except Exception:
-            update.message.reply_text("malformed command")
+            self._send_message("Invalid command")
             return
 
         print(order)
-        # self.emit_event(Event("EXECUTE", {
-        #     "order": order
-        # }))
+        self.emit_event(Event("EXECUTE", {
+            "order": order
+        }))
+
+    def _send_message(self, message: str):
+        if self.chat_id:
+            self.bot.send_message(self.chat_id, message)
 
     @staticmethod
     def _make_sequent_order(all_actions: List[List[str]], datetime: float) -> SequentExecutionOrder:
