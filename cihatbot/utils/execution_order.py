@@ -65,7 +65,7 @@ class SingleExecutionOrder(ExecutionOrder):
         self.order_id: int = 0
 
     def __str__(self):
-        return f"{super.__str__(self)}: {self.params.command} {self.params.symbol} {self.params.price} {self.params.quantity}"
+        return f"{self.params.command} {self.params.symbol} {self.params.price} {self.params.quantity}"
 
     def execute(self, execute_function: Callable[[SingleExecutionOrder], bool]):
         if not self.filled:
@@ -91,6 +91,9 @@ class MultipleExecutionOrder(ExecutionOrder):
         super().__init__(order_type)
 
         self.orders = orders
+
+    def __str__(self):
+        return f"[{self.order_type} {', '.join([str(order) for order in self.orders])}]"
 
     def _check_filled(self):
         for order in self.orders:

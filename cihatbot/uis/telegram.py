@@ -51,7 +51,6 @@ class Telegram(Module):
         self.chat_id = None
 
         self.dispatcher.add_handler(CommandHandler("start", self.start_chat_handler))
-        self.dispatcher.add_handler(MessageHandler(Filters.regex(Telegram.command), self.command_handler))
         self.dispatcher.add_handler(MessageHandler(Filters.text, self.message_handler))
 
     def pre_run(self) -> None:
@@ -69,32 +68,23 @@ class Telegram(Module):
             self.chat_id = update.effective_chat.id
 
     def message_handler(self, update: Update, _: CallbackContext) -> None:
-        self._send_message("Invalid command")
-        # update.message.reply_text("invalid command")
-
-    def command_handler(self, update: Update, _: CallbackContext) -> None:
         match = Telegram.command.match(update.message.text)
         all_actions = []
 
         datetime = Telegram._get_datetime(match["datetime"])
-        print(datetime)
 
         sequent_actions = match["sequent_actions"].split(" poi ")
-        print(sequent_actions)
 
         for parallel_actions in sequent_actions:
             actions = parallel_actions.split(", ")
             all_actions.append(actions)
-        print(all_actions)
 
         try:
             order = Telegram._make_sequent_order(all_actions, datetime)
-
-        except Exception:
+        except InvalidCommand:
             self._send_message("Invalid command")
             return
 
-        print(order)
         self.emit_event(Event("EXECUTE", {
             "order": order
         }))
@@ -114,14 +104,15 @@ class Telegram(Module):
     @staticmethod
     def _make_parallel_order(actions: List[str], datetime: float) -> ParallelExecutionOrder:
         single_orders = []
-        first = None
+        last = None
         for action in actions:
-            single_order = Telegram.make_single_order(action, first, datetime)
+            single_order = Telegram._make_single_order(action, last, datetime)
             single_orders.append(single_order)
+            last = single_order
         return ParallelExecutionOrder(single_orders)
 
     @staticmethod
-    def make_single_order(action: str, first: Optional[SingleExecutionOrder], datetime: float) -> SingleExecutionOrder:
+    def _make_single_order(action: str, first: Optional[SingleExecutionOrder], datetime: float) -> SingleExecutionOrder:
 
         right_match = Telegram.right_action.match(action)
         left_match = Telegram.left_action.match(action)
@@ -141,7 +132,7 @@ class Telegram(Module):
         elif short_left_match:
             return Telegram._from_short_left(short_left_match, first, datetime)
         else:
-            raise Exception
+            raise InvalidCommand
 
     @staticmethod
     def _from_right(match: re.Match, datetime: float) -> SingleExecutionOrder:
@@ -149,7 +140,7 @@ class Telegram(Module):
         if match["command"] == Telegram.SELL_COMMAND:
             command = ExecutionParams.CMD_SELL
         symbol = match["right_symbol"] + match["left_symbol"]
-        price = int(match["price"])
+        price = float(match["price"])
         quantity = match["right_quantity"]
         return SingleExecutionOrder(
             ExecutionParams(command, symbol, price, quantity),
@@ -162,8 +153,8 @@ class Telegram(Module):
         if match["command"] == Telegram.SELL_COMMAND:
             command = ExecutionParams.CMD_SELL
         symbol = match["right_symbol"] + match["left_symbol"]
-        price = int(match["price"])
-        quantity = price * int(match["left_quantity"])
+        price = float(match["price"])
+        quantity = price * float(match["left_quantity"])
         return SingleExecutionOrder(
             ExecutionParams(command, symbol, price, quantity),
             ExecutionConditions(datetime)
@@ -173,7 +164,7 @@ class Telegram(Module):
     def _from_short_right(match: re.Match, first: SingleExecutionOrder, datetime: float) -> SingleExecutionOrder:
         command = first.params.command
         symbol = first.params.symbol
-        price = int(match["price"])
+        price = float(match["price"])
         quantity = match["right_quantity"]
         return SingleExecutionOrder(
             ExecutionParams(command, symbol, price, quantity),
@@ -184,8 +175,8 @@ class Telegram(Module):
     def _from_short_left(match: re.Match, first: SingleExecutionOrder, datetime: float) -> SingleExecutionOrder:
         command = first.params.command
         symbol = first.params.symbol
-        price = int(match["price"])
-        quantity = price * int(match["left_quantity"])
+        price = float(match["price"])
+        quantity = price * float(match["left_quantity"])
         return SingleExecutionOrder(
             ExecutionParams(command, symbol, price, quantity),
             ExecutionConditions(datetime)
@@ -207,3 +198,6 @@ class Telegram(Module):
         else:
             return time.time()
 
+
+class InvalidCommand(Exception):
+    pass
