@@ -62,9 +62,9 @@ class Telegram(Module):
 
     def loop(self, event: Event) -> None:
         if event.name == Telegram.FILLED_EVENT:
-            self._send_message(str(event.data["single_order"]))
+            self.notify_filled(event)
         elif event.name == Telegram.REJECTED_EVENT:
-            self._send_message(f"""Rejected order: {event.data["single"]}\nRemaining: {event.data["all"]}""")
+            self.notify_rejected(event)
 
     def start_chat_handler(self, update: Update, _: CallbackContext) -> None:
         if not self.chat_id:
@@ -91,6 +91,12 @@ class Telegram(Module):
         self.emit_event(Event("EXECUTE", {
             "order": order
         }))
+
+    def notify_filled(self, event: Event) -> None:
+        self._send_message(f"""Filled order: {str(event.data["single_order"])}""")
+
+    def notify_rejected(self, event: Event) -> None:
+        self._send_message(f"""Rejected order: {event.data["single"]}\nRemaining: {event.data["all"]}""")
 
     def _send_message(self, message: str):
         if self.chat_id:
