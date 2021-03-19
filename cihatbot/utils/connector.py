@@ -52,7 +52,13 @@ class BinanceConnector(Connector):
         return binance_order["orderId"]
 
     def is_filled(self, execution_order: SingleExecutionOrder) -> bool:
-        pass
+
+        binance_order = self.client.get_order(
+            symbol=execution_order.params.symbol,
+            orderId=execution_order.order_id
+        )
+
+        return binance_order["status"] == self.client.ORDER_STATUS_FILLED
 
 
 class RejectedOrder(Exception):
