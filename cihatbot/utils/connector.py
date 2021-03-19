@@ -1,6 +1,7 @@
 from cihatbot.utils.execution_order import SingleExecutionOrder, ExecutionConditions, ExecutionParams
 from binance.client import Client
 from binance.exceptions import BinanceOrderException
+import time
 
 
 class Connector:
@@ -17,6 +18,9 @@ class Connector:
 
 class BinanceConnector(Connector):
 
+    ORDER_TIME: float = 0.5
+    QUERY_TIME: float = 0.05
+
     def __init__(self, key, secret):
         self.client: Client = Client(api_key=key, api_secret=secret)
 
@@ -26,6 +30,8 @@ class BinanceConnector(Connector):
         from_time = int(execution_conditions.from_time) * 1000
 
         binance_time = self.client.get_server_time()["serverTime"]
+
+        time.sleep(BinanceConnector.QUERY_TIME)
 
         return binance_time >= from_time
 
@@ -49,6 +55,8 @@ class BinanceConnector(Connector):
         except BinanceOrderException:
             raise RejectedOrder(execution_order)
 
+        time.sleep(BinanceConnector.ORDER_TIME)
+
         return binance_order["orderId"]
 
     def is_filled(self, execution_order: SingleExecutionOrder) -> bool:
@@ -57,6 +65,8 @@ class BinanceConnector(Connector):
             symbol=execution_order.params.symbol,
             orderId=execution_order.order_id
         )
+
+        time.sleep(BinanceConnector.QUERY_TIME)
 
         return binance_order["status"] == self.client.ORDER_STATUS_FILLED
 
