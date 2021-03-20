@@ -18,6 +18,9 @@ class Event:
         self.name: str = name
         self.data: Dict[str, Any] = data
 
+    def __str__(self):
+        return f"""{self.name} - {self.data}"""
+
 
 class NoEvent(Event):
 

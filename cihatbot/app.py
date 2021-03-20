@@ -12,8 +12,9 @@ from cihatbot.connector.binance import BinanceConnector
 from configparser import ConfigParser, SectionProxy
 from queue import Queue
 from threading import Event as ThreadEvent
-from typing import Type, Dict
+from typing import Type, Dict, Set
 from signal import signal, SIGINT, SIGTERM
+import logging
 
 
 """ Concrete ui implementation classes """
@@ -57,6 +58,9 @@ class Application:
         signal(SIGINT, self.exit)
         signal(SIGTERM, self.exit)
 
+        self.logger: logging.Logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.INFO)
+
         config = ConfigParser()
         config.read(config_file)
         self.ui_name = config["app"]["ui"]
@@ -85,7 +89,7 @@ class Application:
 
     def run(self):
 
-        print("Starting Cihat-trader")
+        self.logger.info("Starting Cihat-trader")
 
         self.ui.start()
         self.trader.start()
@@ -95,21 +99,29 @@ class Application:
 
     def exit(self, signum, frame):
 
-        print("Stopping Cihat-trader")
-
+        self.logger.info("Stopping Cihat-trader")
         self.exit_event.set()
 
     def ui_event_handler(self, ui_event: Event) -> None:
-        if ui_event.name in UI_EVENTS:
-            for data_entry in UI_EVENTS[ui_event.name]:
-                if data_entry not in ui_event.data:
-                    return
-            self.ui_events.put(ui_event)
 
-    def trader_event_handler(self, trader_event: Event):
-        if trader_event.name in TRADER_EVENTS:
-            for data_entry in TRADER_EVENTS[trader_event.name]:
-                if data_entry not in trader_event.data:
+        self._handle_event("ui", ui_event, UI_EVENTS, self.ui_events)
+
+    def trader_event_handler(self, trader_event: Event) -> None:
+
+        self._handle_event("trader", trader_event, TRADER_EVENTS, self.trader_events)
+
+    def _handle_event(self, name: str, event: Event, valid: Dict[str, Set[str]], queue: Queue):
+
+        if event.name in valid:
+
+            for data_entry in valid[event.name]:
+                if data_entry not in event.data:
+                    self.logger.error(f"""Invalid {name} event data: {event}""")
                     return
-            self.trader_events.put(trader_event)
+
+            queue.put(event)
+            self.logger.info(f"""New {name} event: {event}""")
+
+        else:
+            self.logger.error(f"""Invalid {name} event: {event}""")
 
