@@ -1,5 +1,5 @@
-from cihatbot.utils.execution_order import SingleExecutionOrder, ExecutionParams, ExecutionConditions
-from cihatbot.utils.parser import CompleteParser
+from cihatbot.execution_order.execution_order import SingleExecutionOrder, ExecutionParams, ExecutionConditions
+from cihatbot.parser.parser import CompleteParser
 import time
 
 

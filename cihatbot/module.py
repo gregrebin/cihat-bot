@@ -1,9 +1,8 @@
 from cihatbot.events import Event, NoEvent
-from threading import Thread
-from queue import Queue, Empty
-from typing import List, Callable
 from configparser import SectionProxy
-from threading import Event as ThreadEvent
+from queue import Queue, Empty
+from threading import Thread, Event as ThreadEvent
+from typing import List, Callable
 
 
 class Module(Thread):

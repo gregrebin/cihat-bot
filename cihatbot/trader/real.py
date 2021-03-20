@@ -1,35 +1,37 @@
 from cihatbot.events import Event
-from cihatbot.module import Module
-from cihatbot.utils.execution_order import ExecutionOrder, EmptyExecutionOrder, SingleExecutionOrder
-from cihatbot.utils.connector import Connector, BinanceConnector, RejectedOrder
-from typing import List
-from queue import Queue
+from cihatbot.trader.trader import Trader
+from cihatbot.execution_order.execution_order import ExecutionOrder, EmptyExecutionOrder, SingleExecutionOrder
+from cihatbot.connector.connector import Connector, RejectedOrder
 from configparser import SectionProxy
+from queue import Queue
 from threading import Event as ThreadEvent
+from typing import List
 
 
-class Binance(Module):
+class RealTrader(Trader):
 
     CONNECT_EVENT: str = "CONNECT"
     EXECUTE_EVENT: str = "EXECUTE"
 
-    def __init__(self, config: SectionProxy, queue: Queue, exit_event: ThreadEvent) -> None:
-        super().__init__(config, queue, exit_event)
-        self.connector: Connector = BinanceConnector(config["api"], config["secret"])
+    def __init__(self, config: SectionProxy, queue: Queue, exit_event: ThreadEvent, connector: Connector) -> None:
+        super().__init__(config, queue, exit_event, connector)
+
+        self.connector.connect(self.config["user"], self.config["password"])
+
         self.execution_order: ExecutionOrder = EmptyExecutionOrder()
         self.open_orders: List[SingleExecutionOrder] = []
 
     def loop(self, event: Event) -> None:
-        if event.name == Binance.CONNECT_EVENT:
+        if event.name == RealTrader.CONNECT_EVENT:
             self.connect(event)
-        elif event.name == Binance.EXECUTE_EVENT:
+        elif event.name == RealTrader.EXECUTE_EVENT:
             self.set_execute(event)
         else:
             self.execute()
             self.check()
 
     def connect(self, event: Event) -> None:
-        self.connector = BinanceConnector(event.data["user"], event.data["password"])
+        self.connector.connect(event.data["user"], event.data["password"])
         self._clean()
 
     def set_execute(self, event: Event) -> None:

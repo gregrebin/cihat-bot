@@ -1,18 +1,18 @@
 from cihatbot.events import Event
-from cihatbot.module import Module
-from cihatbot.utils.execution_order import Parser
+from cihatbot.ui.ui import Ui
+from cihatbot.parser.parser import Parser
+from configparser import SectionProxy
 from queue import Queue
 from threading import Event as ThreadEvent
 
 
-class Cli(Module):
+class Cli(Ui):
 
     BOUGHT_EVENT = "BOUGHT"
     SOLD_EVENT = "SOLD"
 
-    def __init__(self, config, queue: Queue, exit_event: ThreadEvent):
-        super().__init__(config, queue, exit_event)
-        self.parser: Parser = Parser()
+    def __init__(self, config: SectionProxy, queue: Queue, exit_event: ThreadEvent, parser: Parser):
+        super().__init__(config, queue, exit_event, parser)
 
     def loop(self, event: Event):
         if event.name == Cli.BOUGHT_EVENT:

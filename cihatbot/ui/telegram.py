@@ -1,28 +1,27 @@
-from cihatbot.module import Module
 from cihatbot.events import Event
-from cihatbot.utils.parser import Parser, SimpleParser, InvalidString
+from cihatbot.ui.ui import Ui
+from cihatbot.parser.parser import Parser, InvalidString
 from configparser import SectionProxy
 from queue import Queue
+from threading import Event as ThreadEvent
 from telegram import Update
 from telegram.ext import Updater, MessageHandler, CommandHandler, Filters, CallbackContext
-from threading import Event as ThreadEvent
 
 
-class Telegram(Module):
+class Telegram(Ui):
 
     BUY_COMMAND = "comprare"
     SELL_COMMAND = "vendere"
     FILLED_EVENT = "FILLED"
     REJECTED_EVENT = "REJECTED"
 
-    def __init__(self, config: SectionProxy, queue: Queue, exit_event: ThreadEvent):
-        super().__init__(config, queue, exit_event)
+    def __init__(self, config: SectionProxy, queue: Queue, exit_event: ThreadEvent, parser: Parser):
+        super().__init__(config, queue, exit_event, parser)
 
-        self.updater = Updater(config["token"])
+        self.updater = Updater(self.config["token"])
         self.dispatcher = self.updater.dispatcher
         self.bot = self.updater.bot
         self.chat_id = None
-        self.parser: Parser = SimpleParser()
 
         self.dispatcher.add_handler(CommandHandler("start", self.start_chat_handler))
         self.dispatcher.add_handler(MessageHandler(Filters.text, self.message_handler))
