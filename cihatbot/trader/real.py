@@ -2,7 +2,7 @@ from cihatbot.logger import Logger
 from cihatbot.events import Event
 from cihatbot.trader.trader import Trader
 from cihatbot.execution_order.execution_order import ExecutionOrder, EmptyExecutionOrder, SingleExecutionOrder
-from cihatbot.connector.connector import Connector, RejectedOrder
+from cihatbot.connector.connector import Connector, RejectedOrder, NonExistentOrder
 from configparser import SectionProxy
 from queue import Queue
 from threading import Event as ThreadEvent
@@ -39,13 +39,12 @@ class RealTrader(Trader):
         password = event.data["password"]
         self.logger.log(logging.INFO, f"""CONNECT event: {user}""")
         self.connector.connect(user, password)
-        self._clean()
+        self._set_order(EmptyExecutionOrder())
 
     def set_execute(self, event: Event) -> None:
         order = event.data["order"]
         self.logger.log(logging.INFO, f"""EXECUTE event: {order}""")
-        self.execution_order = order
-        self.open_orders = []
+        self._set_order(order)
 
     def execute(self) -> None:
         try:
@@ -53,7 +52,7 @@ class RealTrader(Trader):
         except RejectedOrder as rejected_order:
             self.logger.log(logging.INFO, f"""Order rejected: {rejected_order}""")
             self.emit_event(Event("REJECTED", {"all": self.execution_order, "single": rejected_order.order}))
-            self._clean()
+            self._set_order(EmptyExecutionOrder())
 
     def check(self) -> None:
         for order in self.open_orders:
@@ -76,8 +75,10 @@ class RealTrader(Trader):
         self.logger.log(logging.INFO, f"""Order submitted: {execution_order}""")
         return True
 
-    def _clean(self):
-        self.execution_order = EmptyExecutionOrder()
+    def _set_order(self, execution_order: ExecutionOrder):
+        for order in self.open_orders:
+            self.connector.cancel(order)
+        self.execution_order = execution_order
         self.open_orders = []
 
 

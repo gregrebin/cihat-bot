@@ -15,7 +15,15 @@ class Connector:
     def is_filled(self, execution_order: SingleExecutionOrder) -> bool:
         pass
 
+    def cancel(self, execution_order: SingleExecutionOrder) -> None:
+        pass
+
 
 class RejectedOrder(Exception):
+    def __init__(self, order: SingleExecutionOrder):
+        self.order = order
+
+
+class NonExistentOrder(Exception):
     def __init__(self, order: SingleExecutionOrder):
         self.order = order
