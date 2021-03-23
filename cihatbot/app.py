@@ -1,7 +1,6 @@
 from cihatbot.logger import Logger
 from cihatbot.events import Event, UI_EVENTS, TRADER_EVENTS
 from cihatbot.ui.ui import Ui
-from cihatbot.ui.cli import Cli
 from cihatbot.ui.telegram import Telegram
 from cihatbot.parser.parser import Parser
 from cihatbot.parser.complete_parser import CompleteParser
@@ -20,7 +19,6 @@ import logging
 
 """ Concrete ui implementation classes """
 UIS: Dict[str, Type[Ui]] = {
-    "cli-ui": Cli,
     "telegram-ui": Telegram
 }
 

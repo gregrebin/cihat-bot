@@ -20,14 +20,20 @@ class Telegram(Ui):
     def __init__(self, config: SectionProxy, queue: Queue, exit_event: ThreadEvent, parser: Parser):
         super().__init__(config, queue, exit_event, parser)
 
+        self.user = self.config["user"]
         self.updater = Updater(self.config["token"])
         self.dispatcher = self.updater.dispatcher
         self.bot = self.updater.bot
-        self.chat_id = None
         self.logger = Logger(__name__, logging.INFO)
 
-        self.dispatcher.add_handler(CommandHandler("start", self.start_chat_handler))
-        self.dispatcher.add_handler(MessageHandler(Filters.text, self.message_handler))
+        if "chat_id" in self.config:
+            self.chat_id = self.config["chat_id"]
+        else:
+            self.chat_id = None
+
+        self.dispatcher.add_handler(CommandHandler("start", self.start_chat_handler, filters=Filters.user(username=self.user)))
+        self.dispatcher.add_handler(CommandHandler("connect", self.connect_handler, filters=Filters.user(username=self.user)))
+        self.dispatcher.add_handler(CommandHandler("execute", self.execute_handler, filters=Filters.user(username=self.user)))
 
     def pre_run(self) -> None:
         self.updater.start_polling()
@@ -48,9 +54,22 @@ class Telegram(Ui):
             self.logger.log(logging.INFO, f"""Registering chat id: {chat_id}""")
             self.chat_id = chat_id
 
-    def message_handler(self, update: Update, _: CallbackContext) -> None:
+    def connect_handler(self, update: Update, _: CallbackContext):
 
-        message = update.message.text
+        message = update.message.text.lstrip("/connect ")
+        self.logger.log(logging.INFO, "Received connect command")
+
+        user, password = message.split()
+
+        self.logger.log(logging.INFO, f"""Connect trader: {user} - {password}""")
+        self.emit_event(Event("CONNECT", {
+            "user": user,
+            "password": password
+        }))
+
+    def execute_handler(self, update: Update, _: CallbackContext) -> None:
+
+        message = update.message.text.lstrip("/execute ")
         self.logger.log(logging.INFO, f"""Received message: {message}""")
 
         try:

@@ -1,7 +1,7 @@
-from cihatbot.connector.connector import Connector, RejectedOrder, NonExistentOrder
+from cihatbot.connector.connector import Connector, RejectedOrder, NonExistentOrder, ConnectionProblem
 from cihatbot.execution_order.execution_order import SingleExecutionOrder, ExecutionConditions, ExecutionParams
 from binance.client import Client
-from binance.exceptions import BinanceOrderException, BinanceRequestException
+from binance.exceptions import BinanceOrderException, BinanceRequestException, BinanceAPIException
 import time
 
 
@@ -10,7 +10,7 @@ class BinanceConnector(Connector):
     QUERY_TIME: float = 0.05
 
     def __init__(self):
-        self.client: Client = Client()
+        self.client: Client = Client("", "")
 
     def connect(self, key: str, secret: str) -> None:
         self.client = Client(api_key=key, api_secret=secret)
@@ -43,7 +43,7 @@ class BinanceConnector(Connector):
                 type=self.client.ORDER_TYPE_LIMIT,
                 timeInForce=self.client.TIME_IN_FORCE_GTC
             )
-        except BinanceOrderException:
+        except (BinanceRequestException, BinanceOrderException, BinanceAPIException):
             raise RejectedOrder(execution_order)
 
         time.sleep(BinanceConnector.ORDER_TIME)
@@ -57,7 +57,7 @@ class BinanceConnector(Connector):
                 symbol=execution_order.params.symbol,
                 orderId=execution_order.order_id
             )
-        except BinanceRequestException:
+        except (BinanceRequestException, BinanceAPIException):
             raise NonExistentOrder(execution_order)
 
         time.sleep(BinanceConnector.QUERY_TIME)
@@ -71,7 +71,7 @@ class BinanceConnector(Connector):
                 symbol=execution_order.params.symbol,
                 orderId=execution_order.order_id
             )
-        except BinanceRequestException:
+        except (BinanceRequestException, BinanceAPIException):
             raise NonExistentOrder(execution_order)
 
         time.sleep(BinanceConnector.QUERY_TIME)

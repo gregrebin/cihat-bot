@@ -19,11 +19,11 @@ class RealTrader(Trader):
         super().__init__(config, queue, exit_event, connector)
 
         self.logger: Logger = Logger(__name__, logging.INFO)
-
-        self.connector.connect(self.config["user"], self.config["password"])
-
         self.execution_order: ExecutionOrder = EmptyExecutionOrder()
         self.open_orders: List[SingleExecutionOrder] = []
+
+        if "user" in config and "password" in config:
+            self.connector.connect(self.config["user"], self.config["password"])
 
     def loop(self, event: Event) -> None:
         if event.name == RealTrader.CONNECT_EVENT:
@@ -39,7 +39,7 @@ class RealTrader(Trader):
         password = event.data["password"]
         self.logger.log(logging.INFO, f"""CONNECT event: {user}""")
         self.connector.connect(user, password)
-        self._set_order(EmptyExecutionOrder())
+        self._cancel_all()
 
     def set_execute(self, event: Event) -> None:
         order = event.data["order"]
@@ -52,7 +52,7 @@ class RealTrader(Trader):
         except RejectedOrder as rejected_order:
             self.logger.log(logging.INFO, f"""Order rejected: {rejected_order}""")
             self.emit_event(Event("REJECTED", {"all": self.execution_order, "single": rejected_order.order}))
-            self._set_order(EmptyExecutionOrder())
+            self._cancel_all()
 
     def check(self) -> None:
         for order in self.open_orders:
@@ -75,12 +75,14 @@ class RealTrader(Trader):
         self.logger.log(logging.INFO, f"""Order submitted: {execution_order}""")
         return True
 
+    def _cancel_all(self):
+        self._set_order(EmptyExecutionOrder())
+
     def _set_order(self, execution_order: ExecutionOrder):
         for order in self.open_orders:
             self.connector.cancel(order)
         self.execution_order = execution_order
         self.open_orders = []
-
 
 
 
