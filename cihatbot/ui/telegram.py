@@ -43,9 +43,10 @@ class Telegram(Ui):
 
     def start_chat_handler(self, update: Update, _: CallbackContext) -> None:
         self.logger.log(logging.INFO, "Received start command")
+        chat_id = update.effective_chat.id
         if not self.chat_id:
-            self.chat_id = update.effective_chat.id
-            self.logger.log(logging.INFO, "Registering chat id")
+            self.logger.log(logging.INFO, f"""Registering chat id: {chat_id}""")
+            self.chat_id = chat_id
 
     def message_handler(self, update: Update, _: CallbackContext) -> None:
 
@@ -59,23 +60,21 @@ class Telegram(Ui):
             self._send_message(f"""Invalid command: {invalid_string.order_string}""")
             return
 
+        self.logger.log(logging.INFO, f"""New execution order: {order}""")
         self.emit_event(Event("EXECUTE", {
             "order": order
         }))
-        self.logger.log(logging.INFO, f"""New execution order: {order}""")
 
     def notify_filled(self, event: Event) -> None:
         order = event.data["single_order"]
-        self._send_message(f"""Filled order: {order}""")
-
         self.logger.log(logging.INFO, f"""FILLED event: {order}""")
+        self._send_message(f"""Filled order: {order}""")
 
     def notify_rejected(self, event: Event) -> None:
         single_order = event.data["single"]
         all_orders = event.data["all"]
-        self._send_message(f"""Rejected order: {single_order}\nRemaining: {all_orders}""")
-
         self.logger.log(logging.INFO, f"""REJECTED EVENT: {single_order}""")
+        self._send_message(f"""Rejected order: {single_order}\nRemaining: {all_orders}""")
 
     def _send_message(self, message: str):
         if self.chat_id:

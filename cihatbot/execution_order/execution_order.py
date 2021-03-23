@@ -88,10 +88,14 @@ class MultipleExecutionOrder(ExecutionOrder):
     def __init__(self, order_type, orders: List[ExecutionOrder]):
         super().__init__(order_type)
 
+        if len(orders) == 0:
+            raise EmptyOrderList
+
         self.orders = orders
 
     def __str__(self):
-        return f"""[{self.order_type} {', '.join([str(order) for order in self.orders])}]"""
+        orders = [str(order) for order in self.orders]
+        return f"""[{self.order_type} {', '.join(orders)}]"""
 
     def _check_executed(self):
         for order in self.orders:
@@ -104,15 +108,18 @@ class MultipleExecutionOrder(ExecutionOrder):
         if self == execution_order:
             return EmptyExecutionOrder()
 
-        for index in range(len(self.orders)):
-            order = self.orders[index].remove(execution_order)
+        new_orders = []
 
-            if isinstance(order, EmptyExecutionOrder):
-                self.orders.pop(index)
-            else:
-                self.orders[index] = order
+        for order in self.orders:
+            new_order = order.remove(execution_order)
+            if not isinstance(new_order, EmptyExecutionOrder):
+                new_orders.append(new_order)
 
-        return self
+        if len(new_orders) == 0:
+            return EmptyExecutionOrder()
+        else:
+            self.orders = new_orders
+            return self
 
 
 class ParallelExecutionOrder(MultipleExecutionOrder):
@@ -121,8 +128,9 @@ class ParallelExecutionOrder(MultipleExecutionOrder):
         super().__init__("parallel", orders)
 
     def execute(self, execute_function: Callable[[SingleExecutionOrder], bool]):
-        for order in self.orders:
-            order.execute(execute_function)
+        if not self.executed:
+            for order in self.orders:
+                order.execute(execute_function)
         self._check_executed()
 
     def add_parallel(self, execution_order: ExecutionOrder) -> ExecutionOrder:
@@ -139,10 +147,8 @@ class SequentExecutionOrder(MultipleExecutionOrder):
         super().__init__("sequent", orders)
 
     def execute(self, execute_function: Callable[[SingleExecutionOrder], bool]):
-        for order in self.orders:
-            if not order.executed:
-                order.execute(execute_function)
-                break
+        if not self.executed:
+            self.orders[0].execute(execute_function)
         self._check_executed()
 
     def add_parallel(self, execution_order: ExecutionOrder) -> ExecutionOrder:
@@ -153,7 +159,5 @@ class SequentExecutionOrder(MultipleExecutionOrder):
         return self
 
 
-
-
-
-
+class EmptyOrderList(Exception):
+    pass

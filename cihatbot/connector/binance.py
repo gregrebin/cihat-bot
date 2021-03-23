@@ -6,7 +6,7 @@ import time
 
 
 class BinanceConnector(Connector):
-    ORDER_TIME: float = 0.5
+    ORDER_TIME: float = 3.0
     QUERY_TIME: float = 0.05
 
     def __init__(self):

@@ -7,6 +7,7 @@ from cihatbot.execution_order.execution_order import (
     ExecutionConditions,
     ExecutionParams)
 from typing import List
+import time
 import re
 import calendar
 
@@ -88,7 +89,7 @@ class SimpleParser(Parser):
             if not sell_match:
                 raise InvalidString(order)
 
-            price = sell_match["price"]
+            price = float(sell_match["price"])
             percent = float(sell_match["percent"]) / 100
             quantity = total_quantity * percent
 
@@ -96,6 +97,8 @@ class SimpleParser(Parser):
                 ExecutionParams(ExecutionParams.CMD_SELL, symbol, price, quantity),
                 ExecutionConditions(datetime)
             ))
+
+        return sell_orders
 
     def _get_datetime(self, datetime: str) -> float:
         datetime_match = self.datetime.match(datetime)
@@ -109,4 +112,4 @@ class SimpleParser(Parser):
                 0
             ))
         else:
-            re
+            return time.time()

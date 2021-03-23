@@ -37,37 +37,36 @@ class RealTrader(Trader):
     def connect(self, event: Event) -> None:
         user = event.data["user"]
         password = event.data["password"]
+        self.logger.log(logging.INFO, f"""CONNECT event: {user}""")
         self.connector.connect(user, password)
         self._clean()
-        self.logger.log(logging.INFO, f"""CONNECT event: {user}""")
 
     def set_execute(self, event: Event) -> None:
         order = event.data["order"]
+        self.logger.log(logging.INFO, f"""EXECUTE event: {order}""")
         self.execution_order = order
         self.open_orders = []
-        self.logger.log(logging.INFO, f"""EXECUTE event: {order}""")
 
     def execute(self) -> None:
         try:
             self.execution_order.execute(self._execute_order)
         except RejectedOrder as rejected_order:
+            self.logger.log(logging.INFO, f"""Order rejected: {rejected_order}""")
             self.emit_event(Event("REJECTED", {"all": self.execution_order, "single": rejected_order.order}))
             self._clean()
-            self.logger.log(logging.INFO, f"""Order rejected: {rejected_order}""")
 
     def check(self) -> None:
         for order in self.open_orders:
-            filled = self._check_order(order)
-            if filled:
+            if self.connector.is_filled(order):
+                self.logger.log(logging.INFO, f"""Order filled: {order}""")
+                self.execution_order = self.execution_order.remove(order)
+                self.open_orders.remove(order)
                 self.emit_event(Event("FILLED", {"single_order": order}))
-                self.logger.log(logging.INFO, f"""Filled order: {order}""")
 
     def _execute_order(self, execution_order: SingleExecutionOrder) -> bool:
 
         if not self.connector.satisfied(execution_order):
             return False
-
-        self.logger.log(logging.INFO, f"""Submitting order: {execution_order}""")
 
         order_id = self.connector.submit(execution_order)
 
@@ -76,14 +75,6 @@ class RealTrader(Trader):
 
         self.logger.log(logging.INFO, f"""Order submitted: {execution_order}""")
         return True
-
-    def _check_order(self, execution_order: SingleExecutionOrder) -> bool:
-
-        filled = self.connector.is_filled(execution_order)
-        if filled:
-            self.execution_order.remove(execution_order)
-
-        return filled
 
     def _clean(self):
         self.execution_order = EmptyExecutionOrder()

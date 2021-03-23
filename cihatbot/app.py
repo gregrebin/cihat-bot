@@ -92,17 +92,18 @@ class Application:
 
     def run(self):
 
-        self.logger.log(logging.INFO, "Starting Cihat-trader")
-
         self.ui.start()
         self.trader.start()
+
+        self.logger.log(logging.INFO, "Cihat-bot started")
 
         self.ui.join()
         self.trader.join()
 
+        self.logger.log(logging.INFO, "Cihat-bot stopped")
+
     def exit(self, signum, frame):
 
-        self.logger.log(logging.INFO, "Stopping Cihat-trader")
         self.exit_event.set()
 
     def ui_event_handler(self, ui_event: Event) -> None:
