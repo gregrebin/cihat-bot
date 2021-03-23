@@ -1,3 +1,4 @@
+from cihatbot.logger import Logger
 from cihatbot.events import Event
 from cihatbot.trader.trader import Trader
 from cihatbot.execution_order.execution_order import ExecutionOrder, EmptyExecutionOrder, SingleExecutionOrder
@@ -6,6 +7,7 @@ from configparser import SectionProxy
 from queue import Queue
 from threading import Event as ThreadEvent
 from typing import List
+import logging
 
 
 class RealTrader(Trader):
@@ -15,6 +17,8 @@ class RealTrader(Trader):
 
     def __init__(self, config: SectionProxy, queue: Queue, exit_event: ThreadEvent, connector: Connector) -> None:
         super().__init__(config, queue, exit_event, connector)
+
+        self.logger: Logger = Logger(__name__, logging.INFO)
 
         self.connector.connect(self.config["user"], self.config["password"])
 
@@ -31,12 +35,17 @@ class RealTrader(Trader):
             self.check()
 
     def connect(self, event: Event) -> None:
-        self.connector.connect(event.data["user"], event.data["password"])
+        user = event.data["user"]
+        password = event.data["password"]
+        self.connector.connect(user, password)
         self._clean()
+        self.logger.log(logging.INFO, f"""CONNECT event: {user}""")
 
     def set_execute(self, event: Event) -> None:
-        self.execution_order = event.data["order"]
+        order = event.data["order"]
+        self.execution_order = order
         self.open_orders = []
+        self.logger.log(logging.INFO, f"""EXECUTE event: {order}""")
 
     def execute(self) -> None:
         try:
@@ -44,23 +53,28 @@ class RealTrader(Trader):
         except RejectedOrder as rejected_order:
             self.emit_event(Event("REJECTED", {"all": self.execution_order, "single": rejected_order.order}))
             self._clean()
+            self.logger.log(logging.INFO, f"""Order rejected: {rejected_order}""")
 
     def check(self) -> None:
         for order in self.open_orders:
             filled = self._check_order(order)
             if filled:
                 self.emit_event(Event("FILLED", {"single_order": order}))
+                self.logger.log(logging.INFO, f"""Filled order: {order}""")
 
     def _execute_order(self, execution_order: SingleExecutionOrder) -> bool:
 
         if not self.connector.satisfied(execution_order):
             return False
 
+        self.logger.log(logging.INFO, f"""Submitting order: {execution_order}""")
+
         order_id = self.connector.submit(execution_order)
 
         execution_order.order_id = order_id
         self.open_orders.append(execution_order)
 
+        self.logger.log(logging.INFO, f"""Order submitted: {execution_order}""")
         return True
 
     def _check_order(self, execution_order: SingleExecutionOrder) -> bool:

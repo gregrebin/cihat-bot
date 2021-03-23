@@ -1,3 +1,4 @@
+from cihatbot.logger import Logger
 from cihatbot.events import Event, UI_EVENTS, TRADER_EVENTS
 from cihatbot.ui.ui import Ui
 from cihatbot.ui.cli import Cli
@@ -54,12 +55,12 @@ class Application:
     def __init__(self, config_file: str) -> None:
         """ Initialize an ui and a trader based on given names """
 
+        self.logger: Logger = Logger(__name__, logging.INFO)
+        self.logger.log(logging.INFO, "Initializing Cihat-bot")
+
         self.exit_event = ThreadEvent()
         signal(SIGINT, self.exit)
         signal(SIGTERM, self.exit)
-
-        self.logger: logging.Logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.INFO)
 
         config = ConfigParser()
         config.read(config_file)
@@ -87,9 +88,11 @@ class Application:
         self.ui.on_event(self.ui_event_handler)
         self.trader.on_event(self.trader_event_handler)
 
+        self.logger.log(logging.INFO, "Initialization complete")
+
     def run(self):
 
-        self.logger.info("Starting Cihat-trader")
+        self.logger.log(logging.INFO, "Starting Cihat-trader")
 
         self.ui.start()
         self.trader.start()
@@ -99,7 +102,7 @@ class Application:
 
     def exit(self, signum, frame):
 
-        self.logger.info("Stopping Cihat-trader")
+        self.logger.log(logging.INFO, "Stopping Cihat-trader")
         self.exit_event.set()
 
     def ui_event_handler(self, ui_event: Event) -> None:
@@ -116,12 +119,12 @@ class Application:
 
             for data_entry in valid[event.name]:
                 if data_entry not in event.data:
-                    self.logger.error(f"""Invalid {name} event data: {event}""")
+                    self.logger.log(logging.ERROR, f"""Invalid {name} event data: {event}""")
                     return
 
             queue.put(event)
-            self.logger.info(f"""New {name} event: {event}""")
+            self.logger.log(logging.INFO, f"""New {name} event: {event}""")
 
         else:
-            self.logger.error(f"""Invalid {name} event: {event}""")
+            self.logger.log(logging.ERROR, f"""Invalid {name} event: {event}""")
 
