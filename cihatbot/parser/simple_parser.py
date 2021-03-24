@@ -27,7 +27,7 @@ class SimpleParser(Parser):
     """
 
     root = re.compile("^(?P<datetime>(\d\d\.\d\d\.\d\d\d\d \d\d:\d\d )?)(?P<symbol>[A-Z]+) buy (?P<buy_orders>.+) and sell (?P<sell_orders>.+)$")
-    datetime = re.compile("^(?P<day>\d\d)\.(?P<month>\d\d)\.(?P<year>\d\d\d\d) (?P<hour>\d\d):(?P<minute>\d\d)$")
+    datetime = re.compile("^(?P<day>\d\d)\.(?P<month>\d\d)\.(?P<year>\d\d\d\d) (?P<hour>\d\d):(?P<minute>\d\d) $")
     right_buy = re.compile("^(?P<right_quantity>\d+\.?\d*) at (?P<price>\d+\.?\d*)$")
     left_buy = re.compile("^at (?P<price>\d+\.?\d*) for (?P<left_quantity>\d+\.?\d*)$")
     sell = re.compile("^(?P<percent>\d\d|100)% at (?P<price>\d+\.?\d*)$")
@@ -104,9 +104,9 @@ class SimpleParser(Parser):
         datetime_match = self.datetime.match(datetime)
         if datetime_match:
             return calendar.timegm((
-                int(datetime_match["day"]),
-                int(datetime_match["month"]),
                 int(datetime_match["year"]),
+                int(datetime_match["month"]),
+                int(datetime_match["day"]),
                 int(datetime_match["hour"]),
                 int(datetime_match["minute"]),
                 0
