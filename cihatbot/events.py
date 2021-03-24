@@ -3,12 +3,16 @@ from typing import Dict, Any, Set
 
 UI_EVENTS: Dict[str, Set[str]] = {
     "CONNECT": {"user", "password"},
-    "EXECUTE": {"order"}
+    "ADD_ORDER": {"order", "mode"},
+    "DELETE_ORDER": {"order_id"}
 }
 
 TRADER_EVENTS: Dict[str, Set[str]] = {
-    "FILLED": {"single_order"},
-    "REJECTED": {"all", "single"}
+    "CONNECTED": {"user"},
+    "ADDED": {"all", "single"},
+    "DELETED": {"all", "order_id"},
+    "SUBMITTED": {"all", "single"},
+    "FILLED": {"all", "single"}
 }
 
 USER_EVENTS: Dict[str, Set[str]] = {

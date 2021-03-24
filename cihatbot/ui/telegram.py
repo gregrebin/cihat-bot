@@ -14,8 +14,11 @@ class Telegram(Ui):
 
     BUY_COMMAND = "comprare"
     SELL_COMMAND = "vendere"
+    CONNECTED_EVENT = "CONNECTED"
+    ADDED_EVENT = "ADDED"
+    DELETED_EVENT = "DELETED"
+    SUBMITTED_EVENT = "SUBMITTED"
     FILLED_EVENT = "FILLED"
-    REJECTED_EVENT = "REJECTED"
 
     def __init__(self, config: SectionProxy, queue: Queue, exit_event: ThreadEvent, parser: Parser):
         super().__init__(config, queue, exit_event, parser)
@@ -33,7 +36,9 @@ class Telegram(Ui):
 
         self.dispatcher.add_handler(CommandHandler("start", self.start_chat_handler, filters=Filters.user(username=self.user)))
         self.dispatcher.add_handler(CommandHandler("connect", self.connect_handler, filters=Filters.user(username=self.user)))
-        self.dispatcher.add_handler(CommandHandler("execute", self.execute_handler, filters=Filters.user(username=self.user)))
+        self.dispatcher.add_handler(CommandHandler("add_parallel", self.add_parallel_handler, filters=Filters.user(username=self.user)))
+        self.dispatcher.add_handler(CommandHandler("add_sequent", self.add_sequent_handler, filters=Filters.user(username=self.user)))
+        self.dispatcher.add_handler(CommandHandler("delete", self.delete_handler, filters=Filters.user(username=self.user)))
 
     def pre_run(self) -> None:
         self.updater.start_polling()
@@ -42,10 +47,16 @@ class Telegram(Ui):
         self.updater.stop()
 
     def loop(self, event: Event) -> None:
-        if event.name == Telegram.FILLED_EVENT:
+        if event.name == Telegram.CONNECTED_EVENT:
+            self.notify_connected(event)
+        elif event.name == Telegram.ADDED_EVENT:
+            self.notify_added(event)
+        elif event.name == Telegram.DELETED_EVENT:
+            self.notify_deleted(event)
+        elif event.name == Telegram.SUBMITTED_EVENT:
+            self.notify_submitted(event)
+        elif event.name == Telegram.FILLED_EVENT:
             self.notify_filled(event)
-        elif event.name == Telegram.REJECTED_EVENT:
-            self.notify_rejected(event)
 
     def start_chat_handler(self, update: Update, _: CallbackContext) -> None:
         self.logger.log(logging.INFO, "Received start command")
@@ -67,33 +78,53 @@ class Telegram(Ui):
             "password": password
         }))
 
-    def execute_handler(self, update: Update, _: CallbackContext) -> None:
+    def add_parallel_handler(self, update: Update, _: CallbackContext) -> None:
+        message = update.message.text.lstrip("/add_parallel ")
+        self._add_order(message, "parallel")
 
-        message = update.message.text.lstrip("/execute ")
-        self.logger.log(logging.INFO, f"""Received message: {message}""")
+    def add_sequent_handler(self, update: Update, _: CallbackContext) -> None:
+        message = update.message.text.lstrip("/add_sequent ")
+        self._add_order(message, "sequent")
 
+    def _add_order(self, message: str, mode: str) -> None:
+        self.logger.log(logging.INFO, f"""Received add message: {message}""")
         try:
             order = self.parser.parse(message)
-
         except InvalidString as invalid_string:
             self._send_message(f"""Invalid command: {invalid_string.order_string}""")
             return
-
         self.logger.log(logging.INFO, f"""New execution order: {order}""")
-        self.emit_event(Event("EXECUTE", {
-            "order": order
-        }))
+        self.emit_event(Event("ADD", {"order": order, "mode": mode}))
+
+    def delete_handler(self, update: Update, _: CallbackContext) -> None:
+        order_id = update.message.text.lstrip("/delete ")
+        self.logger.log(logging.INFO, f"""Received delete message: {order_id}""")
+        self.emit_event(Event("DELETE", {"order_id": order_id}))
+
+    def notify_connected(self, event: Event) -> None:
+        user = event.data["user"]
+        self.logger.log(logging.INFO, f"""CONNECTED event: {user}""")
+        self._send_message(f"""Connected to user: {user}""")
+
+    def notify_added(self, event: Event) -> None:
+        order = event.data["single"]
+        self.logger.log(logging.INFO, f"""ADDED event: {order}""")
+        self._send_message(f"""Added order: {order}""")
+
+    def notify_deleted(self, event: Event) -> None:
+        order_id = event.data["order_id"]
+        self.logger.log(logging.INFO, f"""DELETED event: {order_id}""")
+        self._send_message(f"""Deleted order: {order_id}""")
+
+    def notify_submitted(self, event: Event) -> None:
+        order = event.data["single"]
+        self.logger.log(logging.INFO, f"""SUBMITTED event: {order}""")
+        self._send_message(f"""Submitted order: {order}""")
 
     def notify_filled(self, event: Event) -> None:
-        order = event.data["single_order"]
+        order = event.data["single"]
         self.logger.log(logging.INFO, f"""FILLED event: {order}""")
         self._send_message(f"""Filled order: {order}""")
-
-    def notify_rejected(self, event: Event) -> None:
-        single_order = event.data["single"]
-        all_orders = event.data["all"]
-        self.logger.log(logging.INFO, f"""REJECTED EVENT: {single_order}""")
-        self._send_message(f"""Rejected order: {single_order}\nRemaining: {all_orders}""")
 
     def _send_message(self, message: str):
         if self.chat_id:

@@ -6,21 +6,20 @@ from cihatbot.connector.connector import Connector, RejectedOrder, NonExistentOr
 from configparser import SectionProxy
 from queue import Queue
 from threading import Event as ThreadEvent
-from typing import List
 import logging
 
 
 class RealTrader(Trader):
 
     CONNECT_EVENT: str = "CONNECT"
-    EXECUTE_EVENT: str = "EXECUTE"
+    ADD_ORDER_EVENT: str = "ADD_ORDER"
+    DELETE_ORDER_EVENT: str = "DELETE_ORDER"
 
     def __init__(self, config: SectionProxy, queue: Queue, exit_event: ThreadEvent, connector: Connector) -> None:
         super().__init__(config, queue, exit_event, connector)
 
         self.logger: Logger = Logger(__name__, logging.INFO)
         self.execution_order: ExecutionOrder = EmptyExecutionOrder()
-        self.open_orders: List[SingleExecutionOrder] = []
 
         if "user" in config and "password" in config:
             self.connector.connect(self.config["user"], self.config["password"])
@@ -28,61 +27,69 @@ class RealTrader(Trader):
     def loop(self, event: Event) -> None:
         if event.name == RealTrader.CONNECT_EVENT:
             self.connect(event)
-        elif event.name == RealTrader.EXECUTE_EVENT:
-            self.set_execute(event)
+        elif event.name == RealTrader.ADD_ORDER_EVENT:
+            self.add_order(event)
+        elif event.name == RealTrader.DELETE_ORDER_EVENT:
+            self.delete_order(event)
         else:
-            self.execute()
-            self.check()
+            self.submit_next()
+            self.remove_filled()
 
     def connect(self, event: Event) -> None:
         user = event.data["user"]
         password = event.data["password"]
         self.logger.log(logging.INFO, f"""CONNECT event: {user}""")
         self.connector.connect(user, password)
-        self._cancel_all()
+        self.logger.log(logging.INFO, f"""CONNECTED event: {user}""")
 
-    def set_execute(self, event: Event) -> None:
+    def add_order(self, event: Event) -> None:
         order = event.data["order"]
-        self.logger.log(logging.INFO, f"""EXECUTE event: {order}""")
-        self._set_order(order)
+        mode = event.data["mode"]
+        self.logger.log(logging.INFO, f"""ADD event: {order}""")
+        if mode == "parallel":
+            self.execution_order.add_parallel(order)
+        elif mode == "sequent":
+            self.execution_order.add_sequential(order)
+        self.emit_event(Event("ADDED", {"all": self.execution_order, "single": order}))
 
-    def execute(self) -> None:
-        try:
-            self.execution_order.submit_next(self._execute_order)
-        except RejectedOrder as rejected_order:
-            self.logger.log(logging.INFO, f"""Order rejected: {rejected_order}""")
-            self.emit_event(Event("REJECTED", {"all": self.execution_order, "single": rejected_order.order}))
-            self._cancel_all()
+    def delete_order(self, event: Event) -> None:
+        order_id = event.data["order_id"]
+        self.logger.log(logging.INFO, f"""DELETE event: {order_id}""")
+        self.execution_order.remove(order_id, self._delete)
+        self.emit_event(Event("DELETED", {"all": self.execution_order, "order_id": order_id}))
 
-    def check(self) -> None:
-        for order in self.open_orders:
-            if self.connector.is_filled(order):
-                self.logger.log(logging.INFO, f"""Order filled: {order}""")
-                self.execution_order = self.execution_order.remove(order)
-                self.open_orders.remove(order)
-                self.emit_event(Event("FILLED", {"single_order": order}))
+    def _delete(self, execution_order: SingleExecutionOrder) -> None:
+        if execution_order.submitted:
+            self.connector.cancel(execution_order)
 
-    def _execute_order(self, execution_order: SingleExecutionOrder) -> bool:
+    def submit_next(self) -> None:
+        self.execution_order.submit_next(self._submit)
 
-        if not self.connector.satisfied(execution_order):
+    def _submit(self, order: SingleExecutionOrder) -> bool:
+
+        if not self.connector.satisfied(order):
             return False
 
-        order_id = self.connector.submit(execution_order)
+        external_id = self.connector.submit(order)
+        order.external_id = external_id
 
-        execution_order.order_id = order_id
-        self.open_orders.append(execution_order)
-
-        self.logger.log(logging.INFO, f"""Order submitted: {execution_order}""")
+        self.logger.log(logging.INFO, f"""Order submitted: {order}""")
+        self.emit_event(Event("SUBMITTED", {"all": self.execution_order, "single": order}))
         return True
 
-    def _cancel_all(self):
-        self._set_order(EmptyExecutionOrder())
+    def remove_filled(self) -> None:
+        self.execution_order = self.execution_order.remove_filled(self._is_filled)
 
-    def _set_order(self, execution_order: ExecutionOrder):
-        for order in self.open_orders:
-            self.connector.cancel(order)
-        self.execution_order = execution_order
-        self.open_orders = []
+    def _is_filled(self, order: SingleExecutionOrder) -> bool:
+
+        if self.connector.is_filled(order):
+            self.logger.log(logging.INFO, f"""Order filled: {order}""")
+            self.emit_event(Event("FILLED", {"all": self.execution_order, "single": order}))
+            return True
+
+        else:
+            return False
+
 
 
 
