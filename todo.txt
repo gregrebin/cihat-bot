@@ -6,3 +6,5 @@ Change ui events to ADDED_ORDER, CANCELLED_ORDER, SUBMITTED_ORDER, REJECTED_ORDE
 
 Change trader and connector to listen to exchange via websocket +Errors
 Handle errors in trader +Errors
+
+Setup pip installation +Installation
