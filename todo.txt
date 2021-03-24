@@ -1,10 +1,7 @@
+Add and delete: functionality to add and delete execution orders in trader, events changed
+Scaling: multiple traders and uis, dynamically launch new modules and change configs
+Error handling: handle all possible trader and ui errors, events as subclasses that checks its data
+Optimization: time track functionality and optimization
+Initialization: graphical aws ec2 instance and cihat-bot initialization utility (electron.js)
 
 
-Add UUID to orders +AddAndDelete
-Change trader events to CONNECT, ADD_ORDER and CANCEL_ORDER +AddAndDelete
-Change ui events to ADDED_ORDER, CANCELLED_ORDER, SUBMITTED_ORDER, REJECTED_ORDER, FILLED_ORDER +AddAndDelete
-
-Change trader and connector to listen to exchange via websocket +Errors
-Handle errors in trader +Errors
-
-Setup pip installation +Installation
