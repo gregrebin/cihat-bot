@@ -48,7 +48,7 @@ class RealTrader(Trader):
 
     def execute(self) -> None:
         try:
-            self.execution_order.execute(self._execute_order)
+            self.execution_order.submit_next(self._execute_order)
         except RejectedOrder as rejected_order:
             self.logger.log(logging.INFO, f"""Order rejected: {rejected_order}""")
             self.emit_event(Event("REJECTED", {"all": self.execution_order, "single": rejected_order.order}))

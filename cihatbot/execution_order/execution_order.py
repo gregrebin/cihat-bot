@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import List, Callable
+from uuid import uuid4, UUID
 
 
 class ExecutionParams:
@@ -28,12 +29,14 @@ class ExecutionOrder:
 
     def __init__(self, order_type: str):
         self.order_type: str = order_type
-        self.executed: float = False
+        self.submitted: bool = False
+        self.order_id: UUID = uuid4()
+        self.external_id: int = 0
 
     def __str__(self):
         return f"""{self.order_type} order"""
 
-    def execute(self, execute_function: Callable[[SingleExecutionOrder], bool]):
+    def submit_next(self, submit_func: Callable[[SingleExecutionOrder], bool]):
         pass
 
     def add_parallel(self, execution_order: ExecutionOrder) -> ExecutionOrder:
@@ -42,7 +45,7 @@ class ExecutionOrder:
     def add_sequential(self, execution_order: ExecutionOrder) -> ExecutionOrder:
         return SequentExecutionOrder([execution_order])
 
-    def remove(self, execution_order: ExecutionOrder) -> ExecutionOrder:
+    def remove(self, to_remove_func: Callable[[ExecutionOrder], bool]) -> ExecutionOrder:
         return EmptyExecutionOrder()
 
 
@@ -60,15 +63,13 @@ class SingleExecutionOrder(ExecutionOrder):
         self.params: ExecutionParams = execution_params
         self.conditions: ExecutionConditions = execution_conditions
 
-        self.order_id: int = 0
-
     def __str__(self):
         return f"""{self.params.command} {self.params.symbol} {self.params.price} {self.params.quantity}"""
 
-    def execute(self, execute_function: Callable[[SingleExecutionOrder], bool]):
-        if not self.executed:
-            success = execute_function(self)
-            self.executed = success
+    def submit_next(self, submit_func: Callable[[SingleExecutionOrder], bool]):
+        if not self.submitted:
+            submitted = submit_func(self)
+            self.submitted = submitted
 
     def add_parallel(self, execution_order: ExecutionOrder) -> ExecutionOrder:
         return ParallelExecutionOrder([self, execution_order])
@@ -76,8 +77,8 @@ class SingleExecutionOrder(ExecutionOrder):
     def add_sequential(self, execution_order: ExecutionOrder) -> ExecutionOrder:
         return SequentExecutionOrder([self, execution_order])
 
-    def remove(self, execution_order: ExecutionOrder) -> ExecutionOrder:
-        if self == execution_order:
+    def remove(self, to_remove_func: Callable[[ExecutionOrder], bool]) -> ExecutionOrder:
+        if to_remove_func(self):
             return EmptyExecutionOrder()
         else:
             return self
@@ -97,21 +98,21 @@ class MultipleExecutionOrder(ExecutionOrder):
         orders = [str(order) for order in self.orders]
         return f"""[{self.order_type} {', '.join(orders)}]"""
 
-    def _check_executed(self):
+    def _check_submitted(self):
         for order in self.orders:
-            if not order.executed:
+            if not order.submitted:
                 return
-        self.executed = True
+        self.submitted = True
 
-    def remove(self, execution_order: ExecutionOrder) -> ExecutionOrder:
+    def remove(self, to_remove_func: Callable[[ExecutionOrder], bool]) -> ExecutionOrder:
 
-        if self == execution_order:
+        if to_remove_func(self):
             return EmptyExecutionOrder()
 
         new_orders = []
 
         for order in self.orders:
-            new_order = order.remove(execution_order)
+            new_order = order.remove(to_remove_func)
             if not isinstance(new_order, EmptyExecutionOrder):
                 new_orders.append(new_order)
 
@@ -127,11 +128,11 @@ class ParallelExecutionOrder(MultipleExecutionOrder):
     def __init__(self, orders: List[ExecutionOrder]):
         super().__init__("parallel", orders)
 
-    def execute(self, execute_function: Callable[[SingleExecutionOrder], bool]):
-        if not self.executed:
+    def submit_next(self, submit_func: Callable[[SingleExecutionOrder], bool]):
+        if not self.submitted:
             for order in self.orders:
-                order.execute(execute_function)
-        self._check_executed()
+                order.submit_next(submit_func)
+        self._check_submitted()
 
     def add_parallel(self, execution_order: ExecutionOrder) -> ExecutionOrder:
         self.orders.append(execution_order)
@@ -146,10 +147,10 @@ class SequentExecutionOrder(MultipleExecutionOrder):
     def __init__(self, orders: List[ExecutionOrder]):
         super().__init__("sequent", orders)
 
-    def execute(self, execute_function: Callable[[SingleExecutionOrder], bool]):
-        if not self.executed:
-            self.orders[0].execute(execute_function)
-        self._check_executed()
+    def submit_next(self, submit_func: Callable[[SingleExecutionOrder], bool]):
+        if not self.submitted:
+            self.orders[0].submit_next(submit_func)
+        self._check_submitted()
 
     def add_parallel(self, execution_order: ExecutionOrder) -> ExecutionOrder:
         return ParallelExecutionOrder([self, execution_order])

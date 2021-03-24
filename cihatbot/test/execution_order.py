@@ -18,7 +18,7 @@ class ExecutionOrderTest:
         def execute_func(order: SingleExecutionOrder):
             print("Executing single order", order)
             return True
-        self.order.execute(execute_func)
+        self.order.submit_next(execute_func)
         print("Order after execution:", self.order)
 
     def test_add(self):
