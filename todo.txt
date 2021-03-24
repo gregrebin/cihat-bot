@@ -1,0 +1,8 @@
+
+
+Add UUID to orders +AddAndDelete
+Change trader events to CONNECT, ADD_ORDER and CANCEL_ORDER +AddAndDelete
+Change ui events to ADDED_ORDER, CANCELLED_ORDER, SUBMITTED_ORDER, REJECTED_ORDER, FILLED_ORDER +AddAndDelete
+
+Change trader and connector to listen to exchange via websocket +Errors
+Handle errors in trader +Errors
