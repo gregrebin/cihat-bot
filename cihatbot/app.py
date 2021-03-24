@@ -11,8 +11,8 @@ from cihatbot.connector.connector import Connector
 from cihatbot.connector.binance import BinanceConnector
 from configparser import ConfigParser, SectionProxy
 from queue import Queue
-from threading import Event as ThreadEvent
-from typing import Type, Dict, Set
+from threading import Thread, Event as ThreadEvent
+from typing import Type, Dict, List
 from signal import signal, SIGINT, SIGTERM
 import logging
 
@@ -38,92 +38,140 @@ CONNECTORS: Dict[str, Type[Connector]] = {
 
 
 class Application:
-    """
-    Application contains an ui and a trader, ui and trader must inherit module class and implement a run method.
-
-    1. Ui or trader fires an event via emit_event method
-    2. Application receives the event, validates it, and places into apposite queue
-    3. Trader or ui will retrieve a relative event.
-
-    List of valid events is specified in events.py file.
-    An event will have a name and some data.
-
-    """
 
     def __init__(self, config_file: str) -> None:
-        """ Initialize an ui and a trader based on given names """
 
         self.logger: Logger = Logger(__name__, logging.INFO)
         self.logger.log(logging.INFO, "Initializing Cihat-bot")
 
-        self.exit_event = ThreadEvent()
+        self.exit_event: ThreadEvent = ThreadEvent()
         signal(SIGINT, self.exit)
         signal(SIGTERM, self.exit)
 
-        config = ConfigParser()
-        config.read(config_file)
-        self.ui_name = config["app"]["ui"]
-        self.parser_name = config["app"]["parser"]
-        self.trader_name = config["app"]["trader"]
-        self.connector_name = config["app"]["connector"]
+        self.config: ConfigParser = ConfigParser()
+        self.config.read(config_file)
 
-        self.ui_class: Type[Ui] = UIS[self.ui_name]
-        self.parser_class: Type[Parser] = PARSERS[self.parser_name]
-        self.trader_class: Type[Trader] = TRADERS[self.trader_name]
-        self.connector_class: Type[Connector] = CONNECTORS[self.connector_name]
-
-        self.ui_config: SectionProxy = config[self.ui_name]
-        self.trader_config: SectionProxy = config[self.trader_name]
-
-        self.ui_events: Queue = Queue()
-        self.trader_events: Queue = Queue()
-
-        self.parser: Parser = self.parser_class()
-        self.ui: Ui = self.ui_class(self.ui_config, self.trader_events, self.exit_event, self.parser)
-        self.connector: Connector = self.connector_class()
-        self.trader: Trader = self.trader_class(self.trader_config, self.ui_events, self.exit_event, self.connector)
-
-        self.ui.on_event(self.ui_event_handler)
-        self.trader.on_event(self.trader_event_handler)
+        self.all_events: Queue = Queue()
+        self.users: List[User] = []
+        self._init_default_user()
 
         self.logger.log(logging.INFO, "Initialization complete")
 
-    def run(self):
+    def _init_default_user(self):
 
-        self.ui.start()
-        self.trader.start()
+        user = User(self.all_events, self.config, self.exit_event, self.logger)
+        user.add_trader(self.config["all"]["trader"], self.config["all"]["connector"])
+        user.add_ui(self.config["all"]["ui"], self.config["all"]["parser"])
+        self.users.append(user)
+
+    def run(self):
 
         self.logger.log(logging.INFO, "Cihat-bot started")
 
-        self.ui.join()
-        self.trader.join()
+        for user in self.users:
+            user.start()
+
+        while not self.exit_event.isSet():
+            event = self.all_events.get()
+            self.receive_event(event)
+
+        for user in self.users:
+            user.join()
 
         self.logger.log(logging.INFO, "Cihat-bot stopped")
+
+    def receive_event(self, event: Event):
+
+        if event.name == "NEW_USER":
+            self.add_user()
+
+    def add_user(self):
+
+        user = User(self.all_events, self.config, self.exit_event, self.logger)
+        self.users.append(user)
 
     def exit(self, signum, frame):
 
         self.exit_event.set()
 
-    def ui_event_handler(self, ui_event: Event) -> None:
 
-        self._handle_event("ui", ui_event, UI_EVENTS, self.ui_events)
+class User(Thread):
 
-    def trader_event_handler(self, trader_event: Event) -> None:
+    def __init__(self, app_all_events: Queue, config: ConfigParser, exit_event: ThreadEvent, logger: Logger) -> None:
+        super().__init__()
 
-        self._handle_event("trader", trader_event, TRADER_EVENTS, self.trader_events)
+        self.uis: List[Ui] = []
+        self.traders: List[Trader] = []
 
-    def _handle_event(self, name: str, event: Event, valid: Dict[str, Set[str]], queue: Queue):
+        self.ui_events: Queue = Queue()
+        self.trader_events: Queue = Queue()
+        self.all_events: Queue = Queue()
+        self.app_all_events: Queue = app_all_events
 
-        if event.name in valid:
+        self.config: ConfigParser = config
+        self.exit_event: ThreadEvent = exit_event
+        self.logger: Logger = logger
 
-            for data_entry in valid[event.name]:
-                if data_entry not in event.data:
-                    self.logger.log(logging.ERROR, f"""Invalid {name} event data: {event}""")
-                    return
+    def add_ui(self, ui_name: str, parser_name: str) -> Ui:
 
-            queue.put(event)
-            self.logger.log(logging.INFO, f"""New {name} event: {event}""")
+        ui_class = UIS[ui_name]
+        parser_class = PARSERS[parser_name]
 
-        else:
-            self.logger.log(logging.ERROR, f"""Invalid {name} event: {event}""")
+        parser = parser_class()
+        ui = ui_class(self.config[ui_name], self.trader_events, self.exit_event, parser)
 
+        ui.on_event(self.ui_event_handler)
+        self.uis.append(ui)
+        return ui
+
+    def add_trader(self, trader_name: str, connector_name: str) -> Trader:
+
+        trader_class = TRADERS[trader_name]
+        connector_class = CONNECTORS[connector_name]
+
+        connector = connector_class()
+        trader = trader_class(self.config[trader_name], self.ui_events, self.exit_event, connector)
+
+        trader.on_event(self.trader_event_handler)
+        self.traders.append(trader)
+        return trader
+
+    def ui_event_handler(self, event: Event) -> None:
+
+        self.logger.log(logging.INFO, f"""New ui event: {event}""")
+        self.ui_events.put(event)
+        self.all_events.put(event)
+        self.app_all_events.put(event)
+
+    def trader_event_handler(self, event: Event) -> None:
+
+        self.logger.log(logging.INFO, f"""New trader event: {event}""")
+        self.trader_events.put(event)
+        self.all_events.put(event)
+        self.app_all_events.put(event)
+
+    def receive_event(self, event: Event) -> None:
+
+        if event.name == "ADD_TRADER":
+            trader = self.add_trader(event.data["trader_name"], event.data["connector_name"])
+            trader.start()
+
+        elif event.name == "ADD_UI":
+            ui = self.add_ui(event.data["ui_name"], event.data["parser_name"])
+            ui.start()
+
+    def run(self):
+
+        for ui in self.uis:
+            ui.start()
+        for trader in self.traders:
+            trader.start()
+
+        while not self.exit_event.isSet():
+            event = self.all_events.get()
+            self.receive_event(event)
+
+        for ui in self.uis:
+            ui.join()
+        for trader in self.traders:
+            trader.join()
