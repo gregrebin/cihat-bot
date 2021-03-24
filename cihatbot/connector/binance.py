@@ -1,4 +1,4 @@
-from cihatbot.connector.connector import Connector, RejectedOrder, NonExistentOrder, ConnectionProblem
+from cihatbot.connector.connector import Connector, RejectedOrder, NonExistentOrder
 from cihatbot.execution_order.execution_order import SingleExecutionOrder, ExecutionConditions, ExecutionParams
 from binance.client import Client
 from binance.exceptions import BinanceOrderException, BinanceRequestException, BinanceAPIException
