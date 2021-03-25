@@ -37,10 +37,10 @@ class ExecutionOrder:
         return f"""{self.order_type} order"""
 
     def add_parallel(self, execution_order: ExecutionOrder) -> ExecutionOrder:
-        return ParallelExecutionOrder([execution_order])
+        return execution_order
 
     def add_sequential(self, execution_order: ExecutionOrder) -> ExecutionOrder:
-        return SequentExecutionOrder([execution_order])
+        return execution_order
 
     def remove(self, order_id: str, cancel_func: Callable[[SingleExecutionOrder], None]) -> ExecutionOrder:
         return EmptyExecutionOrder()
@@ -140,7 +140,7 @@ class MultipleExecutionOrder(ExecutionOrder):
         empty = True
         for order in self.orders:
             new_order = order.remove_filled(is_filled)
-            if not isinstance(new_orders, EmptyExecutionOrder):
+            if not isinstance(new_order, EmptyExecutionOrder):
                 new_orders.append(new_order)
                 empty = False
 
@@ -167,7 +167,11 @@ class ParallelExecutionOrder(MultipleExecutionOrder):
         super().__init__("parallel", orders)
 
     def add_parallel(self, execution_order: ExecutionOrder) -> ExecutionOrder:
-        self.orders.append(execution_order)
+        if isinstance(execution_order, ParallelExecutionOrder):
+            self.orders.append(*execution_order.orders)
+        else:
+            self.orders.append(execution_order)
+        self.submitted = False
         return self
 
     def add_sequential(self, execution_order: ExecutionOrder) -> ExecutionOrder:
@@ -189,7 +193,11 @@ class SequentExecutionOrder(MultipleExecutionOrder):
         return ParallelExecutionOrder([self, execution_order])
 
     def add_sequential(self, execution_order: ExecutionOrder) -> ExecutionOrder:
-        self.orders.append(execution_order)
+        if isinstance(execution_order, SequentExecutionOrder):
+            self.orders.append(*execution_order.orders)
+        else:
+            self.orders.append(execution_order)
+        self.submitted = False
         return self
 
     def submit_next(self, submit_func: Callable[[SingleExecutionOrder], bool]):

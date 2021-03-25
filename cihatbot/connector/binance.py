@@ -55,7 +55,7 @@ class BinanceConnector(Connector):
         try:
             binance_order = self.client.get_order(
                 symbol=execution_order.params.symbol,
-                orderId=execution_order.order_id
+                orderId=execution_order.external_id
             )
         except (BinanceRequestException, BinanceAPIException):
             raise NonExistentOrder(execution_order)
@@ -69,7 +69,7 @@ class BinanceConnector(Connector):
         try:
             self.client.cancel_order(
                 symbol=execution_order.params.symbol,
-                orderId=execution_order.order_id
+                orderId=execution_order.external_id
             )
         except (BinanceRequestException, BinanceAPIException):
             raise NonExistentOrder(execution_order)

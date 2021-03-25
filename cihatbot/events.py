@@ -3,8 +3,8 @@ from typing import Dict, Any, Set
 
 UI_EVENTS: Dict[str, Set[str]] = {
     "CONNECT": {"user", "password"},
-    "ADD_ORDER": {"order", "mode"},
-    "DELETE_ORDER": {"order_id"}
+    "ADD": {"order", "mode"},
+    "DELETE": {"order_id"}
 }
 
 TRADER_EVENTS: Dict[str, Set[str]] = {
@@ -23,7 +23,6 @@ USER_EVENTS: Dict[str, Set[str]] = {
 APP_EVENTS: Dict[str, Set[str]] = {
     "NEW_USER": {"ui", "parser", "trader", "connector"}
 }
-
 
 
 class Event:

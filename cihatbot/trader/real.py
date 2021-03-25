@@ -12,8 +12,8 @@ import logging
 class RealTrader(Trader):
 
     CONNECT_EVENT: str = "CONNECT"
-    ADD_ORDER_EVENT: str = "ADD_ORDER"
-    DELETE_ORDER_EVENT: str = "DELETE_ORDER"
+    ADD_ORDER_EVENT: str = "ADD"
+    DELETE_ORDER_EVENT: str = "DELETE"
 
     def __init__(self, config: SectionProxy, queue: Queue, exit_event: ThreadEvent, connector: Connector) -> None:
         super().__init__(config, queue, exit_event, connector)
@@ -47,15 +47,15 @@ class RealTrader(Trader):
         mode = event.data["mode"]
         self.logger.log(logging.INFO, f"""ADD event: {order}""")
         if mode == "parallel":
-            self.execution_order.add_parallel(order)
+            self.execution_order = self.execution_order.add_parallel(order)
         elif mode == "sequent":
-            self.execution_order.add_sequential(order)
+            self.execution_order = self.execution_order.add_sequential(order)
         self.emit_event(Event("ADDED", {"all": self.execution_order, "single": order}))
 
     def delete_order(self, event: Event) -> None:
         order_id = event.data["order_id"]
         self.logger.log(logging.INFO, f"""DELETE event: {order_id}""")
-        self.execution_order.remove(order_id, self._delete)
+        self.execution_order = self.execution_order.remove(order_id, self._delete)
         self.emit_event(Event("DELETED", {"all": self.execution_order, "order_id": order_id}))
 
     def _delete(self, execution_order: SingleExecutionOrder) -> None:
