@@ -1,5 +1,6 @@
+from __future__ import annotations
 from cihatbot.logger import Logger
-from cihatbot.events import Event, UI_EVENTS, TRADER_EVENTS
+from cihatbot.events import Event, UI_EVENTS, TRADER_EVENTS, USER_EVENTS, APP_EVENTS
 from cihatbot.ui.ui import Ui
 from cihatbot.ui.telegram import Telegram
 from cihatbot.parser.parser import Parser
@@ -10,7 +11,7 @@ from cihatbot.trader.real import RealTrader
 from cihatbot.connector.connector import Connector
 from cihatbot.connector.binance import BinanceConnector
 from configparser import ConfigParser, SectionProxy
-from queue import Queue
+from queue import Queue, Empty
 from threading import Thread, Event as ThreadEvent
 from typing import Type, Dict, List
 from signal import signal, SIGINT, SIGTERM
@@ -53,27 +54,28 @@ class Application:
 
         self.all_events: Queue = Queue()
         self.users: List[User] = []
-        self._init_default_user()
 
         self.logger.log(logging.INFO, "Initialization complete")
 
-    def _init_default_user(self):
-
-        user = User(self.all_events, self.config, self.exit_event, self.logger)
-        user.add_trader(self.config["all"]["trader"], self.config["all"]["connector"])
-        user.add_ui(self.config["all"]["ui"], self.config["all"]["parser"])
-        self.users.append(user)
-
     def run(self):
+
+        self.logger.log(logging.INFO, "Starting cihat-bot")
+
+        self.add_user(
+            self.config["app"]["ui"], self.config["app"]["parser"],
+            self.config["app"]["trader"], self.config["app"]["connector"]
+        )
 
         self.logger.log(logging.INFO, "Cihat-bot started")
 
-        for user in self.users:
-            user.start()
-
         while not self.exit_event.isSet():
-            event = self.all_events.get()
-            self.receive_event(event)
+            try:
+                event = self.all_events.get(block=False)
+                self.receive_event(event)
+            except Empty:
+                pass
+
+        self.logger.log(logging.INFO, "Stopping cihat-bot")
 
         for user in self.users:
             user.join()
@@ -83,12 +85,22 @@ class Application:
     def receive_event(self, event: Event):
 
         if event.name == "NEW_USER":
-            self.add_user()
+            self.add_user(event.data["ui"], event.data["parser"], event.data["trader"], event.data["connector"])
 
-    def add_user(self):
+    def add_user(self, ui_name: str, parser_name: str, trader_name: str, connector_name: str):
+
+        self._init_user(ui_name, parser_name, trader_name, connector_name).start()
+        self.logger.log(logging.INFO, f"""Started new user""")
+
+    def _init_user(self, ui_name: str, parser_name: str, trader_name: str, connector_name: str) -> User:
 
         user = User(self.all_events, self.config, self.exit_event, self.logger)
+        user.add_ui(ui_name, parser_name)
+        user.add_trader(trader_name, connector_name)
         self.users.append(user)
+        self.logger.log(logging.INFO, "Created new user")
+
+        return user
 
     def exit(self, signum, frame):
 
@@ -97,7 +109,7 @@ class Application:
 
 class User(Thread):
 
-    def __init__(self, app_all_events: Queue, config: ConfigParser, exit_event: ThreadEvent, logger: Logger) -> None:
+    def __init__(self, app_events: Queue, config: ConfigParser, exit_event: ThreadEvent, logger: Logger) -> None:
         super().__init__()
 
         self.uis: List[Ui] = []
@@ -105,12 +117,14 @@ class User(Thread):
 
         self.ui_events: Queue = Queue()
         self.trader_events: Queue = Queue()
-        self.all_events: Queue = Queue()
-        self.app_all_events: Queue = app_all_events
+        self.user_events: Queue = Queue()
+        self.app_events: Queue = app_events
 
         self.config: ConfigParser = config
         self.exit_event: ThreadEvent = exit_event
         self.logger: Logger = logger
+
+        self.logger.log(logging.INFO, f"""New user initialized""")
 
     def add_ui(self, ui_name: str, parser_name: str) -> Ui:
 
@@ -122,6 +136,8 @@ class User(Thread):
 
         ui.on_event(self.ui_event_handler)
         self.uis.append(ui)
+
+        self.logger.log(logging.INFO, f"""Added {ui_name} with {parser_name}""")
         return ui
 
     def add_trader(self, trader_name: str, connector_name: str) -> Trader:
@@ -134,31 +150,31 @@ class User(Thread):
 
         trader.on_event(self.trader_event_handler)
         self.traders.append(trader)
+
+        self.logger.log(logging.INFO, f"""Added {trader_name} with {connector_name}""")
         return trader
 
     def ui_event_handler(self, event: Event) -> None:
 
-        self.logger.log(logging.INFO, f"""New ui event: {event}""")
-        self.ui_events.put(event)
-        self.all_events.put(event)
-        self.app_all_events.put(event)
+        self.logger.log(logging.INFO, f"""New ui event: {event.name}""")
+
+        if event.name in UI_EVENTS:
+            self.ui_events.put(event)
+        elif event.name in USER_EVENTS:
+            self.user_events.put(event)
+        elif event.name in APP_EVENTS:
+            self.app_events.put(event)
 
     def trader_event_handler(self, event: Event) -> None:
 
-        self.logger.log(logging.INFO, f"""New trader event: {event}""")
-        self.trader_events.put(event)
-        self.all_events.put(event)
-        self.app_all_events.put(event)
+        self.logger.log(logging.INFO, f"""New trader event: {event.name}""")
 
-    def receive_event(self, event: Event) -> None:
-
-        if event.name == "ADD_TRADER":
-            trader = self.add_trader(event.data["trader_name"], event.data["connector_name"])
-            trader.start()
-
-        elif event.name == "ADD_UI":
-            ui = self.add_ui(event.data["ui_name"], event.data["parser_name"])
-            ui.start()
+        if event.name in TRADER_EVENTS:
+            self.trader_events.put(event)
+        elif event.name in USER_EVENTS:
+            self.user_events.put(event)
+        elif event.name in APP_EVENTS:
+            self.app_events.put(event)
 
     def run(self):
 
@@ -168,10 +184,21 @@ class User(Thread):
             trader.start()
 
         while not self.exit_event.isSet():
-            event = self.all_events.get()
-            self.receive_event(event)
+            try:
+                event = self.user_events.get(block=False)
+                self.receive_event(event)
+            except Empty:
+                pass
 
         for ui in self.uis:
             ui.join()
         for trader in self.traders:
             trader.join()
+
+    def receive_event(self, event: Event) -> None:
+
+        if event.name == "ADD_TRADER":
+            self.add_trader(event.data["trader_name"], event.data["connector_name"]).start()
+
+        elif event.name == "ADD_UI":
+            self.add_ui(event.data["ui_name"], event.data["parser_name"]).start()

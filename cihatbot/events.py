@@ -11,6 +11,16 @@ TRADER_EVENTS: Dict[str, Set[str]] = {
     "REJECTED": {"all", "single"}
 }
 
+USER_EVENTS: Dict[str, Set[str]] = {
+    "ADD_TRADER": {"trader_name", "connector_name"},
+    "ADD_UI": {"ui_name", "parser_name"}
+}
+
+APP_EVENTS: Dict[str, Set[str]] = {
+    "NEW_USER": {"ui", "parser", "trader", "connector"}
+}
+
+
 
 class Event:
 
