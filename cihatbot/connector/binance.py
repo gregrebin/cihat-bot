@@ -2,12 +2,12 @@ from cihatbot.connector.connector import Connector, RejectedOrder, NonExistentOr
 from cihatbot.execution_order.execution_order import SingleExecutionOrder, ExecutionConditions, ExecutionParams
 from binance.client import Client
 from binance.exceptions import BinanceOrderException, BinanceRequestException, BinanceAPIException
-import time
 
 
 class BinanceConnector(Connector):
-    ORDER_TIME: float = 3.0
-    QUERY_TIME: float = 0.05
+
+    ORDER_DELAY: float = 0.5
+    QUERY_DELAY: float = 0.01
 
     def __init__(self):
         self.client: Client = Client("", "")
@@ -21,8 +21,6 @@ class BinanceConnector(Connector):
         from_time = int(execution_conditions.from_time) * 1000
 
         binance_time = self.client.get_server_time()["serverTime"]
-
-        time.sleep(BinanceConnector.QUERY_TIME)
 
         return binance_time >= from_time
 
@@ -46,8 +44,6 @@ class BinanceConnector(Connector):
         except (BinanceRequestException, BinanceOrderException, BinanceAPIException):
             raise RejectedOrder(execution_order)
 
-        time.sleep(BinanceConnector.ORDER_TIME)
-
         return binance_order["orderId"]
 
     def is_filled(self, execution_order: SingleExecutionOrder) -> bool:
@@ -60,8 +56,6 @@ class BinanceConnector(Connector):
         except (BinanceRequestException, BinanceAPIException):
             raise NonExistentOrder(execution_order)
 
-        time.sleep(BinanceConnector.QUERY_TIME)
-
         return binance_order["status"] == self.client.ORDER_STATUS_FILLED
 
     def cancel(self, execution_order: SingleExecutionOrder) -> None:
@@ -73,5 +67,3 @@ class BinanceConnector(Connector):
             )
         except (BinanceRequestException, BinanceAPIException):
             raise NonExistentOrder(execution_order)
-
-        time.sleep(BinanceConnector.QUERY_TIME)

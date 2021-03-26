@@ -3,6 +3,9 @@ from cihatbot.execution_order.execution_order import SingleExecutionOrder, Execu
 
 class Connector:
 
+    ORDER_DELAY: float = 0.0
+    QUERY_DELAY: float = 0.0
+
     def connect(self, key: str, secret: str) -> None:
         pass
 

@@ -7,6 +7,7 @@ from queue import Queue
 from threading import Event as ThreadEvent
 from typing import Dict
 import logging
+import time
 
 
 class RealTrader(Trader):
@@ -33,14 +34,16 @@ class RealTrader(Trader):
             self.delete_order(event)
         else:
             self.submit_next()
+            time.sleep(self.connector.ORDER_DELAY)
             self.remove_filled()
+            time.sleep(self.connector.QUERY_DELAY)
 
     def connect(self, event: Event) -> None:
         user = event.data["user"]
         password = event.data["password"]
         self.logger.log(logging.INFO, f"""CONNECT event: {user}""")
         self.connector.connect(user, password)
-        self.logger.log(logging.INFO, f"""CONNECTED event: {user}""")
+        self.emit_event(Event("CONNECTED", {"user": user}))
 
     def add_order(self, event: Event) -> None:
         order = event.data["order"]

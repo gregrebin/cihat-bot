@@ -168,7 +168,7 @@ class ParallelExecutionOrder(MultipleExecutionOrder):
 
     def add_parallel(self, execution_order: ExecutionOrder) -> ExecutionOrder:
         if isinstance(execution_order, ParallelExecutionOrder):
-            self.orders.append(*execution_order.orders)
+            self.orders.extend(execution_order.orders)
         else:
             self.orders.append(execution_order)
         self.submitted = False
@@ -194,7 +194,7 @@ class SequentExecutionOrder(MultipleExecutionOrder):
 
     def add_sequential(self, execution_order: ExecutionOrder) -> ExecutionOrder:
         if isinstance(execution_order, SequentExecutionOrder):
-            self.orders.append(*execution_order.orders)
+            self.orders.extend(execution_order.orders)
         else:
             self.orders.append(execution_order)
         self.submitted = False
