@@ -1,4 +1,4 @@
-from cihatbot.connector.connector import Connector, RejectedOrder, NonExistentOrder
+from cihatbot.connector.connector import Connector, ConnectorException
 from cihatbot.execution_order.execution_order import SingleExecutionOrder, ExecutionConditions, ExecutionParams
 from binance.client import Client
 from binance.exceptions import BinanceOrderException, BinanceRequestException, BinanceAPIException
@@ -20,7 +20,10 @@ class BinanceConnector(Connector):
         execution_conditions = execution_order.conditions
         from_time = int(execution_conditions.from_time) * 1000
 
-        binance_time = self.client.get_server_time()["serverTime"]
+        try:
+            binance_time = self.client.get_server_time()["serverTime"]
+        except (BinanceRequestException, BinanceAPIException) as exception:
+            raise ConnectorException(exception.message, execution_order)
 
         return binance_time >= from_time
 
@@ -41,8 +44,8 @@ class BinanceConnector(Connector):
                 type=self.client.ORDER_TYPE_LIMIT,
                 timeInForce=self.client.TIME_IN_FORCE_GTC
             )
-        except (BinanceRequestException, BinanceOrderException, BinanceAPIException):
-            raise RejectedOrder(execution_order)
+        except (BinanceRequestException, BinanceOrderException, BinanceAPIException) as exception:
+            raise ConnectorException(exception.message, execution_order)
 
         return binance_order["orderId"]
 
@@ -53,8 +56,8 @@ class BinanceConnector(Connector):
                 symbol=execution_order.params.symbol,
                 orderId=execution_order.external_id
             )
-        except (BinanceRequestException, BinanceAPIException):
-            raise NonExistentOrder(execution_order)
+        except (BinanceRequestException, BinanceAPIException) as exception:
+            raise ConnectorException(exception.message, execution_order)
 
         return binance_order["status"] == self.client.ORDER_STATUS_FILLED
 
@@ -65,5 +68,5 @@ class BinanceConnector(Connector):
                 symbol=execution_order.params.symbol,
                 orderId=execution_order.external_id
             )
-        except (BinanceRequestException, BinanceAPIException):
-            raise NonExistentOrder(execution_order)
+        except (BinanceRequestException, BinanceAPIException) as exception:
+            raise ConnectorException(exception.message, execution_order)

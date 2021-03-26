@@ -22,11 +22,7 @@ class Connector:
         pass
 
 
-class RejectedOrder(Exception):
-    def __init__(self, order: SingleExecutionOrder):
-        self.order = order
-
-
-class NonExistentOrder(Exception):
-    def __init__(self, order: SingleExecutionOrder):
+class ConnectorException(Exception):
+    def __init__(self, message: str, order: SingleExecutionOrder):
+        self.message = message
         self.order = order

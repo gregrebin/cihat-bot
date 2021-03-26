@@ -2,7 +2,7 @@ from cihatbot.logger import Logger
 from cihatbot.events import Event
 from cihatbot.trader.trader import Trader
 from cihatbot.execution_order.execution_order import ExecutionOrder, EmptyExecutionOrder, SingleExecutionOrder
-from cihatbot.connector.connector import Connector, RejectedOrder, NonExistentOrder
+from cihatbot.connector.connector import Connector, ConnectorException
 from queue import Queue
 from threading import Event as ThreadEvent
 from typing import Dict
@@ -61,36 +61,69 @@ class RealTrader(Trader):
         self.execution_order = self.execution_order.remove(order_id, self._delete)
         self.emit_event(Event("DELETED", {"all": self.execution_order, "order_id": order_id}))
 
-    def _delete(self, execution_order: SingleExecutionOrder) -> None:
-        if execution_order.submitted:
-            self.connector.cancel(execution_order)
+    def _delete(self, order: SingleExecutionOrder) -> None:
+        if order.submitted:
+            self._call_cancel(order)
+
+    def _call_cancel(self, order: SingleExecutionOrder) -> None:
+        try:
+            self.connector.cancel(order)
+        except ConnectorException as exception:
+            self.emit_event(Event("ERROR", {"order": exception.order, "message": exception.message}))
 
     def submit_next(self) -> None:
         self.execution_order.submit_next(self._submit)
 
     def _submit(self, order: SingleExecutionOrder) -> bool:
 
-        if not self.connector.satisfied(order):
+        if not self._call_satisfied(order):
             return False
 
-        external_id = self.connector.submit(order)
-        order.external_id = external_id
+        if not self._call_submit(order):
+            return False
 
         self.logger.log(logging.INFO, f"""Order submitted: {order}""")
         self.emit_event(Event("SUBMITTED", {"all": self.execution_order, "single": order}))
         return True
+
+    def _call_satisfied(self, order: SingleExecutionOrder) -> bool:
+
+        try:
+            return self.connector.satisfied(order)
+
+        except ConnectorException as exception:
+            self.emit_event(Event("ERROR", {"order": exception.order, "message": exception.message}))
+            return False
+
+    def _call_submit(self, order: SingleExecutionOrder) -> bool:
+
+        try:
+            order.external_id = self.connector.submit(order)
+            return True
+
+        except ConnectorException as exception:
+            self.emit_event(Event("ERROR", {"order": exception.order, "message": exception.message}))
+            return False
 
     def remove_filled(self) -> None:
         self.execution_order = self.execution_order.remove_filled(self._is_filled)
 
     def _is_filled(self, order: SingleExecutionOrder) -> bool:
 
-        if self.connector.is_filled(order):
-            self.logger.log(logging.INFO, f"""Order filled: {order}""")
-            self.emit_event(Event("FILLED", {"all": self.execution_order, "single": order}))
-            return True
+        if not self._call_is_filled(order):
+            return False
 
-        else:
+        self.logger.log(logging.INFO, f"""Order filled: {order}""")
+        self.emit_event(Event("FILLED", {"all": self.execution_order, "single": order}))
+        return True
+
+    def _call_is_filled(self, order: SingleExecutionOrder) -> bool:
+
+        try:
+            return self.connector.is_filled(order)
+
+        except ConnectorException as exception:
+            self.emit_event(Event("ERROR", {"order": exception.order, "message": exception.message}))
             return False
 
 
