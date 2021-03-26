@@ -1,8 +1,6 @@
-x Add and delete: functionality to add and delete execution orders in trader, events changed
-x Scaling: multiple traders and uis, dynamically launch new modules and change configs
-Interface: add single orders, "sell and the buy" order, helper function
 Websocket: add websocket to trader and connector
 Error handling: handle all possible trader and ui errors, events as subclasses that checks its data
+Interface: add single orders, "sell and the buy" order
 Optimization: time track functionality and optimization
 Initialization: graphical aws ec2 instance and cihat-bot initialization utility (electron.js)
 

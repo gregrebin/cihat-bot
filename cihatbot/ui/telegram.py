@@ -10,10 +10,34 @@ from telegram.ext import Updater, MessageHandler, CommandHandler, Filters, Callb
 import logging
 
 
+HELP_MESSAGE = f"""
+Welcome to Cihat bot!
+User following commands to start trading:
+
+/connect KEY SECRET
+    please refer to the following guide: https://www.binance.com/en-NG/support/faq/360002502072
+    if you skip this step your orders will be rejected
+
+/exec SYMBOL buy QUANTITY at PRICE and sell PERCENTS at PRICE
+    to buy and then sell
+    example: /exec BTCBUSD buy 0.0002 at 55000 and sell 100% at 70000
+
+/exec SYMBOL buy QUANTITY at PRICE, QUANTITY at PRICE and sell PERCENTS at PRICE
+    to buy at multiple prices
+    example: /exec BTCBUSD buy 0.0002 at 55000, 0.0003 at 50000 and sell 100% at 70000
+
+Other commands such as /exec_after and /delete are to be documented.
+
+Created by 
+Grigoriy Rebinskiy
+me@gregrebin.com """
+
+
 class Telegram(Ui):
 
     BUY_COMMAND = "comprare"
     SELL_COMMAND = "vendere"
+
     CONNECTED_EVENT = "CONNECTED"
     ADDED_EVENT = "ADDED"
     DELETED_EVENT = "DELETED"
@@ -34,10 +58,10 @@ class Telegram(Ui):
         else:
             self.chat_id = None
 
-        self.dispatcher.add_handler(CommandHandler("start", self.start_chat_handler, filters=Filters.user(username=self.user)))
+        self.dispatcher.add_handler(CommandHandler("help", self.help_handler, filters=Filters.user(username=self.user)))
         self.dispatcher.add_handler(CommandHandler("connect", self.connect_handler, filters=Filters.user(username=self.user)))
-        self.dispatcher.add_handler(CommandHandler("add_parallel", self.add_parallel_handler, filters=Filters.user(username=self.user)))
-        self.dispatcher.add_handler(CommandHandler("add_sequent", self.add_sequent_handler, filters=Filters.user(username=self.user)))
+        self.dispatcher.add_handler(CommandHandler("exec", self.add_parallel_handler, filters=Filters.user(username=self.user)))
+        self.dispatcher.add_handler(CommandHandler("exec_after", self.add_sequent_handler, filters=Filters.user(username=self.user)))
         self.dispatcher.add_handler(CommandHandler("delete", self.delete_handler, filters=Filters.user(username=self.user)))
 
     def pre_run(self) -> None:
@@ -58,14 +82,12 @@ class Telegram(Ui):
         elif event.name == Telegram.FILLED_EVENT:
             self.notify_filled(event)
 
-    def start_chat_handler(self, update: Update, _: CallbackContext) -> None:
-        self.logger.log(logging.INFO, "Received start command")
-        chat_id = update.effective_chat.id
-        if not self.chat_id:
-            self.logger.log(logging.INFO, f"""Registering chat id: {chat_id}""")
-            self.chat_id = chat_id
+    def help_handler(self, update: Update, _: CallbackContext) -> None:
+        self._update_chat_id(update.message.chat_id)
+        self._send_message(HELP_MESSAGE)
 
     def connect_handler(self, update: Update, _: CallbackContext):
+        self._update_chat_id(update.message.chat_id)
 
         message = update.message.text.lstrip("/connect ")
         self.logger.log(logging.INFO, "Received connect command")
@@ -79,12 +101,25 @@ class Telegram(Ui):
         }))
 
     def add_parallel_handler(self, update: Update, _: CallbackContext) -> None:
-        message = update.message.text.lstrip("/add_parallel ")
+        self._update_chat_id(update.message.chat_id)
+        message = update.message.text.lstrip("/exec ")
         self._add_order(message, "parallel")
 
     def add_sequent_handler(self, update: Update, _: CallbackContext) -> None:
-        message = update.message.text.lstrip("/add_sequent ")
+        self._update_chat_id(update.message.chat_id)
+        message = update.message.text.lstrip("/exec_after ")
         self._add_order(message, "sequent")
+
+    def delete_handler(self, update: Update, _: CallbackContext) -> None:
+        self._update_chat_id(update.message.chat_id)
+        order_id = update.message.text.lstrip("/delete ")
+        self.logger.log(logging.INFO, f"""Received delete message: {order_id}""")
+        self.emit_event(Event("DELETE", {"order_id": order_id}))
+
+    def _update_chat_id(self, chat_id: int):
+        if not self.chat_id == chat_id:
+            self.logger.log(logging.INFO, f"""Registering new chat id: {chat_id}""")
+            self.chat_id = chat_id
 
     def _add_order(self, message: str, mode: str) -> None:
         self.logger.log(logging.INFO, f"""Received add message: {message}""")
@@ -95,11 +130,6 @@ class Telegram(Ui):
             return
         self.logger.log(logging.INFO, f"""New execution order: {order}""")
         self.emit_event(Event("ADD", {"order": order, "mode": mode}))
-
-    def delete_handler(self, update: Update, _: CallbackContext) -> None:
-        order_id = update.message.text.lstrip("/delete ")
-        self.logger.log(logging.INFO, f"""Received delete message: {order_id}""")
-        self.emit_event(Event("DELETE", {"order_id": order_id}))
 
     def notify_connected(self, event: Event) -> None:
         user = event.data["user"]
