@@ -1,15 +1,14 @@
 from cihatbot.events import Event, NoEvent
-from configparser import SectionProxy
 from queue import Queue, Empty
 from threading import Thread, Event as ThreadEvent
-from typing import List, Callable
+from typing import List, Callable, Dict
 
 
 class Module(Thread):
 
-    def __init__(self, config: SectionProxy, queue: Queue, exit_event: ThreadEvent) -> None:
+    def __init__(self, config: Dict, queue: Queue, exit_event: ThreadEvent) -> None:
         super().__init__()
-        self.config: SectionProxy = config
+        self.config: Dict = config
         self.queue: Queue = queue
         self.exit_event: ThreadEvent = exit_event
         self.listeners: List[Callable[[Event], None]] = []

@@ -3,9 +3,9 @@ from cihatbot.events import Event
 from cihatbot.trader.trader import Trader
 from cihatbot.execution_order.execution_order import ExecutionOrder, EmptyExecutionOrder, SingleExecutionOrder
 from cihatbot.connector.connector import Connector, RejectedOrder, NonExistentOrder
-from configparser import SectionProxy
 from queue import Queue
 from threading import Event as ThreadEvent
+from typing import Dict
 import logging
 
 
@@ -15,7 +15,7 @@ class RealTrader(Trader):
     ADD_ORDER_EVENT: str = "ADD"
     DELETE_ORDER_EVENT: str = "DELETE"
 
-    def __init__(self, config: SectionProxy, queue: Queue, exit_event: ThreadEvent, connector: Connector) -> None:
+    def __init__(self, config: Dict, queue: Queue, exit_event: ThreadEvent, connector: Connector) -> None:
         super().__init__(config, queue, exit_event, connector)
 
         self.logger: Logger = Logger(__name__, logging.INFO)

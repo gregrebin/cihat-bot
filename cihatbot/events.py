@@ -16,8 +16,8 @@ TRADER_EVENTS: Dict[str, Set[str]] = {
 }
 
 USER_EVENTS: Dict[str, Set[str]] = {
-    "ADD_TRADER": {"trader_name", "connector_name"},
-    "ADD_UI": {"ui_name", "parser_name"}
+    "ADD_TRADER": {"trader_name", "connector_name", "config"},
+    "ADD_UI": {"ui_name", "parser_name", "config"}
 }
 
 APP_EVENTS: Dict[str, Set[str]] = {
