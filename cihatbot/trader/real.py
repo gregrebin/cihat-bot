@@ -1,7 +1,7 @@
 from cihatbot.logger import Logger
 from cihatbot.events import Event
 from cihatbot.trader.trader import Trader
-from cihatbot.execution_order.execution_order import ExecutionOrder, EmptyExecutionOrder, SingleExecutionOrder
+from cihatbot.execution_order.execution_order import ExecutionOrder, EmptyExecutionOrder, SingleExecutionOrder, OrderStatus
 from cihatbot.connector.connector import Connector, ConnectorException
 from queue import Queue
 from threading import Event as ThreadEvent
@@ -62,7 +62,7 @@ class RealTrader(Trader):
         self.emit_event(Event("DELETED", {"all": self.execution_order, "order_id": order_id}))
 
     def _delete(self, order: SingleExecutionOrder) -> None:
-        if order.submitted:
+        if order.status == OrderStatus.SUBMITTED:
             self._call_cancel(order)
 
     def _call_cancel(self, order: SingleExecutionOrder) -> None:
@@ -74,17 +74,17 @@ class RealTrader(Trader):
     def submit_next(self) -> None:
         self.execution_order.submit_next(self._submit)
 
-    def _submit(self, order: SingleExecutionOrder) -> bool:
+    def _submit(self, order: SingleExecutionOrder) -> OrderStatus:
 
         if not self._call_satisfied(order):
-            return False
+            return OrderStatus.PENDING
 
         if not self._call_submit(order):
-            return False
+            return OrderStatus.REJECTED
 
         self.logger.log(logging.INFO, f"""Order submitted: {order}""")
         self.emit_event(Event("SUBMITTED", {"all": self.execution_order, "single": order}))
-        return True
+        return OrderStatus.SUBMITTED
 
     def _call_satisfied(self, order: SingleExecutionOrder) -> bool:
 

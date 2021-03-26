@@ -1,6 +1,14 @@
 from __future__ import annotations
 from typing import List, Callable
 from uuid import uuid4, UUID
+from enum import Enum, auto
+
+
+class OrderStatus(Enum):
+
+    PENDING = auto()
+    SUBMITTED = auto()
+    REJECTED = auto()
 
 
 class ExecutionParams:
@@ -29,7 +37,7 @@ class ExecutionOrder:
 
     def __init__(self, order_type: str):
         self.order_type: str = order_type
-        self.submitted: bool = False
+        self.status: OrderStatus = OrderStatus.PENDING
         self.order_id: str = uuid4().hex
         self.external_id: int = 0
 
@@ -45,7 +53,7 @@ class ExecutionOrder:
     def remove(self, order_id: str, cancel_func: Callable[[SingleExecutionOrder], None]) -> ExecutionOrder:
         return EmptyExecutionOrder()
 
-    def submit_next(self, submit_func: Callable[[SingleExecutionOrder], bool]):
+    def submit_next(self, submit_func: Callable[[SingleExecutionOrder], OrderStatus]) -> None:
         pass
 
     def remove_filled(self, is_filled: Callable[[SingleExecutionOrder], bool]) -> ExecutionOrder:
@@ -85,13 +93,12 @@ class SingleExecutionOrder(ExecutionOrder):
         else:
             return self
 
-    def submit_next(self, submit_func: Callable[[SingleExecutionOrder], bool]):
-        if not self.submitted:
-            submitted = submit_func(self)
-            self.submitted = submitted
+    def submit_next(self, submit_func: Callable[[SingleExecutionOrder], OrderStatus]):
+        if self.status == OrderStatus.PENDING:
+            self.status = submit_func(self)
 
     def remove_filled(self, is_filled: Callable[[SingleExecutionOrder], bool]) -> ExecutionOrder:
-        if self.submitted and is_filled(self):
+        if self.status == OrderStatus.SUBMITTED and is_filled(self):
             return EmptyExecutionOrder()
         else:
             return self
@@ -152,9 +159,9 @@ class MultipleExecutionOrder(ExecutionOrder):
 
     def _check_submitted(self):
         for order in self.orders:
-            if not order.submitted:
+            if not order.status == OrderStatus.SUBMITTED:
                 return
-        self.submitted = True
+        self.status = OrderStatus.SUBMITTED
 
     def _apply(self, func: Callable[[SingleExecutionOrder], None]):
         for order in self.orders:
@@ -171,14 +178,14 @@ class ParallelExecutionOrder(MultipleExecutionOrder):
             self.orders.extend(execution_order.orders)
         else:
             self.orders.append(execution_order)
-        self.submitted = False
+        self.status = OrderStatus.PENDING
         return self
 
     def add_sequential(self, execution_order: ExecutionOrder) -> ExecutionOrder:
         return SequentExecutionOrder([self, execution_order])
 
-    def submit_next(self, submit_func: Callable[[SingleExecutionOrder], bool]):
-        if not self.submitted:
+    def submit_next(self, submit_func: Callable[[SingleExecutionOrder], OrderStatus]):
+        if not self.status == OrderStatus.SUBMITTED:
             for order in self.orders:
                 order.submit_next(submit_func)
         self._check_submitted()
@@ -197,11 +204,11 @@ class SequentExecutionOrder(MultipleExecutionOrder):
             self.orders.extend(execution_order.orders)
         else:
             self.orders.append(execution_order)
-        self.submitted = False
+        self.status = OrderStatus.PENDING
         return self
 
-    def submit_next(self, submit_func: Callable[[SingleExecutionOrder], bool]):
-        if not self.submitted:
+    def submit_next(self, submit_func: Callable[[SingleExecutionOrder], OrderStatus]):
+        if not self.status == OrderStatus.SUBMITTED:
             self.orders[0].submit_next(submit_func)
         self._check_submitted()
 
