@@ -43,6 +43,7 @@ class Telegram(Ui):
     DELETED_EVENT = "DELETED"
     SUBMITTED_EVENT = "SUBMITTED"
     FILLED_EVENT = "FILLED"
+    ERROR_EVENT = "ERROR"
 
     def __init__(self, config: Dict, queue: Queue, exit_event: ThreadEvent, parser: Parser):
         super().__init__(config, queue, exit_event, parser)
@@ -81,6 +82,8 @@ class Telegram(Ui):
             self.notify_submitted(event)
         elif event.name == Telegram.FILLED_EVENT:
             self.notify_filled(event)
+        elif event.name == Telegram.ERROR_EVENT:
+            self.notify_error(event)
 
     def help_handler(self, update: Update, _: CallbackContext) -> None:
         self._update_chat_id(update.message.chat_id)
@@ -155,6 +158,12 @@ class Telegram(Ui):
         order = event.data["single"]
         self.logger.log(logging.INFO, f"""FILLED event: {order}""")
         self._send_message(f"""Filled order: {order}""")
+
+    def notify_error(self, event: Event) -> None:
+        order = event.data["order"]
+        message = event.data["message"]
+        self.logger.log(logging.INFO, f"""ERROR event: {order}""")
+        self._send_message(f"""Error on order: {order} - {message}""")
 
     def _send_message(self, message: str):
         if self.chat_id:

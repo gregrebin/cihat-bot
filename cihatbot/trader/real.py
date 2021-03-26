@@ -69,6 +69,7 @@ class RealTrader(Trader):
         try:
             self.connector.cancel(order)
         except ConnectorException as exception:
+            self.logger.log(logging.INFO, f"""Connector error on cancel: {exception.order} - {exception.message}""")
             self.emit_event(Event("ERROR", {"order": exception.order, "message": exception.message}))
 
     def submit_next(self) -> None:
@@ -92,6 +93,7 @@ class RealTrader(Trader):
             return self.connector.satisfied(order)
 
         except ConnectorException as exception:
+            self.logger.log(logging.INFO, f"""Connector error on satisfied: {exception.order} - {exception.message}""")
             self.emit_event(Event("ERROR", {"order": exception.order, "message": exception.message}))
             return False
 
@@ -102,6 +104,7 @@ class RealTrader(Trader):
             return True
 
         except ConnectorException as exception:
+            self.logger.log(logging.INFO, f"""Connector error on submit: {exception.order} - {exception.message}""")
             self.emit_event(Event("ERROR", {"order": exception.order, "message": exception.message}))
             return False
 
@@ -123,6 +126,7 @@ class RealTrader(Trader):
             return self.connector.is_filled(order)
 
         except ConnectorException as exception:
+            self.logger.log(logging.INFO, f"""Connector error on is_filled: {exception.order} - {exception.message}""")
             self.emit_event(Event("ERROR", {"order": exception.order, "message": exception.message}))
             return False
 
