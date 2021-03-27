@@ -22,7 +22,7 @@ class Module(Thread):
 
     def receive_event(self) -> Event:
         try:
-            event = self.queue.get(block=False)
+            event = self.queue.get(timeout=0.02)
         except Empty:
             event = NoEvent()
         return event

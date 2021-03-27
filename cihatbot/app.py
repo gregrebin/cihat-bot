@@ -70,7 +70,7 @@ class Application:
 
         while not self.exit_event.isSet():
             try:
-                event = self.all_events.get(block=False)
+                event = self.all_events.get(timeout=0.02)
                 self.receive_event(event)
             except Empty:
                 pass
@@ -189,7 +189,7 @@ class User(Thread):
 
         while not self.exit_event.isSet():
             try:
-                event = self.user_events.get(block=False)
+                event = self.user_events.get(timeout=0.02)
                 self.receive_event(event)
             except Empty:
                 pass
