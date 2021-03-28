@@ -7,7 +7,6 @@ from queue import Queue
 from threading import Event as ThreadEvent
 from typing import Dict
 import logging
-import time
 
 
 class RealTrader(Trader):
@@ -25,6 +24,9 @@ class RealTrader(Trader):
         if "user" in config and "password" in config:
             self.connector.connect(self.config["user"], self.config["password"])
 
+    def pre_run(self) -> None:
+        self.connector.start_listen(self.remove_filled, self.remove_cancelled)
+
     def loop(self, event: Event) -> None:
         if event.name == RealTrader.CONNECT_EVENT:
             self.connect(event)
@@ -34,9 +36,9 @@ class RealTrader(Trader):
             self.delete_order(event)
         else:
             self.submit_next()
-            time.sleep(self.connector.ORDER_DELAY)
-            self.remove_filled()
-            time.sleep(self.connector.QUERY_DELAY)
+
+    def post_run(self):
+        self.connector.stop_listen()
 
     def connect(self, event: Event) -> None:
         user = event.data["user"]
@@ -58,10 +60,11 @@ class RealTrader(Trader):
     def delete_order(self, event: Event) -> None:
         order_id = event.data["order_id"]
         self.logger.log(logging.INFO, f"""DELETE event: {order_id}""")
-        self.execution_order = self.execution_order.remove(order_id, self._delete)
+        if not self.execution_order.apply(self._cancel, order_id=order_id):
+            self.execution_order = self.execution_order.remove(order_id=order_id)
         self.emit_event(Event("DELETED", {"all": self.execution_order, "order_id": order_id}))
 
-    def _delete(self, order: SingleExecutionOrder) -> None:
+    def _cancel(self, order: SingleExecutionOrder) -> None:
         if order.status == OrderStatus.SUBMITTED:
             self._call_cancel(order)
 
@@ -108,27 +111,22 @@ class RealTrader(Trader):
             self.emit_event(Event("ERROR", {"order": exception.order, "message": exception.message}))
             return False
 
-    def remove_filled(self) -> None:
-        self.execution_order = self.execution_order.remove_filled(self._is_filled)
+    def remove_filled(self, external_id: int) -> None:
+        self.execution_order.apply(self._signal_filled, external_id=external_id)
+        self.execution_order = self.execution_order.remove(external_id=external_id)
 
-    def _is_filled(self, order: SingleExecutionOrder) -> bool:
-
-        if not self._call_is_filled(order):
-            return False
-
-        self.logger.log(logging.INFO, f"""Order filled: {order}""")
+    def _signal_filled(self, order: SingleExecutionOrder) -> None:
+        self.logger.log(logging.INFO, f"""Filled order: {order}""")
         self.emit_event(Event("FILLED", {"all": self.execution_order, "single": order}))
-        return True
 
-    def _call_is_filled(self, order: SingleExecutionOrder) -> bool:
+    def remove_cancelled(self, external_id: int) -> None:
+        self.execution_order.apply(self._signal_cancelled, external_id=external_id)
+        self.execution_order = self.execution_order.remove(external_id=external_id)
 
-        try:
-            return self.connector.is_filled(order)
+    def _signal_cancelled(self, order: SingleExecutionOrder) -> None:
+        self.logger.log(logging.INFO, f"""Cancelled order: {order}""")
+        self.emit_event(Event("CANCELLED", {"all": self.execution_order, "single": order}))
 
-        except ConnectorException as exception:
-            self.logger.log(logging.INFO, f"""Connector error on is_filled: {exception.order} - {exception.message}""")
-            self.emit_event(Event("ERROR", {"order": exception.order, "message": exception.message}))
-            return False
 
 
 

@@ -1,4 +1,5 @@
 from cihatbot.execution_order.execution_order import SingleExecutionOrder, ExecutionConditions, ExecutionParams
+from typing import Callable
 
 
 class Connector:
@@ -7,6 +8,12 @@ class Connector:
     QUERY_DELAY: float = 0.0
 
     def connect(self, key: str, secret: str) -> None:
+        pass
+
+    def start_listen(self, on_filled: Callable[[int], None], on_canceled: Callable[[int], None]):
+        pass
+
+    def stop_listen(self):
         pass
 
     def satisfied(self, execution_order: SingleExecutionOrder) -> bool:

@@ -50,17 +50,17 @@ class ExecutionOrder:
     def add_sequential(self, execution_order: ExecutionOrder) -> ExecutionOrder:
         return execution_order
 
-    def remove(self, order_id: str, cancel_func: Callable[[SingleExecutionOrder], None]) -> ExecutionOrder:
+    def remove(self, order_id: str = None, external_id: int = None) -> ExecutionOrder:
         return EmptyExecutionOrder()
+
+    def apply(self, func: Callable[[SingleExecutionOrder], None], order_id: str = None,  external_id: int = None) -> bool:
+        pass
 
     def submit_next(self, submit_func: Callable[[SingleExecutionOrder], OrderStatus]) -> None:
         pass
 
-    def remove_filled(self, is_filled: Callable[[SingleExecutionOrder], bool]) -> ExecutionOrder:
-        return EmptyExecutionOrder()
-
-    def _apply(self, func: Callable[[SingleExecutionOrder], None]):
-        pass
+    def _is_order(self, order_id: str = None,  external_id: int = None):
+        return self.order_id == order_id or self.external_id == external_id or (not order_id and not external_id)
 
 
 class EmptyExecutionOrder(ExecutionOrder):
@@ -86,25 +86,26 @@ class SingleExecutionOrder(ExecutionOrder):
     def add_sequential(self, execution_order: ExecutionOrder) -> ExecutionOrder:
         return SequentExecutionOrder([self, execution_order])
 
-    def remove(self, order_id: str, cancel_func: Callable[[SingleExecutionOrder], None]) -> ExecutionOrder:
-        if self.order_id == order_id:
-            cancel_func(self)
+    def remove(self, order_id: str = None,  external_id: int = None) -> ExecutionOrder:
+
+        if self._is_order(order_id=order_id, external_id=external_id):
             return EmptyExecutionOrder()
         else:
             return self
+
+    def apply(self, func: Callable[[SingleExecutionOrder], None], order_id: str = None,  external_id: int = None) -> bool:
+
+        if self._is_order(order_id=order_id, external_id=external_id):
+            func(self)
+            return True
+
+        else:
+            return False
 
     def submit_next(self, submit_func: Callable[[SingleExecutionOrder], OrderStatus]):
+
         if self.status == OrderStatus.PENDING:
             self.status = submit_func(self)
-
-    def remove_filled(self, is_filled: Callable[[SingleExecutionOrder], bool]) -> ExecutionOrder:
-        if self.status == OrderStatus.SUBMITTED and is_filled(self):
-            return EmptyExecutionOrder()
-        else:
-            return self
-
-    def _apply(self, func: Callable[[SingleExecutionOrder], None]):
-        func(self)
 
 
 class MultipleExecutionOrder(ExecutionOrder):
@@ -121,16 +122,15 @@ class MultipleExecutionOrder(ExecutionOrder):
         orders = [str(order) for order in self.orders]
         return f"""[{self.order_type} {', '.join(orders)}]"""
 
-    def remove(self, order_id: str, cancel_func: Callable[[SingleExecutionOrder], None]) -> ExecutionOrder:
+    def remove(self, order_id: str = None,  external_id: int = None) -> ExecutionOrder:
 
-        if self.order_id == order_id:
-            self._apply(cancel_func)
+        if self._is_order(order_id=order_id, external_id=external_id):
             return EmptyExecutionOrder()
 
         new_orders = []
         empty = True
         for order in self.orders:
-            new_order = order.remove(order_id, cancel_func)
+            new_order = order.remove(order_id, external_id)
             if not isinstance(new_order, EmptyExecutionOrder):
                 new_orders.append(new_order)
                 empty = False
@@ -141,31 +141,17 @@ class MultipleExecutionOrder(ExecutionOrder):
             self.orders = new_orders
             return self
 
-    def remove_filled(self, is_filled: Callable[[SingleExecutionOrder], bool]) -> ExecutionOrder:
-
-        new_orders = []
-        empty = True
+    def apply(self, func: Callable[[SingleExecutionOrder], None], order_id: str = None,  external_id: int = None) -> bool:
+        applied = False
         for order in self.orders:
-            new_order = order.remove_filled(is_filled)
-            if not isinstance(new_order, EmptyExecutionOrder):
-                new_orders.append(new_order)
-                empty = False
-
-        if empty:
-            return EmptyExecutionOrder()
-        else:
-            self.orders = new_orders
-            return self
+            applied = order.apply(func, order_id=order_id, external_id=external_id) or applied
+        return applied
 
     def _check_submitted(self):
         for order in self.orders:
             if not order.status == OrderStatus.SUBMITTED:
                 return
         self.status = OrderStatus.SUBMITTED
-
-    def _apply(self, func: Callable[[SingleExecutionOrder], None]):
-        for order in self.orders:
-            order._apply(func)
 
 
 class ParallelExecutionOrder(MultipleExecutionOrder):

@@ -1,7 +1,10 @@
+from __future__ import annotations
 from cihatbot.connector.connector import Connector, ConnectorException
 from cihatbot.execution_order.execution_order import SingleExecutionOrder, ExecutionConditions, ExecutionParams
 from binance.client import Client
 from binance.exceptions import BinanceOrderException, BinanceRequestException, BinanceAPIException
+from binance.websockets import BinanceSocketManager
+from typing import Callable, Dict
 
 
 class BinanceConnector(Connector):
@@ -11,9 +14,31 @@ class BinanceConnector(Connector):
 
     def __init__(self):
         self.client: Client = Client("", "")
+        self.socket = BinanceSocketManager(self.client)
 
     def connect(self, key: str, secret: str) -> None:
         self.client = Client(api_key=key, api_secret=secret)
+        self.socket = BinanceSocketManager(self.client)
+
+    def start_listen(self, on_filled: Callable[[int], None], on_canceled: Callable[[int], None]):
+
+        def on_message(message: Dict):
+            message_type = message["e"]
+            if not message_type == "executionReport":
+                return
+            order_status = message["X"]
+            order_id = message["i"]
+            if order_status == "FILLED":
+                on_filled(order_id)
+            if order_status == "CANCELLED":
+                on_canceled(order_id)
+
+        self.socket.start_user_socket(on_message)
+        self.socket.daemon = True
+        self.socket.start()
+
+    def stop_listen(self):
+        self.socket.close()
 
     def satisfied(self, execution_order: SingleExecutionOrder) -> bool:
 
@@ -37,6 +62,7 @@ class BinanceConnector(Connector):
 
         try:
             binance_order = self.client.create_order(
+                newClientOrderId=execution_order.order_id,
                 symbol=execution_params.symbol,
                 quantity=execution_params.quantity,
                 price=execution_params.price,
