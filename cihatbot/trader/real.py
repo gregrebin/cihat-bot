@@ -43,6 +43,7 @@ class RealTrader(Trader):
     def connect(self, event: Event) -> None:
         user = event.data["user"]
         password = event.data["password"]
+
         self.logger.log(logging.INFO, f"""CONNECT event: {user}""")
         self.connector.connect(user, password)
         self.emit_event(Event("CONNECTED", {"user": user}))
@@ -50,6 +51,7 @@ class RealTrader(Trader):
     def add_order(self, event: Event) -> None:
         order = event.data["order"]
         mode = event.data["mode"]
+
         self.logger.log(logging.INFO, f"""ADD event: {order}""")
         if mode == "parallel":
             self.execution_order = self.execution_order.add_parallel(order)
@@ -59,9 +61,9 @@ class RealTrader(Trader):
 
     def delete_order(self, event: Event) -> None:
         order_id = event.data["order_id"]
+
         self.logger.log(logging.INFO, f"""DELETE event: {order_id}""")
-        if not self.execution_order.apply(self._cancel, order_id=order_id):
-            self.execution_order = self.execution_order.remove(order_id=order_id)
+        self.execution_order = self.execution_order.cancel(order_id=order_id)
         self.emit_event(Event("DELETED", {"all": self.execution_order, "order_id": order_id}))
 
     def _cancel(self, order: SingleExecutionOrder) -> None:
@@ -76,7 +78,7 @@ class RealTrader(Trader):
             self.emit_event(Event("ERROR", {"order": exception.order, "message": exception.message}))
 
     def submit_next(self) -> None:
-        self.execution_order.submit_next(self._submit)
+        self.execution_order.submit(self._submit)
 
     def _submit(self, order: SingleExecutionOrder) -> OrderStatus:
 
@@ -112,7 +114,7 @@ class RealTrader(Trader):
             return False
 
     def remove_filled(self, external_id: int) -> None:
-        self.execution_order.apply(self._signal_filled, external_id=external_id)
+        self.execution_order.call(self._signal_filled, external_id=external_id)
         self.execution_order = self.execution_order.remove(external_id=external_id)
 
     def _signal_filled(self, order: SingleExecutionOrder) -> None:
@@ -120,7 +122,7 @@ class RealTrader(Trader):
         self.emit_event(Event("FILLED", {"all": self.execution_order, "single": order}))
 
     def remove_cancelled(self, external_id: int) -> None:
-        self.execution_order.apply(self._signal_cancelled, external_id=external_id)
+        self.execution_order.call(self._signal_cancelled, external_id=external_id)
         self.execution_order = self.execution_order.remove(external_id=external_id)
 
     def _signal_cancelled(self, order: SingleExecutionOrder) -> None:
