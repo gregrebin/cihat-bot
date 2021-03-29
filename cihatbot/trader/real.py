@@ -55,22 +55,16 @@ class RealTrader(Trader):
 
         self.logger.log(logging.INFO, f"""ADD event: {order}""")
         if mode == "parallel":
-            if self.execution_lock.acquire():
-                self.execution_order = self.execution_order.add_parallel(order)
-                self.execution_lock.release()
+            self.execution_order = self.execution_order.add_parallel(order)
         elif mode == "sequent":
-            if self.execution_lock.acquire():
-                self.execution_order = self.execution_order.add_sequential(order)
-                self.execution_lock.release()
+            self.execution_order = self.execution_order.add_sequential(order)
         self.emit_event(Event("ADDED", {"all": self.execution_order, "single": order}))
 
     def delete_order(self, event: Event) -> None:
         order_id = event.data["order_id"]
 
         self.logger.log(logging.INFO, f"""DELETE event: {order_id}""")
-        if self.execution_lock.acquire():
-            self.execution_order = self.execution_order.cancel(order_id=order_id)
-            self.execution_lock.release()
+        self.execution_order = self.execution_order.cancel(order_id=order_id)
         self.emit_event(Event("DELETED", {"all": self.execution_order, "order_id": order_id}))
 
     def _cancel(self, order: SingleExecutionOrder) -> None:
@@ -85,9 +79,7 @@ class RealTrader(Trader):
             self.emit_event(Event("ERROR", {"order": exception.order, "message": exception.message}))
 
     def submit_next(self) -> None:
-        if self.execution_lock.acquire():
-            self.execution_order.submit(self._submit)
-            self.execution_lock.release()
+        self.execution_order.submit(self._submit)
 
     def _submit(self, order: SingleExecutionOrder) -> OrderStatus:
 
@@ -123,20 +115,16 @@ class RealTrader(Trader):
             return False
 
     def remove_filled(self, external_id: int) -> None:
-        if self.execution_lock.acquire():
-            self.execution_order.call(self._signal_filled, external_id=external_id)
-            self.execution_order = self.execution_order.remove(external_id=external_id)
-            self.execution_lock.release()
+        self.execution_order.call(self._signal_filled, external_id=external_id)
+        self.execution_order = self.execution_order.remove(external_id=external_id)
 
     def _signal_filled(self, order: SingleExecutionOrder) -> None:
         self.logger.log(logging.INFO, f"""Filled order: {order}""")
         self.emit_event(Event("FILLED", {"all": self.execution_order, "single": order}))
 
     def remove_cancelled(self, external_id: int) -> None:
-        if self.execution_lock.acquire():
-            self.execution_order.call(self._signal_cancelled, external_id=external_id)
-            self.execution_order = self.execution_order.remove(external_id=external_id)
-            self.execution_lock.release()
+        self.execution_order.call(self._signal_cancelled, external_id=external_id)
+        self.execution_order = self.execution_order.remove(external_id=external_id)
 
     def _signal_cancelled(self, order: SingleExecutionOrder) -> None:
         self.logger.log(logging.INFO, f"""Cancelled order: {order}""")
