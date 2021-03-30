@@ -15,12 +15,17 @@ class BinanceConnector(Connector):
     def __init__(self):
         self.client: Client = Client("", "")
         self.socket = BinanceSocketManager(self.client)
+        self.connected: bool = False
 
     def connect(self, key: str, secret: str) -> None:
         self.client = Client(api_key=key, api_secret=secret)
         self.socket = BinanceSocketManager(self.client)
+        self.connected = True
 
     def start_listen(self, on_filled: Callable[[int], None], on_canceled: Callable[[int], None]):
+
+        if not self.connected:
+            return
 
         def on_message(message: Dict):
             message_type = message["e"]

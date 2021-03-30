@@ -47,6 +47,7 @@ class RealTrader(Trader):
 
         self.logger.log(logging.INFO, f"""CONNECT event: {user}""")
         self.connector.connect(user, password)
+        self.connector.start_listen(self.remove_filled, self.remove_cancelled)
         self.emit_event(Event("CONNECTED", {"user": user}))
 
     def add_order(self, event: Event) -> None:
