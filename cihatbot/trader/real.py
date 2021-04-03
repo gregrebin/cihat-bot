@@ -3,8 +3,6 @@ from cihatbot.events import Event
 from cihatbot.trader.trader import Trader
 from cihatbot.execution_order.execution_order import ExecutionOrder, EmptyExecutionOrder, SingleExecutionOrder, OrderStatus
 from cihatbot.connector.connector import Connector, ConnectorException
-from queue import Queue
-from threading import Lock, Event as ThreadEvent
 from typing import Dict
 import logging
 
@@ -15,12 +13,11 @@ class RealTrader(Trader):
     ADD_ORDER_EVENT: str = "ADD"
     DELETE_ORDER_EVENT: str = "DELETE"
 
-    def __init__(self, config: Dict, queue: Queue, exit_event: ThreadEvent, connector: Connector) -> None:
-        super().__init__(config, queue, exit_event, connector)
+    def __init__(self, config: Dict, connector: Connector) -> None:
+        super().__init__(config, connector)
 
         self.logger: Logger = Logger(__name__, logging.INFO)
         self.execution_order: ExecutionOrder = EmptyExecutionOrder()
-        self.execution_lock: Lock = Lock()
 
     def loop(self, event: Event) -> None:
         if event.name == RealTrader.CONNECT_EVENT:

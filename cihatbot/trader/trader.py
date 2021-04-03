@@ -8,7 +8,7 @@ from typing import Dict
 
 class Trader(Module):
 
-    def __init__(self, config: Dict, queue: Queue, exit_event: ThreadEvent, connector: Connector):
-        super().__init__(config, queue, exit_event)
+    def __init__(self, config: Dict, connector: Connector):
+        super().__init__(config)
 
         self.connector: Connector = connector

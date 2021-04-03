@@ -2,11 +2,9 @@ from cihatbot.logger import Logger
 from cihatbot.events import Event
 from cihatbot.ui.ui import Ui
 from cihatbot.parser.parser import Parser, InvalidString
-from queue import Queue
-from threading import Event as ThreadEvent
 from typing import Dict
 from telegram import Update
-from telegram.ext import Updater, MessageHandler, CommandHandler, Filters, CallbackContext
+from telegram.ext import Updater, CommandHandler, Filters, CallbackContext
 import logging
 
 
@@ -45,8 +43,8 @@ class Telegram(Ui):
     FILLED_EVENT = "FILLED"
     ERROR_EVENT = "ERROR"
 
-    def __init__(self, config: Dict, queue: Queue, exit_event: ThreadEvent, parser: Parser):
-        super().__init__(config, queue, exit_event, parser)
+    def __init__(self, config: Dict, parser: Parser):
+        super().__init__(config, parser)
 
         self.user = self.config["user"]
         self.updater = Updater(self.config["token"])

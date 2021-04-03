@@ -1,4 +1,4 @@
-from cihatbot.events import Event, NoEvent
+from cihatbot.events import Event, NoEvent, EventEmitter, EventListener
 from queue import Queue, Empty
 from threading import Thread, Event as ThreadEvent
 from typing import List, Callable, Dict
@@ -6,39 +6,34 @@ from typing import List, Callable, Dict
 
 class Module(Thread):
 
-    def __init__(self, config: Dict, queue: Queue, exit_event: ThreadEvent) -> None:
+    def __init__(self, config: Dict) -> None:
         super().__init__()
         self.config: Dict = config
-        self.queue: Queue = queue
-        self.exit_event: ThreadEvent = exit_event
-        self.listeners: List[Callable[[Event], None]] = []
-
-    def on_event(self, listener: Callable[[Event], None]) -> None:
-        self.listeners.append(listener)
+        self.emitter: EventEmitter = EventEmitter()
+        self.listener: EventListener = EventListener()
 
     def emit_event(self, event: Event) -> None:
-        for listener in self.listeners:
-            listener(event)
+        self.emitter.emit(event)
 
-    def receive_event(self) -> Event:
-        try:
-            event = self.queue.get(timeout=0.02)
-        except Empty:
-            event = NoEvent()
-        return event
+    def add_listener(self, listener: EventListener):
+        self.emitter.add_listener(listener)
 
     def pre_run(self) -> None:
         pass
 
     def run(self) -> None:
         self.pre_run()
-        while not self.exit_event.isSet():
-            event = self.receive_event()
-            self.loop(event)
+        self.listener.listen(self.on_event)
         self.post_run()
+
+    def on_event(self, event: Event):
+        pass
 
     def loop(self, event: Event) -> None:
         pass
 
     def post_run(self):
         pass
+
+    def stop(self):
+        self.listener.stop()

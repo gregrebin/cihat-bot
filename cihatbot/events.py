@@ -1,4 +1,5 @@
-from typing import Dict, Any, Set
+from queue import Queue
+from typing import Dict, Any, Set, List, Callable
 
 
 UI_EVENTS: Dict[str, Set[str]] = {
@@ -36,7 +37,38 @@ class Event:
         return f"""{self.name} - {self.data}"""
 
 
-class NoEvent(Event):
+class StopEvent(Event):
+
+    NAME = "STOP"
 
     def __init__(self):
-        super().__init__("NONE", {})
+        super().__init__(StopEvent.NAME, {})
+
+
+class EventListener:
+
+    def __init__(self):
+        self.queue: Queue = Queue()
+
+    def listen(self, on_event: Callable[[Event], None]):
+        stop = False
+        while not stop:
+            event = self.queue.get()
+            on_event(event)
+            stop = event.name == StopEvent.NAME
+
+    def stop(self):
+        self.queue.put(StopEvent())
+
+
+class EventEmitter:
+
+    def __init__(self):
+        self.listeners: List[Queue] = []
+
+    def add_listener(self, listener: EventListener):
+        self.listeners.append(listener.queue)
+
+    def emit(self, event: Event):
+        for listener in self.listeners:
+            listener.put(event)

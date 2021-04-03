@@ -8,7 +8,7 @@ from typing import Dict
 
 class Ui(Module):
 
-    def __init__(self, config: Dict, queue: Queue, exit_event: ThreadEvent, parser: Parser):
-        super().__init__(config, queue, exit_event)
+    def __init__(self, config: Dict, parser: Parser):
+        super().__init__(config)
 
         self.parser: Parser = parser
