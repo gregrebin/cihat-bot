@@ -22,12 +22,6 @@ class RealTrader(Trader):
         self.execution_order: ExecutionOrder = EmptyExecutionOrder()
         self.execution_lock: Lock = Lock()
 
-        if "user" in config and "password" in config:
-            self.connector.connect(self.config["user"], self.config["password"])
-
-    def pre_run(self) -> None:
-        self.connector.start_listen(self.remove_filled, self.remove_cancelled)
-
     def loop(self, event: Event) -> None:
         if event.name == RealTrader.CONNECT_EVENT:
             self.connect(event)
@@ -35,8 +29,6 @@ class RealTrader(Trader):
             self.add_order(event)
         elif event.name == RealTrader.DELETE_ORDER_EVENT:
             self.delete_order(event)
-        else:
-            self.submit_next()
 
     def post_run(self):
         self.connector.stop_listen()
@@ -47,7 +39,7 @@ class RealTrader(Trader):
 
         self.logger.log(logging.INFO, f"""CONNECT event: {user}""")
         self.connector.connect(user, password)
-        self.connector.start_listen(self.remove_filled, self.remove_cancelled)
+        self.connector.start_listen(self.remove_filled, self.remove_cancelled, self.submit_next)
         self.emit_event(Event("CONNECTED", {"user": user}))
 
     def add_order(self, event: Event) -> None:

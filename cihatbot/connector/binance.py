@@ -4,7 +4,7 @@ from cihatbot.execution_order.execution_order import SingleExecutionOrder, Execu
 from binance.client import Client
 from binance.exceptions import BinanceOrderException, BinanceRequestException, BinanceAPIException
 from binance.websockets import BinanceSocketManager
-from typing import Callable, Dict
+from typing import Callable, Dict, List
 
 
 class BinanceConnector(Connector):
@@ -16,18 +16,19 @@ class BinanceConnector(Connector):
         self.client: Client = Client("", "")
         self.socket = BinanceSocketManager(self.client)
         self.connected: bool = False
+        self.time: int = 0
 
     def connect(self, key: str, secret: str) -> None:
         self.client = Client(api_key=key, api_secret=secret)
         self.socket = BinanceSocketManager(self.client)
         self.connected = True
 
-    def start_listen(self, on_filled: Callable[[int], None], on_canceled: Callable[[int], None]):
+    def start_listen(self, on_filled: Callable[[int], None], on_canceled: Callable[[int], None], on_ticker: Callable[[], None]):
 
         if not self.connected:
             return
 
-        def on_message(message: Dict):
+        def user_handler(message: Dict):
             message_type = message["e"]
             if not message_type == "executionReport":
                 return
@@ -38,9 +39,21 @@ class BinanceConnector(Connector):
             if order_status == "CANCELLED":
                 on_canceled(order_id)
 
-        self.socket.start_user_socket(on_message)
+        def ticker_handler(message: List[Dict]):
+            for ticker in message:
+                self._ticker_handler(ticker)
+            on_ticker()
+
+        self.socket.start_user_socket(user_handler)
+        self.socket.start_miniticker_socket(ticker_handler)
         self.socket.daemon = True
         self.socket.start()
+
+    def _ticker_handler(self, ticker: Dict):
+        message_type = ticker["e"]
+        if not message_type == "24hrMiniTicker":
+            return
+        self.time = ticker["E"]
 
     def stop_listen(self):
         self.socket.close()
@@ -50,12 +63,7 @@ class BinanceConnector(Connector):
         execution_conditions = execution_order.conditions
         from_time = int(execution_conditions.from_time) * 1000
 
-        try:
-            binance_time = self.client.get_server_time()["serverTime"]
-        except (BinanceRequestException, BinanceAPIException) as exception:
-            raise ConnectorException(exception.message, execution_order)
-
-        return binance_time >= from_time
+        return self.time >= from_time
 
     def submit(self, execution_order: SingleExecutionOrder) -> int:
 

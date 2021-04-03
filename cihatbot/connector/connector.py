@@ -10,7 +10,7 @@ class Connector:
     def connect(self, key: str, secret: str) -> None:
         pass
 
-    def start_listen(self, on_filled: Callable[[int], None], on_canceled: Callable[[int], None]):
+    def start_listen(self, on_filled: Callable[[int], None], on_canceled: Callable[[int], None], on_ticker: Callable[[None], None]):
         pass
 
     def stop_listen(self):
