@@ -1,7 +1,6 @@
-from cihatbot.events import Event, NoEvent, EventEmitter, EventListener
-from queue import Queue, Empty
-from threading import Thread, Event as ThreadEvent
-from typing import List, Callable, Dict
+from cihatbot.events import Event, EventEmitter, EventListener
+from threading import Thread
+from typing import Dict
 
 
 class Module(Thread):
@@ -26,10 +25,7 @@ class Module(Thread):
         self.listener.listen(self.on_event)
         self.post_run()
 
-    def on_event(self, event: Event):
-        pass
-
-    def loop(self, event: Event) -> None:
+    def on_event(self, event: Event) -> None:
         pass
 
     def post_run(self):

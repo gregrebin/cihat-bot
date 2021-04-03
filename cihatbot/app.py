@@ -1,7 +1,7 @@
 from __future__ import annotations
 from cihatbot.user import User
 from cihatbot.logger import Logger
-from cihatbot.events import Event, EventListener
+from cihatbot.events import Event, EventListener, AddUserEvent
 from configparser import ConfigParser
 from typing import Dict, List
 from signal import signal, SIGINT, SIGTERM
@@ -65,8 +65,8 @@ class Application:
 
     def on_event(self, event: Event) -> None:
 
-        if event.name == "NEW_USER":
-            self.add_user(event.data["ui"], event.data["parser"], event.data["trader"], event.data["connector"]).start()
+        if event.is_type(AddUserEvent):
+            self.add_user(event.data["ui"], event.data["parser"], event.data["trader"], event.data["connector"], event.data["ui_config"], event.data["trader_config"]).start()
 
     def exit(self, signum, frame):
 

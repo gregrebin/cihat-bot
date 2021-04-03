@@ -1,5 +1,17 @@
 from cihatbot.logger import Logger
-from cihatbot.events import Event
+from cihatbot.events import (
+    Event,
+    ConnectEvent,
+    AddEvent,
+    DeleteEvent,
+    ConnectedEvent,
+    AddedEvent,
+    DeletedEvent,
+    SubmittedEvent,
+    FilledEvent,
+    CancelledEvent,
+    ErrorEvent
+)
 from cihatbot.ui.ui import Ui
 from cihatbot.parser.parser import Parser, InvalidString
 from typing import Dict
@@ -33,16 +45,6 @@ me@gregrebin.com """
 
 class Telegram(Ui):
 
-    BUY_COMMAND = "comprare"
-    SELL_COMMAND = "vendere"
-
-    CONNECTED_EVENT = "CONNECTED"
-    ADDED_EVENT = "ADDED"
-    DELETED_EVENT = "DELETED"
-    SUBMITTED_EVENT = "SUBMITTED"
-    FILLED_EVENT = "FILLED"
-    ERROR_EVENT = "ERROR"
-
     def __init__(self, config: Dict, parser: Parser):
         super().__init__(config, parser)
 
@@ -69,18 +71,20 @@ class Telegram(Ui):
     def post_run(self) -> None:
         self.updater.stop()
 
-    def loop(self, event: Event) -> None:
-        if event.name == Telegram.CONNECTED_EVENT:
+    def on_event(self, event: Event) -> None:
+        if event.is_type(ConnectedEvent):
             self.notify_connected(event)
-        elif event.name == Telegram.ADDED_EVENT:
+        elif event.is_type(AddedEvent):
             self.notify_added(event)
-        elif event.name == Telegram.DELETED_EVENT:
+        elif event.is_type(DeletedEvent):
             self.notify_deleted(event)
-        elif event.name == Telegram.SUBMITTED_EVENT:
+        elif event.is_type(SubmittedEvent):
             self.notify_submitted(event)
-        elif event.name == Telegram.FILLED_EVENT:
+        elif event.is_type(FilledEvent):
             self.notify_filled(event)
-        elif event.name == Telegram.ERROR_EVENT:
+        elif event.is_type(CancelledEvent):
+            self.notify_cancelled(event)
+        elif event.is_type(ErrorEvent):
             self.notify_error(event)
 
     def help_handler(self, update: Update, _: CallbackContext) -> None:
@@ -96,10 +100,7 @@ class Telegram(Ui):
         user, password = message.split()
 
         self.logger.log(logging.INFO, f"""Connect trader: {user} - {password}""")
-        self.emit_event(Event("CONNECT", {
-            "user": user,
-            "password": password
-        }))
+        self.emit_event(ConnectEvent({"user": user, "password": password}))
 
     def add_parallel_handler(self, update: Update, _: CallbackContext) -> None:
         self._update_chat_id(update.message.chat_id)
@@ -111,17 +112,6 @@ class Telegram(Ui):
         message = update.message.text.lstrip("/exec_after ")
         self._add_order(message, "sequent")
 
-    def delete_handler(self, update: Update, _: CallbackContext) -> None:
-        self._update_chat_id(update.message.chat_id)
-        order_id = update.message.text.lstrip("/delete ")
-        self.logger.log(logging.INFO, f"""Received delete message: {order_id}""")
-        self.emit_event(Event("DELETE", {"order_id": order_id}))
-
-    def _update_chat_id(self, chat_id: int):
-        if not self.chat_id == chat_id:
-            self.logger.log(logging.INFO, f"""Registering new chat id: {chat_id}""")
-            self.chat_id = chat_id
-
     def _add_order(self, message: str, mode: str) -> None:
         self.logger.log(logging.INFO, f"""Received add message: {message}""")
         try:
@@ -130,7 +120,18 @@ class Telegram(Ui):
             self._send_message(f"""Invalid command: {invalid_string.order_string}""")
             return
         self.logger.log(logging.INFO, f"""New execution order: {order}""")
-        self.emit_event(Event("ADD", {"order": order, "mode": mode}))
+        self.emit_event(AddEvent({"order": order, "mode": mode}))
+
+    def delete_handler(self, update: Update, _: CallbackContext) -> None:
+        self._update_chat_id(update.message.chat_id)
+        order_id = update.message.text.lstrip("/delete ")
+        self.logger.log(logging.INFO, f"""Received delete message: {order_id}""")
+        self.emit_event(DeleteEvent({"order_id": order_id}))
+
+    def _update_chat_id(self, chat_id: int):
+        if not self.chat_id == chat_id:
+            self.logger.log(logging.INFO, f"""Registering new chat id: {chat_id}""")
+            self.chat_id = chat_id
 
     def notify_connected(self, event: Event) -> None:
         user = event.data["user"]
@@ -156,6 +157,11 @@ class Telegram(Ui):
         order = event.data["single"]
         self.logger.log(logging.INFO, f"""FILLED event: {order}""")
         self._send_message(f"""Filled order: {order}""")
+
+    def notify_cancelled(self, event: Event) -> None:
+        order = event.data["single"]
+        self.logger.log(logging.INFO, f"""CANCELLED event: {order}""")
+        self._send_message(f"""Cancelled order: {order}""")
 
     def notify_error(self, event: Event) -> None:
         order = event.data["order"]

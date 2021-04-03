@@ -1,48 +1,96 @@
+from __future__ import annotations
 from queue import Queue
-from typing import Dict, Any, Set, List, Callable
-
-
-UI_EVENTS: Dict[str, Set[str]] = {
-    "CONNECT": {"user", "password"},
-    "ADD": {"order", "mode"},
-    "DELETE": {"order_id"}
-}
-
-TRADER_EVENTS: Dict[str, Set[str]] = {
-    "CONNECTED": {"user"},
-    "ADDED": {"all", "single"},
-    "DELETED": {"all", "order_id"},
-    "SUBMITTED": {"all", "single"},
-    "FILLED": {"all", "single"},
-    "ERROR": {"order", "message"}
-}
-
-USER_EVENTS: Dict[str, Set[str]] = {
-    "ADD_TRADER": {"trader_name", "connector_name", "config"},
-    "ADD_UI": {"ui_name", "parser_name", "config"}
-}
-
-APP_EVENTS: Dict[str, Set[str]] = {
-    "NEW_USER": {"ui", "parser", "trader", "connector"}
-}
+from typing import Dict, Any, Set, List, Callable, Type
 
 
 class Event:
+    name: str = "EVENT"
+    data_fields: Set[str] = {}
 
-    def __init__(self, name: str, data: Dict[str, Any]):
-        self.name: str = name
+    def __init__(self, data: Dict[str, Any]):
+        for field in self.data_fields:
+            if field not in data:
+                raise DataException()
         self.data: Dict[str, Any] = data
 
     def __str__(self):
         return f"""{self.name} - {self.data}"""
 
+    def is_type(self, event_type: Type[Event]):
+        return self.name == event_type.name
+
+
+class ConnectEvent(Event):
+    name = "CONNECT"
+    data_fields = {"user", "password"}
+
+
+class AddEvent(Event):
+    name = "ADD"
+    data_fields = {"order", "mode"}
+
+
+class DeleteEvent(Event):
+    name = "DELETE"
+    data_fields = {"order_id"}
+
+
+class ConnectedEvent(Event):
+    name = "CONNECTED"
+    data_fields = {"user"}
+
+
+class AddedEvent(Event):
+    name = "ADDED"
+    data_fields = {"all", "single"}
+
+
+class DeletedEvent(Event):
+    name = "DELETED"
+    data_fields = {"all", "order_id"}
+
+
+class SubmittedEvent(Event):
+    name = "SUBMITTED"
+    data_fields = {"all", "single"}
+
+
+class FilledEvent(Event):
+    name = "FILLED"
+    data_fields = {"all", "single"}
+
+
+class CancelledEvent(Event):
+    name = "CANCELLED"
+    data_fields = {"all", "single"}
+
+
+class ErrorEvent(Event):
+    name = "ERROR"
+    data_fields = {"order", "message"}
+
+
+class AddTraderEvent(Event):
+    name = "ADD_TRADER"
+    data_fields = {"trader_name", "connector_name", "config"}
+
+
+class AddUiEvent(Event):
+    name = "ADD_UI"
+    data_fields = {"ui_name", "parser_name", "config"}
+
+
+class AddUserEvent(Event):
+    name = "NEW_USER"
+    data_fields = {"ui", "parser", "trader", "connector"}
+
 
 class StopEvent(Event):
+    name = "STOP"
 
-    NAME = "STOP"
 
-    def __init__(self):
-        super().__init__(StopEvent.NAME, {})
+class DataException(Exception):
+    pass
 
 
 class EventListener:
@@ -55,10 +103,10 @@ class EventListener:
         while not stop:
             event = self.queue.get()
             on_event(event)
-            stop = event.name == StopEvent.NAME
+            stop = event.is_type(StopEvent)
 
     def stop(self):
-        self.queue.put(StopEvent())
+        self.queue.put(StopEvent({}))
 
 
 class EventEmitter:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 from cihatbot.logger import Logger
-from cihatbot.events import Event, EventListener, EventEmitter
+from cihatbot.events import Event, EventListener, EventEmitter, AddUiEvent, AddTraderEvent
 from cihatbot.ui.ui import Ui
 from cihatbot.ui.telegram import Telegram
 from cihatbot.parser.parser import Parser
@@ -109,10 +109,10 @@ class User(Thread):
 
     def on_event(self, event: Event) -> None:
 
-        if event.name == "ADD_TRADER":
+        if event.is_type(AddTraderEvent):
             self.add_trader(event.data["trader_name"], event.data["connector_name"], event.data["config"]).start()
 
-        elif event.name == "ADD_UI":
+        elif event.is_type(AddUiEvent):
             self.add_ui(event.data["ui_name"], event.data["parser_name"], event.data["config"]).start()
 
     def stop(self):
