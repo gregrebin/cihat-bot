@@ -100,7 +100,7 @@ class Telegram(Ui):
         user, password = message.split()
 
         self.logger.log(logging.INFO, f"""Connect trader: {user} - {password}""")
-        self.emit_event(ConnectEvent({"user": user, "password": password}))
+        self.emit(ConnectEvent({"user": user, "password": password}))
 
     def add_parallel_handler(self, update: Update, _: CallbackContext) -> None:
         self._update_chat_id(update.message.chat_id)
@@ -120,13 +120,13 @@ class Telegram(Ui):
             self._send_message(f"""Invalid command: {invalid_string.order_string}""")
             return
         self.logger.log(logging.INFO, f"""New execution order: {order}""")
-        self.emit_event(AddEvent({"order": order, "mode": mode}))
+        self.emit(AddEvent({"order": order, "mode": mode}))
 
     def delete_handler(self, update: Update, _: CallbackContext) -> None:
         self._update_chat_id(update.message.chat_id)
         order_id = update.message.text.lstrip("/delete ")
         self.logger.log(logging.INFO, f"""Received delete message: {order_id}""")
-        self.emit_event(DeleteEvent({"order_id": order_id}))
+        self.emit(DeleteEvent({"order_id": order_id}))
 
     def _update_chat_id(self, chat_id: int):
         if not self.chat_id == chat_id:

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from cihatbot.events import UserEvent, TickerEvent
 from cihatbot.connector.connector import Connector, ConnectorException
 from cihatbot.execution_order.execution_order import SingleExecutionOrder, ExecutionConditions, ExecutionParams
 from binance.client import Client
@@ -13,6 +14,7 @@ class BinanceConnector(Connector):
     QUERY_DELAY: float = 0.01
 
     def __init__(self):
+        super().__init__()
         self.client: Client = Client("", "")
         self.socket = BinanceSocketManager(self.client)
         self.connected: bool = False
@@ -23,7 +25,7 @@ class BinanceConnector(Connector):
         self.socket = BinanceSocketManager(self.client)
         self.connected = True
 
-    def start_listen(self, on_filled: Callable[[int], None], on_canceled: Callable[[int], None], on_ticker: Callable[[], None]):
+    def start_listen(self):
 
         if not self.connected:
             return
@@ -34,15 +36,12 @@ class BinanceConnector(Connector):
                 return
             order_status = message["X"]
             order_id = message["i"]
-            if order_status == "FILLED":
-                on_filled(order_id)
-            if order_status == "CANCELLED":
-                on_canceled(order_id)
+            self.emit(UserEvent({"external_id": order_id, "status": order_status}))
 
         def ticker_handler(message: List[Dict]):
             for ticker in message:
                 self._ticker_handler(ticker)
-            on_ticker()
+            self.emit(TickerEvent({}))
 
         self.socket.start_user_socket(user_handler)
         self.socket.start_miniticker_socket(ticker_handler)
@@ -53,7 +52,9 @@ class BinanceConnector(Connector):
         message_type = ticker["e"]
         if not message_type == "24hrMiniTicker":
             return
-        self.time = ticker["E"]
+        time = ticker["E"]
+        if time > self.time:
+            self.time = time
 
     def stop_listen(self):
         self.socket.close()

@@ -70,6 +70,15 @@ class ErrorEvent(Event):
     data_fields = {"order", "message"}
 
 
+class UserEvent(Event):
+    name = "USER"
+    data_fields = {"external_id", "status"}
+
+
+class TickerEvent(Event):
+    name = "TICKER"
+
+
 class AddTraderEvent(Event):
     name = "ADD_TRADER"
     data_fields = {"trader_name", "connector_name", "config"}

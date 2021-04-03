@@ -1,3 +1,4 @@
+from cihatbot.events import Event, EventEmitter, EventListener
 from cihatbot.execution_order.execution_order import SingleExecutionOrder, ExecutionConditions, ExecutionParams
 from typing import Callable
 
@@ -7,10 +8,19 @@ class Connector:
     ORDER_DELAY: float = 0.0
     QUERY_DELAY: float = 0.0
 
+    def __init__(self):
+        self.emitter: EventEmitter = EventEmitter()
+
+    def add_listener(self, listener: EventListener):
+        self.emitter.add_listener(listener)
+
+    def emit(self, event: Event):
+        self.emitter.emit(event)
+
     def connect(self, key: str, secret: str) -> None:
         pass
 
-    def start_listen(self, on_filled: Callable[[int], None], on_canceled: Callable[[int], None], on_ticker: Callable[[None], None]):
+    def start_listen(self):
         pass
 
     def stop_listen(self):

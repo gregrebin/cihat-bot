@@ -11,7 +11,7 @@ class Module(Thread):
         self.emitter: EventEmitter = EventEmitter()
         self.listener: EventListener = EventListener()
 
-    def emit_event(self, event: Event) -> None:
+    def emit(self, event: Event) -> None:
         self.emitter.emit(event)
 
     def add_listener(self, listener: EventListener):
