@@ -39,9 +39,9 @@ class RealTrader(Trader):
             self.add_order(event)
         elif event.is_type(DeleteEvent):
             self.delete_order(event)
-        elif event.is_type(UserEvent) and event.data["status"] == "FILLED":
+        elif event.is_type(UserEvent) and event.data["status"] == Connector.ORDER_STATUS_FILLED:
             self.remove_filled(event.data["external_id"])
-        elif event.is_type(UserEvent) and event.data["status"] == "CANCELLED":
+        elif event.is_type(UserEvent) and event.data["status"] == Connector.ORDER_STATUS_CANCELED:
             self.remove_cancelled(event.data["external_id"])
         elif event.is_type(TickerEvent):
             self.submit_next()

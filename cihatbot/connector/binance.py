@@ -10,10 +10,11 @@ from typing import Callable, Dict, List
 
 class BinanceConnector(Connector):
 
-    ORDER_DELAY: float = 0.5
-    QUERY_DELAY: float = 0.01
+    BINANCE_ORDER_STATUS_FILLED = "FILLED"
+    BINANCE_ORDER_STATUS_CANCELED = "CANCELED"
 
     def __init__(self):
+
         super().__init__()
         self.client: Client = Client("", "")
         self.socket = BinanceSocketManager(self.client)
@@ -21,6 +22,7 @@ class BinanceConnector(Connector):
         self.time: int = 0
 
     def connect(self, key: str, secret: str) -> None:
+
         self.client = Client(api_key=key, api_secret=secret)
         self.socket = BinanceSocketManager(self.client)
         self.connected = True
@@ -30,33 +32,41 @@ class BinanceConnector(Connector):
         if not self.connected:
             return
 
-        def user_handler(message: Dict):
-            message_type = message["e"]
-            if not message_type == "executionReport":
-                return
-            order_status = message["X"]
-            order_id = message["i"]
-            self.emit(UserEvent({"external_id": order_id, "status": order_status}))
-
-        def ticker_handler(message: List[Dict]):
-            for ticker in message:
-                self._ticker_handler(ticker)
-            self.emit(TickerEvent({}))
-
-        self.socket.start_user_socket(user_handler)
-        self.socket.start_miniticker_socket(ticker_handler)
+        self.socket.start_user_socket(self.user_handler)
+        self.socket.start_miniticker_socket(self.ticker_handler)
         self.socket.daemon = True
         self.socket.start()
 
-    def _ticker_handler(self, ticker: Dict):
-        message_type = ticker["e"]
-        if not message_type == "24hrMiniTicker":
+    def user_handler(self, message: Dict):
+
+        message_type = message["e"]
+        if not message_type == "executionReport":
             return
-        time = ticker["E"]
-        if time > self.time:
-            self.time = time
+
+        order_id = message["i"]
+        binance_order_status = message["X"]
+
+        if binance_order_status == BinanceConnector.BINANCE_ORDER_STATUS_FILLED:
+            self.emit(UserEvent({"external_id": order_id, "status": BinanceConnector.ORDER_STATUS_FILLED}))
+        elif binance_order_status == BinanceConnector.BINANCE_ORDER_STATUS_CANCELED:
+            self.emit(UserEvent({"external_id": order_id, "status": BinanceConnector.ORDER_STATUS_CANCELED}))
+
+    def ticker_handler(self, message: List[Dict]):
+
+        for ticker in message:
+
+            message_type = ticker["e"]
+            if not message_type == "24hrMiniTicker":
+                return
+
+            time = ticker["E"]
+            if time > self.time:
+                self.time = time
+
+        self.emit(TickerEvent({}))
 
     def stop_listen(self):
+
         self.socket.close()
 
     def satisfied(self, execution_order: SingleExecutionOrder) -> bool:

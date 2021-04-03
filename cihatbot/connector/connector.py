@@ -5,8 +5,8 @@ from typing import Callable
 
 class Connector:
 
-    ORDER_DELAY: float = 0.0
-    QUERY_DELAY: float = 0.0
+    ORDER_STATUS_FILLED = "FILLED"
+    ORDER_STATUS_CANCELED = "CANCELED"
 
     def __init__(self):
         self.emitter: EventEmitter = EventEmitter()
