@@ -1,5 +1,5 @@
 x Websocket: add websocket to trader and connector
-Refactoring: introduce event emitter and listener
+x Refactoring: introduce event emitter and listener
 Error handling: handle all possible trader and ui errors; events as subclasses that checks own data
 Interface: add single orders, "sell and the buy" order; add market price
 Optimization: change threads to asyncio; add time track functionality
