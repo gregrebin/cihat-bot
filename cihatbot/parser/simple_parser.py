@@ -26,43 +26,63 @@ class SimpleParser(Parser):
     25.03.2021 06:00 BTCBUSD buy 0.0002 at 55000, 0.0002 at 57000, at 59000 for 10 and sell 70% at 65000, 30% at 70000
     """
 
-    root = re.compile("^(?P<datetime>(\d\d\.\d\d\.\d\d\d\d \d\d:\d\d )?)(?P<symbol>[A-Z]+) buy (?P<buy_orders>.+) and sell (?P<sell_orders>.+)$")
-    datetime = re.compile("^(?P<day>\d\d)\.(?P<month>\d\d)\.(?P<year>\d\d\d\d) (?P<hour>\d\d):(?P<minute>\d\d) $")
-    right_buy = re.compile("^(?P<right_quantity>\d+\.?\d*) at (?P<price>\d+\.?\d*)$")
-    left_buy = re.compile("^at (?P<price>\d+\.?\d*) for (?P<left_quantity>\d+\.?\d*)$")
-    sell = re.compile("^(?P<percent>\d\d|100)% at (?P<price>\d+\.?\d*)$")
+    root_long = re.compile("^(?P<datetime>(\d\d\.\d\d\.\d\d\d\d \d\d:\d\d )?)(?P<symbol>[A-Z]+) (?P<primary_command>buy|sell) (?P<primary_orders>.+) and (?P<secondary_command>buy|sell) (?P<secondary_orders>.+)$")
+    root_short = re.compile("^(?P<datetime>(\d\d\.\d\d\.\d\d\d\d \d\d:\d\d )?)(?P<symbol>[A-Z]+) (?P<primary_command>buy|sell) (?P<primary_orders>.+)$")
 
     def parse(self, order_string: str) -> ExecutionOrder:
 
-        root_match = self.root.match(order_string)
-        if not root_match:
+        root_long_match = self.root_long.match(order_string)
+        root_short_match = self.root_short.match(order_string)
+        long = False
+        if root_long_match:
+            root_match = root_long_match
+            long = True
+        elif root_short_match:
+            root_match = root_short_match
+        else:
             raise InvalidString(order_string)
 
         datetime = self._get_datetime(root_match["datetime"])
         symbol = root_match["symbol"]
 
-        buy_orders_str = root_match["buy_orders"].split(", ")
-        sell_orders_str = root_match["sell_orders"].split(", ")
+        primary_command = root_match["primary_command"]
+        primary_orders_str = root_match["primary_orders"].split(", ")
+        primary_orders = self._parse_primary_orders(primary_command, primary_orders_str, datetime, symbol)
 
-        buy_orders = self._parse_buy_orders(buy_orders_str, datetime, symbol)
+        if not long:
+            return ParallelExecutionOrder(primary_orders)
+
+        secondary_command = root_match["secondary_command"]
+        secondary_orders_str = root_long_match["secondary_orders"].split(", ")
+
         orders = []
 
-        for buy_order in buy_orders:
-            sell_orders = self._parse_sell_orders(sell_orders_str, datetime, symbol, buy_order.params.quantity)
+        for primary_order in primary_orders:
+            secondary_orders = self._parse_secondary_orders(secondary_command, secondary_orders_str, datetime, symbol, primary_order.params.quantity)
             orders.append(SequentExecutionOrder([
-                buy_order,
-                ParallelExecutionOrder(sell_orders)
+                primary_order,
+                ParallelExecutionOrder(secondary_orders)
             ]))
 
         return ParallelExecutionOrder(orders)
 
-    def _parse_buy_orders(self, buy_orders_str: List[str], datetime: float, symbol: str) -> List[SingleExecutionOrder]:
+    right_primary = re.compile("^(?P<right_quantity>\d+\.?\d*) at (?P<price>\d+\.?\d*)$")
+    left_primary = re.compile("^at (?P<price>\d+\.?\d*) for (?P<left_quantity>\d+\.?\d*)$")
 
-        buy_orders = []
-        for order in buy_orders_str:
+    def _parse_primary_orders(self, command_str: str, primary_orders_str: List[str], datetime: float, symbol: str) -> List[SingleExecutionOrder]:
 
-            right_match = self.right_buy.match(order)
-            left_match = self.left_buy.match(order)
+        if command_str == "buy":
+            command = ExecutionParams.CMD_BUY
+        elif command_str == "sell":
+            command = ExecutionParams.CMD_SELL
+        else:
+            raise InvalidString(command_str)
+
+        primary_orders = []
+        for order in primary_orders_str:
+
+            right_match = self.right_primary.match(order)
+            left_match = self.left_primary.match(order)
 
             if right_match:
                 price = float(right_match["price"])
@@ -73,32 +93,43 @@ class SimpleParser(Parser):
             else:
                 raise InvalidString(order)
 
-            buy_orders.append(SingleExecutionOrder(
-                ExecutionParams(ExecutionParams.CMD_BUY, symbol, price, quantity),
+            primary_orders.append(SingleExecutionOrder(
+                ExecutionParams(command, symbol, price, quantity),
                 ExecutionConditions(datetime)
             ))
 
-        return buy_orders
+        return primary_orders
 
-    def _parse_sell_orders(self, sell_orders_str: List[str], datetime: float, symbol: str, total_quantity: float) -> List[SingleExecutionOrder]:
+    secondary = re.compile("^(?P<percent>\d\d|100)% at (?P<price>\d+\.?\d*)$")
 
-        sell_orders = []
-        for order in sell_orders_str:
+    def _parse_secondary_orders(self, command_str: str, secondary_orders_str: List[str], datetime: float, symbol: str, total_quantity: float) -> List[SingleExecutionOrder]:
 
-            sell_match = self.sell.match(order)
-            if not sell_match:
+        if command_str == "buy":
+            command = ExecutionParams.CMD_BUY
+        elif command_str == "sell":
+            command = ExecutionParams.CMD_SELL
+        else:
+            raise InvalidString(command_str)
+
+        secondary_orders = []
+        for order in secondary_orders_str:
+
+            secondary_match = self.secondary.match(order)
+            if not secondary_match:
                 raise InvalidString(order)
 
-            price = float(sell_match["price"])
-            percent = float(sell_match["percent"]) / 100
+            price = float(secondary_match["price"])
+            percent = float(secondary_match["percent"]) / 100
             quantity = total_quantity * percent
 
-            sell_orders.append(SingleExecutionOrder(
-                ExecutionParams(ExecutionParams.CMD_SELL, symbol, price, quantity),
+            secondary_orders.append(SingleExecutionOrder(
+                ExecutionParams(command, symbol, price, quantity),
                 ExecutionConditions(datetime)
             ))
 
-        return sell_orders
+        return secondary_orders
+
+    datetime = re.compile("^(?P<day>\d\d)\.(?P<month>\d\d)\.(?P<year>\d\d\d\d) (?P<hour>\d\d):(?P<minute>\d\d) $")
 
     def _get_datetime(self, datetime: str) -> float:
         datetime_match = self.datetime.match(datetime)
