@@ -100,7 +100,7 @@ class RealTrader(Trader):
 
     def _submit(self, order: SingleExecutionOrder) -> OrderStatus:
 
-        if not (self.timer.is_later_than(order.from_time) or self._call_satisfied(order)):
+        if not (self.timer.is_later_than(order.from_time) and self._call_satisfied(order)):
             return OrderStatus.PENDING
 
         if not self._call_submit(order):
