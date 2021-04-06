@@ -19,7 +19,6 @@ class BinanceConnector(Connector):
         self.client: Client = Client("", "")
         self.socket = BinanceSocketManager(self.client)
         self.connected: bool = False
-        self.time: int = 0
 
     def connect(self, key: str, secret: str) -> None:
 
@@ -57,11 +56,7 @@ class BinanceConnector(Connector):
 
             message_type = ticker["e"]
             if not message_type == "24hrMiniTicker":
-                return
-
-            time = ticker["E"]
-            if time > self.time:
-                self.time = time
+                continue
 
         self.emit(TickerEvent({}))
 
@@ -72,9 +67,7 @@ class BinanceConnector(Connector):
     def satisfied(self, execution_order: SingleExecutionOrder) -> bool:
 
         execution_conditions = execution_order.conditions
-        from_time = int(execution_conditions.from_time) * 1000
-
-        return self.time >= from_time
+        return True
 
     def submit(self, execution_order: SingleExecutionOrder) -> int:
 

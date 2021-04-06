@@ -79,6 +79,10 @@ class TickerEvent(Event):
     name = "TICKER"
 
 
+class TimerEvent(Event):
+    name = "TIMER"
+
+
 class AddTraderEvent(Event):
     name = "ADD_TRADER"
     data_fields = {"trader_name", "connector_name", "config"}

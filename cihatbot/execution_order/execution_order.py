@@ -64,9 +64,10 @@ class EmptyExecutionOrder(ExecutionOrder):
 
 class SingleExecutionOrder(ExecutionOrder):
 
-    def __init__(self, execution_params: ExecutionParams, execution_conditions: ExecutionConditions):
+    def __init__(self, from_time: float, execution_params: ExecutionParams, execution_conditions: ExecutionConditions):
         super().__init__("single")
 
+        self.from_time: float = from_time
         self.params: ExecutionParams = execution_params
         self.conditions: ExecutionConditions = execution_conditions
 
@@ -260,9 +261,7 @@ class ExecutionParams:
 
 
 class ExecutionConditions:
-
-    def __init__(self, from_time: float):
-        self.from_time: float = from_time
+    pass
 
 
 class EmptyOrderList(Exception):

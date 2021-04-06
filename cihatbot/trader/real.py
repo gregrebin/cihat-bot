@@ -12,25 +12,31 @@ from cihatbot.events import (
     CancelledEvent,
     UserEvent,
     TickerEvent,
-    ErrorEvent
+    ErrorEvent,
+    TimerEvent
 )
 from cihatbot.trader.trader import Trader
 from cihatbot.execution_order.execution_order import ExecutionOrder, EmptyExecutionOrder, SingleExecutionOrder, OrderStatus
 from cihatbot.connector.connector import Connector, ConnectorException
+from cihatbot.util.timer import Timer
 from typing import Dict
 import logging
 
 
 class RealTrader(Trader):
 
+    TIMER_INTERVAL = 0.02
+
     def __init__(self, config: Dict, connector: Connector) -> None:
         super().__init__(config, connector)
 
         self.logger: Logger = Logger(__name__, logging.INFO)
         self.execution_order: ExecutionOrder = EmptyExecutionOrder()
+        self.timer: Timer = Timer()
 
     def pre_run(self) -> None:
         self.connector.add_listener(self.listener)
+        self.timer.add_listener(self.listener)
 
     def on_event(self, event: Event) -> None:
         if event.is_type(ConnectEvent):
@@ -43,11 +49,12 @@ class RealTrader(Trader):
             self.remove_filled(event.data["external_id"])
         elif event.is_type(UserEvent) and event.data["status"] == Connector.ORDER_STATUS_CANCELED:
             self.remove_cancelled(event.data["external_id"])
-        elif event.is_type(TickerEvent):
+        elif event.is_type(TickerEvent) or event.is_type(TimerEvent):
             self.submit_next()
 
     def post_run(self):
         self.connector.stop_listen()
+        self.timer.stop()
 
     def connect(self, event: Event) -> None:
         user = event.data["user"]
@@ -56,6 +63,7 @@ class RealTrader(Trader):
         self.logger.log(logging.INFO, f"""CONNECT event: {user}""")
         self.connector.connect(user, password)
         self.connector.start_listen()
+        self.timer.start(RealTrader.TIMER_INTERVAL)
         self.emit(ConnectedEvent({"user": user}))
 
     def add_order(self, event: Event) -> None:
@@ -92,7 +100,7 @@ class RealTrader(Trader):
 
     def _submit(self, order: SingleExecutionOrder) -> OrderStatus:
 
-        if not self._call_satisfied(order):
+        if not (self.timer.is_later_than(order.from_time) or self._call_satisfied(order)):
             return OrderStatus.PENDING
 
         if not self._call_submit(order):
