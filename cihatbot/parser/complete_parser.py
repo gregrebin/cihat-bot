@@ -27,15 +27,14 @@ class CompleteParser(Parser):
 
         if single_match:
             return SingleExecutionOrder(
+                time.time(),
                 ExecutionParams(
                     single_match.group("command"),
                     single_match.group("symbol"),
                     float(single_match.group("price")),
                     float(single_match.group("quantity"))
                 ),
-                ExecutionConditions(
-                    time.time()
-                )
+                ExecutionConditions()
             )
 
         elif parallel_match:

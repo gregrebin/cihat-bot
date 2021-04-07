@@ -1,5 +1,6 @@
 from __future__ import annotations
 from cihatbot.logger import Logger
+from cihatbot.scheduler import Scheduler
 from cihatbot.events import Event, EventListener, EventEmitter, AddUiEvent, AddTraderEvent
 from cihatbot.ui.ui import Ui
 from cihatbot.ui.telegram import Telegram
@@ -46,7 +47,8 @@ class User(Thread):
 
         self.app_listener: EventListener = app_listener
         self.listener: EventListener = EventListener()
-        self.emitter: EventEmitter = EventEmitter()
+
+        self.scheduler: Scheduler = Scheduler()
 
         self.default_config: ConfigParser = default_config
         self.logger: Logger = Logger(__name__, logging.INFO)
@@ -68,7 +70,9 @@ class User(Thread):
             ui.add_listener(trader.listener)
         ui.add_listener(self.listener)
         ui.add_listener(self.app_listener)
+
         self.uis.append(ui)
+        self.scheduler.schedule(ui)
 
         self.logger.log(logging.INFO, f"""Added {ui_name} with {parser_name}""")
         return ui
@@ -88,32 +92,26 @@ class User(Thread):
             trader.add_listener(ui.listener)
         trader.add_listener(self.listener)
         trader.add_listener(self.app_listener)
+
         self.traders.append(trader)
+        self.scheduler.schedule(trader)
 
         self.logger.log(logging.INFO, f"""Added {trader_name} with {connector_name}""")
         return trader
 
     def run(self):
 
-        for ui in self.uis:
-            ui.start()
-        for trader in self.traders:
-            trader.start()
-
+        self.scheduler.start()
         self.listener.listen(self.on_event)
-
-        for ui in self.uis:
-            ui.join()
-        for trader in self.traders:
-            trader.join()
+        self.scheduler.stop()
 
     def on_event(self, event: Event) -> None:
 
         if event.is_type(AddTraderEvent):
-            self.add_trader(event.data["trader_name"], event.data["connector_name"], event.data["config"]).start()
+            self.add_trader(event.data["trader_name"], event.data["connector_name"], event.data["config"])
 
         elif event.is_type(AddUiEvent):
-            self.add_ui(event.data["ui_name"], event.data["parser_name"], event.data["config"]).start()
+            self.add_ui(event.data["ui_name"], event.data["parser_name"], event.data["config"])
 
     def stop(self):
 

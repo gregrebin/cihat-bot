@@ -94,8 +94,9 @@ class SimpleParser(Parser):
                 raise InvalidString(order)
 
             primary_orders.append(SingleExecutionOrder(
+                datetime,
                 ExecutionParams(command, symbol, price, quantity),
-                ExecutionConditions(datetime)
+                ExecutionConditions()
             ))
 
         return primary_orders
@@ -123,8 +124,9 @@ class SimpleParser(Parser):
             quantity = total_quantity * percent
 
             secondary_orders.append(SingleExecutionOrder(
+                datetime,
                 ExecutionParams(command, symbol, price, quantity),
-                ExecutionConditions(datetime)
+                ExecutionConditions()
             ))
 
         return secondary_orders

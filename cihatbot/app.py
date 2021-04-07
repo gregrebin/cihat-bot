@@ -2,6 +2,7 @@ from __future__ import annotations
 from cihatbot.user import User
 from cihatbot.logger import Logger
 from cihatbot.events import Event, EventListener, AddUserEvent
+from cihatbot.scheduler import Scheduler
 from configparser import ConfigParser
 from typing import Dict, List
 from signal import signal, SIGINT, SIGTERM
@@ -22,6 +23,7 @@ class Application:
         self.config.read(config_file)
 
         self.listener: EventListener = EventListener()
+        self.scheduler: Scheduler = Scheduler()
         self.users: List[User] = []
 
         self.logger.log(logging.INFO, "Initialization complete")
@@ -40,7 +42,9 @@ class Application:
         user = User(self.listener, self.config)
         user.add_ui(ui_name, parser_name, ui_config)
         user.add_trader(trader_name, connector_name, trader_config)
+
         self.users.append(user)
+        self.scheduler.schedule(user)
 
         self.logger.log(logging.INFO, "Created new user")
         return user
@@ -48,25 +52,19 @@ class Application:
     def run(self) -> None:
 
         self.logger.log(logging.INFO, "Starting cihat-bot")
-
-        for user in self.users:
-            user.start()
-
+        self.scheduler.start()
         self.logger.log(logging.INFO, "Cihat-bot started")
 
         self.listener.listen(self.on_event)
 
         self.logger.log(logging.INFO, "Stopping cihat-bot")
-
-        for user in self.users:
-            user.join()
-
+        self.scheduler.stop()
         self.logger.log(logging.INFO, "Cihat-bot stopped")
 
     def on_event(self, event: Event) -> None:
 
         if event.is_type(AddUserEvent):
-            self.add_user(event.data["ui"], event.data["parser"], event.data["trader"], event.data["connector"], event.data["ui_config"], event.data["trader_config"]).start()
+            self.add_user(event.data["ui"], event.data["parser"], event.data["trader"], event.data["connector"], event.data["ui_config"], event.data["trader_config"])
 
     def exit(self, signum, frame):
 
