@@ -3,7 +3,7 @@ from threading import Thread
 import time
 
 
-class Timer():
+class Timer:
 
     def __init__(self) -> None:
         self.emitter: EventEmitter = EventEmitter()
@@ -25,8 +25,9 @@ class Timer():
         self.thread.start()
 
     def stop(self):
-        self.is_running = False
-        self.thread.join()
+        if self.is_running:
+            self.is_running = False
+            self.thread.join()
 
     @staticmethod
     def is_later_than(ref_time: float):
