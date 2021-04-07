@@ -84,16 +84,21 @@ class BinanceConnector(Connector):
         if execution_params.command == ExecutionParams.CMD_SELL:
             side = self.client.SIDE_SELL
 
+        params = {
+            "newClientOrderId": execution_order.order_id,
+            "symbol": execution_params.symbol,
+            "quantity": execution_params.quantity,
+            "side": side,
+            "type": self.client.ORDER_TYPE_MARKET
+        }
+
+        if not execution_params.price == 0:
+            params["type"] = self.client.ORDER_TYPE_LIMIT
+            params["price"] = execution_params.price
+            params["timeInForce"] = self.client.TIME_IN_FORCE_GTC
+
         try:
-            binance_order = self.client.create_order(
-                newClientOrderId=execution_order.order_id,
-                symbol=execution_params.symbol,
-                quantity=execution_params.quantity,
-                price=execution_params.price,
-                side=side,
-                type=self.client.ORDER_TYPE_LIMIT,
-                timeInForce=self.client.TIME_IN_FORCE_GTC
-            )
+            binance_order = self.client.create_order(**params)
         except (BinanceRequestException, BinanceOrderException, BinanceAPIException) as exception:
             raise ConnectorException(exception.message, execution_order)
 
