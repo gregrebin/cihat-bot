@@ -1,25 +1,28 @@
-from threading import Thread
-from typing import List
+from asyncio import Task, create_task
+from typing import List, Coroutine, Callable
 
 
 class Scheduler:
 
     def __init__(self):
-        self.threads: List[Thread] = []
+        self.async_funcs: List[Callable[[], Coroutine]] = []
+        self.tasks: List[Task] = []
         self.is_running: bool = False
 
-    def schedule(self, thread: Thread):
-        self.threads.append(thread)
+    def schedule(self, async_func: Callable[[], Coroutine]):
+        self.async_funcs.append(async_func)
         if self.is_running:
-            thread.start()
+            task = create_task(async_func())
+            self.tasks.append(task)
 
     def start(self):
-        for thread in self.threads:
-            thread.start()
+        for async_func in self.async_funcs:
+            task = create_task(async_func())
+            self.tasks.append(task)
         self.is_running = True
 
-    def stop(self):
-        for thread in self.threads:
-            thread.join()
+    async def wait(self):
+        for task in self.tasks:
+            await task
         self.is_running = False
 

@@ -1,7 +1,8 @@
 from __future__ import annotations
+from cihatbot.module import Module
 from cihatbot.logger import Logger
 from cihatbot.scheduler import Scheduler
-from cihatbot.events import Event, EventListener, EventEmitter, AddUiEvent, AddTraderEvent
+from cihatbot.events import Event, EventListener, AddUiEvent, AddTraderEvent
 from cihatbot.ui.ui import Ui
 from cihatbot.ui.telegram import Telegram
 from cihatbot.parser.parser import Parser
@@ -12,7 +13,6 @@ from cihatbot.trader.real import RealTrader
 from cihatbot.connector.connector import Connector
 from cihatbot.connector.binance import BinanceConnector
 from configparser import ConfigParser
-from threading import Thread
 from typing import Type, Dict, List
 import logging
 
@@ -37,23 +37,15 @@ CONNECTORS: Dict[str, Type[Connector]] = {
 }
 
 
-class User(Thread):
+class User(Module):
 
-    def __init__(self, app_listener: EventListener, default_config: ConfigParser) -> None:
-        super().__init__()
+    def __init__(self, config: Dict) -> None:
+        super().__init__(config, __name__)
 
         self.uis: List[Ui] = []
         self.traders: List[Trader] = []
 
-        self.app_listener: EventListener = app_listener
-        self.listener: EventListener = EventListener()
-
-        self.scheduler: Scheduler = Scheduler()
-
-        self.default_config: ConfigParser = default_config
-        self.logger: Logger = Logger(__name__, logging.INFO)
-
-        self.logger.log(logging.INFO, f"""New user initialized""")
+        self.log(f"""New user initialized""")
 
     def add_ui(self, ui_name: str, parser_name: str, config: Dict = None) -> Ui:
 

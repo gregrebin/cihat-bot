@@ -1,4 +1,5 @@
 from __future__ import annotations
+from cihatbot.module import Module
 from cihatbot.user import User
 from cihatbot.logger import Logger
 from cihatbot.events import Event, EventListener, AddUserEvent
@@ -9,35 +10,30 @@ from signal import signal, SIGINT, SIGTERM
 import logging
 
 
-class Application:
+class Application(Module):
 
-    def __init__(self, config_file: str) -> None:
+    def __init__(self, config: Dict) -> None:
+        super().__init__(config, __name__)
 
-        self.logger: Logger = Logger(__name__, logging.INFO)
-        self.logger.log(logging.INFO, "Initializing Cihat-bot")
+        self.log("Initializing Cihat-bot")
 
         signal(SIGINT, self.exit)
         signal(SIGTERM, self.exit)
 
-        self.config: ConfigParser = ConfigParser()
-        self.config.read(config_file)
-
-        self.listener: EventListener = EventListener()
-        self.scheduler: Scheduler = Scheduler()
         self.users: List[User] = []
 
-        self.logger.log(logging.INFO, "Initialization complete")
+        self.log("Initialization complete")
 
     def add_user(self, ui_name: str = None, parser_name: str = None, trader_name: str = None, connector_name: str = None, ui_config: Dict = None, trader_config: Dict = None) -> User:
 
         if not ui_name:
-            ui_name = self.config["app"]["ui"]
+            ui_name = self.config["ui"]
         if not parser_name:
-            parser_name = self.config["app"]["parser"]
+            parser_name = self.config["parser"]
         if not trader_name:
-            trader_name = self.config["app"]["trader"]
+            trader_name = self.config["trader"]
         if not connector_name:
-            connector_name = self.config["app"]["connector"]
+            connector_name = self.config["connector"]
 
         user = User(self.listener, self.config)
         user.add_ui(ui_name, parser_name, ui_config)
@@ -70,4 +66,4 @@ class Application:
 
         for user in self.users:
             user.stop()
-        self.listener.stop()
+        self.stop()

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from queue import Queue
+from asyncio import Queue
 from typing import Dict, Any, Set, List, Callable, Type
 
 
@@ -111,25 +111,25 @@ class EventListener:
     def __init__(self):
         self.queue: Queue = Queue()
 
-    def listen(self, on_event: Callable[[Event], None]):
+    async def listen(self, on_event: Callable[[Event], None]):
         stop = False
         while not stop:
-            event = self.queue.get()
+            event = await self.queue.get()
             on_event(event)
             stop = event.is_type(StopEvent)
 
-    def stop(self):
-        self.queue.put(StopEvent({}))
+    async def stop(self):
+        await self.queue.put(StopEvent({}))
 
 
 class EventEmitter:
 
     def __init__(self):
-        self.listeners: List[Queue] = []
+        self.listeners_queues: List[Queue] = []
 
     def add_listener(self, listener: EventListener):
-        self.listeners.append(listener.queue)
+        self.listeners_queues.append(listener.queue)
 
     def emit(self, event: Event):
-        for listener in self.listeners:
-            listener.put(event)
+        for listener_queue in self.listeners_queues:
+            listener_queue.put(event)
