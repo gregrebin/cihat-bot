@@ -8,27 +8,28 @@ import logging
 
 class Module:
 
-    def __init__(self, config: Dict, logger_name: str) -> None:
+    def __init__(self, config: Dict, name: str) -> None:
         super().__init__()
         self.config: Dict = config
-        self.logger: Logger = Logger(logger_name, logging.INFO)
+        self.logger: Logger = Logger(name, logging.INFO)
         self.emitter: EventEmitter = EventEmitter()
         self.listener: EventListener = EventListener()
         self.scheduler: Scheduler = Scheduler()
         self.submodules: List[Module] = []
 
-    def add_submodule(self, submodule: Module):
-        submodule.emitter.add_listener(self.listener)
-        self.scheduler.schedule(submodule.start)
-
-    async def start(self) -> None:
-
+    def init(self) -> Module:
         async def listen() -> None:
             await self.listener.listen(self.on_event)
-
         self.scheduler.schedule(listen)
-        self.scheduler.start()
-        await self.scheduler.wait()
+        return self
+
+    def add_submodule(self, submodule: Module) -> None:
+        submodule.emitter.add_listener(self.listener)
+        self.scheduler.schedule(submodule.run)
+        self.submodules.append(submodule)
+
+    async def run(self) -> None:
+        await self.scheduler.run()
 
     def on_event(self, event: Event) -> None:
         pass

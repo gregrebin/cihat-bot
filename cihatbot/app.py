@@ -48,7 +48,7 @@ class Application(Module):
     def run(self) -> None:
 
         self.logger.log(logging.INFO, "Starting cihat-bot")
-        self.scheduler.start()
+        self.scheduler.run()
         self.logger.log(logging.INFO, "Cihat-bot started")
 
         self.listener.listen(self.on_event)

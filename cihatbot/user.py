@@ -93,7 +93,7 @@ class User(Module):
 
     def run(self):
 
-        self.scheduler.start()
+        self.scheduler.run()
         self.listener.listen(self.on_event)
         self.scheduler.stop()
 
@@ -111,4 +111,4 @@ class User(Module):
             ui.stop()
         for trader in self.traders:
             trader.stop()
-        self.listener.stop()
+        self.listener.is_running()

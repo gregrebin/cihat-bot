@@ -17,10 +17,10 @@ class User(Module):
     def __init__(self):
         super().__init__({}, __name__)
 
-        self.trader: Trader = Trader()
+        self.trader: Trader = Trader().init()
         self.add_submodule(self.trader)
 
-        self.ui: Ui = Ui()
+        self.ui: Ui = Ui().init()
         self.add_submodule(self.ui)
 
         # self.trader.connect_module(self.ui)
@@ -30,22 +30,20 @@ class App(Module):
     def __init__(self):
         super().__init__({}, __name__)
 
-        self.user: User = User()
+        self.user: User = User().init()
         self.add_submodule(self.user)
 
 
 async def main():
 
     print("test")
-    app = App()
+    app = App().init()
 
-    async def stop(signum, frame):
-        await app.stop()
+    loop = asyncio.get_event_loop()
+    loop.add_signal_handler(signal.SIGINT, lambda: asyncio.create_task(app.stop()))
+    loop.add_signal_handler(signal.SIGTERM, lambda: asyncio.create_task(app.stop()))
 
-    signal.signal(signal.SIGINT, stop)
-    signal.signal(signal.SIGTERM, stop)
-
-    await app.start()
+    await app.run()
 
 
 if __name__ == '__main__':
