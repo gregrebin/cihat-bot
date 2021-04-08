@@ -25,13 +25,28 @@ class User(Module):
 
         # self.trader.connect_module(self.ui)
 
+    def pre_run(self) -> None:
+        print("creating user")
+
+    async def in_run(self) -> None:
+        count = 0
+        while self.is_running:
+            await asyncio.sleep(1)
+            count += 1
+            print(f"""{count} seconds passed""""")
+
+    def post_run(self) -> None:
+        print("deleting user")
+
 
 class App(Module):
     def __init__(self):
         super().__init__({}, __name__)
 
-        self.user: User = User().init()
-        self.add_submodule(self.user)
+        self.user1: User = User().init()
+        self.user2: User = User().init()
+        self.add_submodule(self.user1)
+        self.add_submodule(self.user2)
 
 
 async def main():
