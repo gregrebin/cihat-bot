@@ -1,0 +1,12 @@
+[Unit]
+Description=Cihatbot
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/cihat-bot
+ExecStart=/usr/bin/env python3 -m cihatbot
+
+[Install]
+WantedBy=multi-user.target
