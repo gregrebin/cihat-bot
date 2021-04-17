@@ -2,7 +2,7 @@ from cihatbot.app import Application
 
 
 def main():
-    application = Application("cihatbot.cfg")
+    application = Application("cihatbot.local.cfg")
     application.add_user()
     application.run()
 

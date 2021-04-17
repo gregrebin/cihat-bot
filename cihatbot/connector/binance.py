@@ -1,11 +1,15 @@
 from __future__ import annotations
+from cihatbot.logger import Logger
 from cihatbot.events import UserEvent, TickerEvent
 from cihatbot.connector.connector import Connector, ConnectorException
 from cihatbot.execution_order.execution_order import SingleExecutionOrder, ExecutionConditions, ExecutionParams
 from binance.client import Client
 from binance.exceptions import BinanceOrderException, BinanceRequestException, BinanceAPIException
 from binance.websockets import BinanceSocketManager
-from typing import Callable, Dict, List
+from functools import reduce
+from queue import Queue
+from typing import Callable, Dict, List, Tuple
+import logging
 
 
 class BinanceConnector(Connector):
@@ -16,6 +20,7 @@ class BinanceConnector(Connector):
     def __init__(self):
 
         super().__init__()
+        self.logger: Logger = Logger(__name__, logging.INFO)
         self.client: Client = Client("", "")
         self.socket = BinanceSocketManager(self.client)
         self.connected: bool = False
@@ -72,6 +77,8 @@ class BinanceConnector(Connector):
     def submit(self, execution_order: SingleExecutionOrder) -> int:
 
         execution_params = execution_order.params
+        is_market = execution_params.price == 0
+        is_all_in = execution_params.quantity == 0
 
         side = self.client.SIDE_BUY
         if execution_params.command == ExecutionParams.CMD_SELL:
@@ -85,17 +92,76 @@ class BinanceConnector(Connector):
             "type": self.client.ORDER_TYPE_MARKET
         }
 
-        if not execution_params.price == 0:
+        if is_all_in:
+            params["quantity"] = self._order_book_depth(execution_params.command, execution_params.symbol)
+        elif is_market:
+            self._wait_order_book(execution_params.quantity, execution_params.command, execution_params.symbol)
+        else:
             params["type"] = self.client.ORDER_TYPE_LIMIT
             params["price"] = execution_params.price
             params["timeInForce"] = self.client.TIME_IN_FORCE_GTC
 
         try:
             binance_order = self.client.create_order(**params)
+            self.logger.log(logging.INFO, f"""Submitted order: {execution_order}; status: {binance_order["status"]}""")
         except (BinanceRequestException, BinanceOrderException, BinanceAPIException) as exception:
             raise ConnectorException(exception.message, execution_order)
 
         return binance_order["orderId"]
+
+    def _order_book_depth(self, command: str, symbol: str) -> float:
+
+        depth = 0.0
+        order_book = self.client.get_order_book(symbol=symbol)
+
+        if command == ExecutionParams.CMD_SELL:
+            book = order_book["bids"]
+        else:
+            book = order_book["asks"]
+
+        for order in book:
+            quantity = order[1]
+            depth += quantity
+
+        return depth
+
+    def _wait_order_book(self, quantity: float, command: str, symbol: str):
+
+        messages = Queue()
+        socket_number = self.socket.start_depth_socket(symbol, lambda msg: messages.put(msg))
+
+        book, last_update_id = self._book_snapshot(command, symbol)
+
+        while reduce(lambda q1, q2: q1 + q2, book.values()) < quantity:
+
+            message = messages.get()
+            if message["u"] <= last_update_id:
+                continue
+
+            if command == ExecutionParams.CMD_SELL:
+                update = message["b"]
+            else:
+                update = message["a"]
+
+            for level in update:
+                book[level[0]] = float(level[1])
+
+        self.socket.stop_socket(socket_number)
+
+    def _book_snapshot(self, command: str, symbol: str) -> Tuple[Dict[str, float], int]:
+
+        book = {}
+        snapshot = self.client.get_order_book(symbol=symbol)
+
+        if command == ExecutionParams.CMD_SELL:
+            snapshot_orders = snapshot["bids"]
+        else:
+            snapshot_orders = snapshot["asks"]
+
+        for level in snapshot_orders:
+            book[level[0]] = float(level[1])
+
+        return book, snapshot["lastUpdateId"]
 
     def is_filled(self, execution_order: SingleExecutionOrder) -> bool:
 
