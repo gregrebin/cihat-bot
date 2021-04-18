@@ -129,7 +129,6 @@ class RealTrader(Trader):
 
         except FailedException as exception:
             self.logger.log(logging.INFO, f"""Order failed: {exception.order} - {exception.message}""")
-            self.emit(ErrorEvent({"order": exception.order, "message": exception.message}))
             return OrderStatus.PENDING
 
         except ConnectorException as exception:
