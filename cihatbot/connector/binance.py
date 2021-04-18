@@ -99,7 +99,6 @@ class BinanceConnector(Connector):
             params["quantity"] = execution_params.quantity
 
         if is_market:
-            self._wait_order_book(execution_params.quantity, execution_params.command, execution_params.symbol)
             params["type"] = self.client.ORDER_TYPE_MARKET
         else:
             params["type"] = self.client.ORDER_TYPE_LIMIT
@@ -130,46 +129,8 @@ class BinanceConnector(Connector):
         for order in book:
             quantity = float(order[1])
             depth += quantity
-        print(f"""Order book depth: {depth}""")
+
         return depth
-
-    def _wait_order_book(self, quantity: float, command: str, symbol: str):
-
-        messages = Queue()
-        socket_number = self.socket.start_depth_socket(symbol, lambda msg: messages.put(msg))
-
-        book, last_update_id = self._book_snapshot(command, symbol)
-
-        while reduce(lambda q1, q2: q1 + q2, book.values()) < quantity:
-            print(f"""Order book depth: {reduce(lambda q1, q2: q1 + q2, book.values())}""")
-            message = messages.get()
-            if message["u"] <= last_update_id:
-                continue
-
-            if command == ExecutionParams.CMD_SELL:
-                update = message["b"]
-            else:
-                update = message["a"]
-
-            for level in update:
-                book[level[0]] = float(level[1])
-
-        self.socket.stop_socket(socket_number)
-
-    def _book_snapshot(self, command: str, symbol: str) -> Tuple[Dict[str, float], int]:
-
-        book = {}
-        snapshot = self.client.get_order_book(symbol=symbol, limit=5000)
-
-        if command == ExecutionParams.CMD_SELL:
-            snapshot_orders = snapshot["bids"]
-        else:
-            snapshot_orders = snapshot["asks"]
-
-        for level in snapshot_orders:
-            book[level[0]] = float(level[1])
-
-        return book, snapshot["lastUpdateId"]
 
     def is_filled(self, execution_order: SingleExecutionOrder) -> bool:
 
