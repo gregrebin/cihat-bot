@@ -1,7 +1,7 @@
 from __future__ import annotations
 from cihatbot.logger import Logger
 from cihatbot.events import UserEvent, TickerEvent
-from cihatbot.connector.connector import Connector, ConnectorException
+from cihatbot.connector.connector import Connector, ConnectorException, FailedException
 from cihatbot.execution_order.execution_order import SingleExecutionOrder, ExecutionConditions, ExecutionParams
 from binance.client import Client
 from binance.exceptions import BinanceOrderException, BinanceRequestException, BinanceAPIException
@@ -14,8 +14,11 @@ import logging
 
 class BinanceConnector(Connector):
 
+    BINANCE_ORDER_STATUS_NEW = "NEW"
+    BINANCE_ORDER_STATUS_P_FILLED = "PARTIALLY_FILLED"
     BINANCE_ORDER_STATUS_FILLED = "FILLED"
     BINANCE_ORDER_STATUS_CANCELED = "CANCELED"
+    BINANCE_ORDER_STATUS_GOOD = (BINANCE_ORDER_STATUS_NEW, BINANCE_ORDER_STATUS_P_FILLED, BINANCE_ORDER_STATUS_FILLED)
 
     def __init__(self):
 
@@ -87,15 +90,17 @@ class BinanceConnector(Connector):
         params = {
             "newClientOrderId": execution_order.order_id,
             "symbol": execution_params.symbol,
-            "quantity": execution_params.quantity,
             "side": side,
-            "type": self.client.ORDER_TYPE_MARKET
         }
 
         if is_all_in:
             params["quantity"] = self._order_book_depth(execution_params.command, execution_params.symbol)
-        elif is_market:
+        else:
+            params["quantity"] = execution_params.quantity
+
+        if is_market:
             self._wait_order_book(execution_params.quantity, execution_params.command, execution_params.symbol)
+            params["type"] = self.client.ORDER_TYPE_MARKET
         else:
             params["type"] = self.client.ORDER_TYPE_LIMIT
             params["price"] = execution_params.price
@@ -103,16 +108,19 @@ class BinanceConnector(Connector):
 
         try:
             binance_order = self.client.create_order(**params)
-            self.logger.log(logging.INFO, f"""Submitted order: {execution_order}; status: {binance_order["status"]}""")
+            if binance_order["status"] not in BinanceConnector.BINANCE_ORDER_STATUS_GOOD:
+                raise FailedException(f"""Order {binance_order["status"]}""", execution_order)
+
         except (BinanceRequestException, BinanceOrderException, BinanceAPIException) as exception:
             raise ConnectorException(exception.message, execution_order)
 
+        self.logger.log(logging.INFO, f"""Submitted order: {execution_order}; status: {binance_order["status"]}""")
         return binance_order["orderId"]
 
     def _order_book_depth(self, command: str, symbol: str) -> float:
 
         depth = 0.0
-        order_book = self.client.get_order_book(symbol=symbol)
+        order_book = self.client.get_order_book(symbol=symbol, limit=5000)
 
         if command == ExecutionParams.CMD_SELL:
             book = order_book["bids"]
@@ -120,9 +128,9 @@ class BinanceConnector(Connector):
             book = order_book["asks"]
 
         for order in book:
-            quantity = order[1]
+            quantity = float(order[1])
             depth += quantity
-
+        print(f"""Order book depth: {depth}""")
         return depth
 
     def _wait_order_book(self, quantity: float, command: str, symbol: str):
@@ -133,7 +141,7 @@ class BinanceConnector(Connector):
         book, last_update_id = self._book_snapshot(command, symbol)
 
         while reduce(lambda q1, q2: q1 + q2, book.values()) < quantity:
-
+            print(f"""Order book depth: {reduce(lambda q1, q2: q1 + q2, book.values())}""")
             message = messages.get()
             if message["u"] <= last_update_id:
                 continue
@@ -151,7 +159,7 @@ class BinanceConnector(Connector):
     def _book_snapshot(self, command: str, symbol: str) -> Tuple[Dict[str, float], int]:
 
         book = {}
-        snapshot = self.client.get_order_book(symbol=symbol)
+        snapshot = self.client.get_order_book(symbol=symbol, limit=5000)
 
         if command == ExecutionParams.CMD_SELL:
             snapshot_orders = snapshot["bids"]

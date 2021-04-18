@@ -17,7 +17,7 @@ from cihatbot.events import (
 )
 from cihatbot.trader.trader import Trader
 from cihatbot.execution_order.execution_order import ExecutionOrder, EmptyExecutionOrder, SingleExecutionOrder, OrderStatus
-from cihatbot.connector.connector import Connector, ConnectorException
+from cihatbot.connector.connector import Connector, ConnectorException, FailedException
 from cihatbot.util.timer import Timer
 from typing import Dict
 import logging
@@ -81,7 +81,7 @@ class RealTrader(Trader):
         order_id = event.data["order_id"]
 
         self.logger.log(logging.INFO, f"""DELETE event: {order_id}""")
-        self.execution_order = self.execution_order.cancel(order_id=order_id)
+        self.execution_order = self.execution_order.cancel(self._cancel, order_id=order_id)
         self.emit(DeletedEvent({"all": self.execution_order, "order_id": order_id}))
 
     def _cancel(self, order: SingleExecutionOrder) -> None:
@@ -103,12 +103,13 @@ class RealTrader(Trader):
         if not (self.timer.is_later_than(order.from_time) and self._call_satisfied(order)):
             return OrderStatus.PENDING
 
-        if not self._call_submit(order):
-            return OrderStatus.REJECTED
+        status = self._call_submit(order)
 
-        self.logger.log(logging.INFO, f"""Order submitted: {order}""")
-        self.emit(SubmittedEvent({"all": self.execution_order, "single": order}))
-        return OrderStatus.SUBMITTED
+        if status == OrderStatus.SUBMITTED:
+            self.logger.log(logging.INFO, f"""Order submitted: {order}""")
+            self.emit(SubmittedEvent({"all": self.execution_order, "single": order}))
+
+        return status
 
     def _call_satisfied(self, order: SingleExecutionOrder) -> bool:
 
@@ -120,16 +121,21 @@ class RealTrader(Trader):
             self.emit(ErrorEvent({"order": exception.order, "message": exception.message}))
             return False
 
-    def _call_submit(self, order: SingleExecutionOrder) -> bool:
+    def _call_submit(self, order: SingleExecutionOrder) -> OrderStatus:
 
         try:
             order.external_id = self.connector.submit(order)
-            return True
+            return OrderStatus.SUBMITTED
+
+        except FailedException as exception:
+            self.logger.log(logging.INFO, f"""Order failed: {exception.order} - {exception.message}""")
+            self.emit(ErrorEvent({"order": exception.order, "message": exception.message}))
+            return OrderStatus.PENDING
 
         except ConnectorException as exception:
             self.logger.log(logging.INFO, f"""Connector error on submit: {exception.order} - {exception.message}""")
             self.emit(ErrorEvent({"order": exception.order, "message": exception.message}))
-            return False
+            return OrderStatus.REJECTED
 
     def remove_filled(self, external_id: int) -> None:
         self.execution_order.call(self._signal_filled, external_id=external_id)
