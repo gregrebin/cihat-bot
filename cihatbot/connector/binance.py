@@ -8,7 +8,7 @@ from binance.exceptions import BinanceOrderException, BinanceRequestException, B
 from binance.websockets import BinanceSocketManager
 from functools import reduce
 from queue import Queue
-from typing import Callable, Dict, List, Tuple
+from typing import Callable, Dict, List, Tuple, Any
 import logging
 
 
@@ -80,8 +80,9 @@ class BinanceConnector(Connector):
     def submit(self, execution_order: SingleExecutionOrder) -> int:
 
         execution_params = execution_order.params
-        is_market = execution_params.price == 0
-        is_all_in = execution_params.quantity == 0
+        is_market_fast = execution_params.price == 0.0
+        is_market_wait = execution_params.price == -1.0
+        is_market = execution_params.price == -2.0
 
         side = self.client.SIDE_BUY
         if execution_params.command == ExecutionParams.CMD_SELL:
@@ -91,30 +92,41 @@ class BinanceConnector(Connector):
             "newClientOrderId": execution_order.order_id,
             "symbol": execution_params.symbol,
             "side": side,
+            "quantity": execution_params.quantity
         }
 
-        if is_all_in:
-            params["quantity"] = self._order_book_depth(execution_params.command, execution_params.symbol)
-        else:
-            params["quantity"] = execution_params.quantity
-
-        if is_market:
+        if is_market or is_market_fast or is_market_wait:
             params["type"] = self.client.ORDER_TYPE_MARKET
         else:
             params["type"] = self.client.ORDER_TYPE_LIMIT
             params["price"] = execution_params.price
             params["timeInForce"] = self.client.TIME_IN_FORCE_GTC
 
+        binance_order, failed = self._submit(execution_order, params)
+
+        if failed and is_market_fast:
+            params["quantity"] = self._order_book_depth(execution_params.command, execution_params.symbol)
+            binance_order, failed = self._submit(execution_order, params)
+
+        elif failed and is_market_wait:
+            self._wait_order_book(execution_params.quantity, execution_params.command, execution_params.symbol)
+            binance_order, failed = self._submit(execution_order, params)
+
+        if failed:
+            raise FailedException(f"""Order {binance_order["status"]}""", execution_order)
+
+        self.logger.log(logging.INFO, f"""Submitted order: {execution_order}; status: {binance_order["status"]}""")
+        return binance_order["orderId"]
+
+    def _submit(self, execution_order: SingleExecutionOrder, params: Dict[str, Any]) -> Tuple[dict, bool]:
+
         try:
             binance_order = self.client.create_order(**params)
-            if binance_order["status"] not in BinanceConnector.BINANCE_ORDER_STATUS_GOOD:
-                raise FailedException(f"""Order {binance_order["status"]}""", execution_order)
 
         except (BinanceRequestException, BinanceOrderException, BinanceAPIException) as exception:
             raise ConnectorException(exception.message, execution_order)
 
-        self.logger.log(logging.INFO, f"""Submitted order: {execution_order}; status: {binance_order["status"]}""")
-        return binance_order["orderId"]
+        return binance_order, binance_order["status"] not in BinanceConnector.BINANCE_ORDER_STATUS_GOOD
 
     def _order_book_depth(self, command: str, symbol: str) -> float:
 
@@ -130,7 +142,46 @@ class BinanceConnector(Connector):
             quantity = float(order[1])
             depth += quantity
 
+        print(f"""Order book depth: {depth}""")
         return depth
+
+    def _wait_order_book(self, quantity: float, command: str, symbol: str):
+
+        messages = Queue()
+        socket_number = self.socket.start_depth_socket(symbol, lambda msg: messages.put(msg))
+
+        book, last_update_id = self._book_snapshot(command, symbol)
+
+        while reduce(lambda q1, q2: q1 + q2, book.values()) < quantity:
+            print(f"""Wait order book (looking for {quantity}): {reduce(lambda q1, q2: q1 + q2, book.values())}""")
+            message = messages.get()
+            if message["u"] <= last_update_id:
+                continue
+
+            if command == ExecutionParams.CMD_SELL:
+                update = message["b"]
+            else:
+                update = message["a"]
+
+            for level in update:
+                book[level[0]] = float(level[1])
+
+        self.socket.stop_socket(socket_number)
+
+    def _book_snapshot(self, command: str, symbol: str) -> Tuple[Dict[str, float], int]:
+
+        book = {}
+        snapshot = self.client.get_order_book(symbol=symbol, limit=5000)
+
+        if command == ExecutionParams.CMD_SELL:
+            snapshot_orders = snapshot["bids"]
+        else:
+            snapshot_orders = snapshot["asks"]
+
+        for level in snapshot_orders:
+            book[level[0]] = float(level[1])
+        print(f"""Book snapshot length: {len(book)}""")
+        return book, snapshot["lastUpdateId"]
 
     def is_filled(self, execution_order: SingleExecutionOrder) -> bool:
 
