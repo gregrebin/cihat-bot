@@ -88,8 +88,8 @@ class SimpleParser(Parser):
                 price = float(right_match["price"])
                 quantity = float(right_match["right_quantity"])
             elif left_match:
-                price = float(right_match["price"])
-                quantity = price * float(right_match["right_quantity"])
+                price = float(left_match["price"])
+                quantity = price * float(left_match["right_quantity"])
             else:
                 raise InvalidString(order)
 
