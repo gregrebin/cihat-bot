@@ -17,7 +17,9 @@ from cihatbot.parser.parser import Parser, InvalidString
 from typing import Dict
 from telegram import Update
 from telegram.ext import Updater, CommandHandler, Filters, CallbackContext
+from configparser import SectionProxy
 import logging
+import asyncio
 
 
 HELP_MESSAGE = f"""
@@ -45,27 +47,32 @@ me@gregrebin.com """
 
 class Telegram(Ui):
 
-    def __init__(self, config: Dict, parser: Parser):
+    log_name = __name__
+
+    def __init__(self, config: SectionProxy, parser: Parser):
         super().__init__(config, parser)
 
         self.user = self.config["user"]
         self.updater = Updater(self.config["token"])
         self.dispatcher = self.updater.dispatcher
         self.bot = self.updater.bot
-        self.logger = Logger(__name__, logging.INFO)
 
         if "chat_id" in self.config:
             self.chat_id = self.config["chat_id"]
         else:
             self.chat_id = None
 
-        self.dispatcher.add_handler(CommandHandler("help", self.help_handler, filters=Filters.user(username=self.user)))
-        self.dispatcher.add_handler(CommandHandler("connect", self.connect_handler, filters=Filters.user(username=self.user)))
-        self.dispatcher.add_handler(CommandHandler("exec", self.add_parallel_handler, filters=Filters.user(username=self.user)))
-        self.dispatcher.add_handler(CommandHandler("exec_after", self.add_sequent_handler, filters=Filters.user(username=self.user)))
-        self.dispatcher.add_handler(CommandHandler("delete", self.delete_handler, filters=Filters.user(username=self.user)))
-
     def pre_run(self) -> None:
+        self.dispatcher.add_handler(
+            CommandHandler("help", self.help_handler, filters=Filters.user(username=self.user)))
+        self.dispatcher.add_handler(
+            CommandHandler("connect", self.connect_handler, filters=Filters.user(username=self.user)))
+        self.dispatcher.add_handler(
+            CommandHandler("exec", self.add_parallel_handler, filters=Filters.user(username=self.user)))
+        self.dispatcher.add_handler(
+            CommandHandler("exec_after", self.add_sequent_handler, filters=Filters.user(username=self.user)))
+        self.dispatcher.add_handler(
+            CommandHandler("delete", self.delete_handler, filters=Filters.user(username=self.user)))
         self.updater.start_polling()
 
     def post_run(self) -> None:

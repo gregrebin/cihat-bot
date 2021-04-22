@@ -1,6 +1,7 @@
 from __future__ import annotations
+from cihatbot.events import Event
 from cihatbot.module import Module
-from typing import Callable
+from typing import Callable, List
 import asyncio
 import signal
 
@@ -35,51 +36,112 @@ def inject_ui(func: Callable[[Module, Ui], None]) -> Callable[[Module, str], Non
 
 class Ui(Module):
     def __init__(self):
-        super().__init__({}, __name__)
+        super().__init__({})
+
+    def pre_run(self) -> None:
+        print("ui pre_run")
+
+    async def on_run(self) -> None:
+        print("ui on_run")
+        while self.is_running:
+            await asyncio.sleep(1)
+            self.emit(Event({}))
+
+    def on_event(self, event: Event) -> None:
+        print("ui on_event")
+
+    def on_stop(self) -> None:
+        print("ui on_stop")
+
+    def post_run(self) -> None:
+        print("ui post_run")
 
 
 class Trader(Module):
     def __init__(self):
-        super().__init__({}, __name__)
+        super().__init__({})
+
+    def pre_run(self) -> None:
+        print("trader pre_run")
+
+    async def on_run(self) -> None:
+        print("trader on_run")
+
+    def on_event(self, event: Event) -> None:
+        print("trader on_event")
+
+    def on_stop(self) -> None:
+        print("trader on_stop")
+
+    def post_run(self) -> None:
+        print("trader post_run")
 
 
 class User(Module):
     def __init__(self):
-        super().__init__({}, __name__)
+        super().__init__({})
+        self.uis: List[Ui] = []
+        self.traders: List[Trader] = []
 
-        self.trader: Trader = Trader().init()
-        self.add_submodule(self.trader)
+    def add_ui(self, ui: Ui):
+        self.uis.append(ui)
+        self.add_submodule(ui)
+        for trader in self.traders:
+            ui.connect_module(trader)
 
-        self.ui: Ui = Ui().init()
-        self.add_submodule(self.ui)
+    def add_trader(self, trader: Trader):
+        self.traders.append(trader)
+        self.add_submodule(trader)
+        for ui in self.uis:
+            trader.connect_module(ui)
 
-        # self.trader.connect_module(self.ui)
+    # async def on_run(self) -> None:
+    #     print("running user")
+    #     count = 0
+    #     while self.is_running:
+    #         await asyncio.sleep(1)
+    #         count += 1
+    #         print(f"""{count} seconds passed""""")
 
     def pre_run(self) -> None:
-        print("creating user")
+        print("user pre_run")
 
-    async def in_run(self) -> None:
-        count = 0
-        while self.is_running:
-            await asyncio.sleep(1)
-            count += 1
-            print(f"""{count} seconds passed""""")
+    async def on_run(self) -> None:
+        print("user on_run")
+
+    def on_event(self, event: Event) -> None:
+        print("user on_event")
+
+    def on_stop(self) -> None:
+        print("user on_stop")
 
     def post_run(self) -> None:
-        print("deleting user")
+        print("user post_run")
 
 
 class App(Module):
     def __init__(self):
-        super().__init__({}, __name__)
+        super().__init__({})
+        self.users: List[User] = []
 
-        self.user1: User = User().init()
-        self.user2: User = User().init()
-        self.add_submodule(self.user1)
-        self.add_submodule(self.user2)
+    def pre_run(self) -> None:
+        print("app pre_run")
+
+    async def on_run(self) -> None:
+        print("app on_run")
+
+    def on_event(self, event: Event) -> None:
+        print("app on_event")
+
+    def on_stop(self) -> None:
+        print("app on_stop")
+
+    def post_run(self) -> None:
+        print("app post_run")
 
     @inject_user
     def add_user(self, user: User):
+        self.users.append(user)
         self.add_submodule(user)
 
 
@@ -125,6 +187,9 @@ async def main():
     loop.add_signal_handler(signal.SIGTERM, lambda: asyncio.create_task(app.stop()))
 
     app.add_user("user")
+    app.users[0].add_ui(Injector.get_ui("ui"))
+    app.users[0].add_trader(Injector.get_trader("trader"))
+
     await app.run()
 
 

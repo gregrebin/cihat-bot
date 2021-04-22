@@ -20,6 +20,7 @@ from cihatbot.execution_order.execution_order import ExecutionOrder, EmptyExecut
 from cihatbot.connector.connector import Connector, ConnectorException
 from cihatbot.util.timer import Timer
 from typing import Dict
+from configparser import SectionProxy
 import logging
 
 
@@ -27,7 +28,9 @@ class RealTrader(Trader):
 
     TIMER_INTERVAL = 0.02
 
-    def __init__(self, config: Dict, connector: Connector) -> None:
+    log_name = __name__
+
+    def __init__(self, config: SectionProxy, connector: Connector) -> None:
         super().__init__(config, connector)
 
         self.logger: Logger = Logger(__name__, logging.INFO)

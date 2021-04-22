@@ -6,25 +6,25 @@ class Scheduler:
 
     def __init__(self):
 
-        self.async_funcs: List[Callable[[], Coroutine]] = []
+        self.coroutines: List[Coroutine] = []
         self.tasks: List[Task] = []
         self.is_running: bool = False
 
-    def schedule(self, async_func: Callable[[], Coroutine]):
+    def schedule(self, coroutine: Coroutine):
 
-        self.async_funcs.append(async_func)
+        self.coroutines.append(coroutine)
         if self.is_running:
-            task = create_task(async_func())
+            task = create_task(coroutine)
             self.tasks.append(task)
 
     async def run(self):
 
-        for async_func in self.async_funcs:
-            task = create_task(async_func())
+        for async_func in self.coroutines:
+            task = create_task(async_func)
             self.tasks.append(task)
         self.is_running = True
 
-        while len(self.tasks) > 0:
+        while len(self.tasks):
             task = self.tasks.pop()
             await task
         self.is_running = False

@@ -132,4 +132,4 @@ class EventEmitter:
 
     def emit(self, event: Event):
         for listener_queue in self.listeners_queues:
-            listener_queue.put(event)
+            listener_queue.put_nowait(event)

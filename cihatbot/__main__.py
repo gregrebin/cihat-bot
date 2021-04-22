@@ -1,12 +1,23 @@
-from cihatbot.app import Application
+from cihatbot.injector import Injector
+from configparser import ConfigParser
+from signal import SIGINT, SIGTERM
+import asyncio
 
 
-def main():
-    application = Application("cihatbot.cfg")
-    application.add_user()
-    application.run()
+async def main():
+    configparser = ConfigParser()
+    configparser.read("cihatbot.local.cfg")
+
+    injector = Injector(configparser)
+    application = injector.inject_app("app")
+
+    loop = asyncio.get_event_loop()
+    loop.add_signal_handler(SIGINT, lambda: asyncio.create_task(application.stop()))
+    loop.add_signal_handler(SIGTERM, lambda: asyncio.create_task(application.stop()))
+
+    await application.run()
 
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
 
