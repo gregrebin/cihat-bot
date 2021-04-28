@@ -2,8 +2,10 @@ from __future__ import annotations
 from cihatbot.events import Event
 from cihatbot.module import Module
 from typing import Callable, List
+from threading import Thread, Event as ThreadEvent
 import asyncio
 import signal
+import time
 
 
 def inject_app(func: Callable[[Module, App], None]) -> Callable[[Module, str], None]:
@@ -34,18 +36,46 @@ def inject_ui(func: Callable[[Module, Ui], None]) -> Callable[[Module, str], Non
     return wrapped
 
 
+class Timer(Thread):
+
+    def __init__(self):
+        super().__init__()
+        self.end = ThreadEvent()
+        self.callback = None
+
+    def add_callback(self, callback):
+        self.callback = callback
+
+    def run(self) -> None:
+        while not self.end.is_set():
+            print("timer running")
+            self.callback()
+            time.sleep(1)
+
+    def stop(self):
+        self.end.set()
+
+
 class Ui(Module):
     def __init__(self):
         super().__init__({})
+        self.timer = Timer()
+        self.loop = asyncio.get_event_loop()
 
     def pre_run(self) -> None:
         print("ui pre_run")
+        self.timer.add_callback(self._handle_timer)
+        self.timer.start()
+
+    def _handle_timer(self):
+        # self.loop.call_soon(lambda: self.emit(Event({"msg": "timer event"})))
+        self.emit(Event({"msg": "timer event"}))
 
     async def on_run(self) -> None:
         print("ui on_run")
-        while self.is_running:
-            await asyncio.sleep(1)
-            self.emit(Event({}))
+        # while self.is_running:
+        #     await asyncio.sleep(1)
+        #     self.emit(Event({"msg": "ui on run event"}))
 
     def on_event(self, event: Event) -> None:
         print("ui on_event")
@@ -55,6 +85,8 @@ class Ui(Module):
 
     def post_run(self) -> None:
         print("ui post_run")
+        self.timer.stop()
+        self.timer.join()
 
 
 class Trader(Module):
@@ -68,7 +100,10 @@ class Trader(Module):
         print("trader on_run")
 
     def on_event(self, event: Event) -> None:
-        print("trader on_event")
+        if "msg" in event.data:
+            print(f"""trader on_event: {event.data["msg"]}""")
+        else:
+            print("trader on_event")
 
     def on_stop(self) -> None:
         print("trader on_stop")
@@ -110,7 +145,11 @@ class User(Module):
         print("user on_run")
 
     def on_event(self, event: Event) -> None:
-        print("user on_event")
+        # if "msg" in event.data:
+        #     print(f"""trader on_event: {event.data["msg"]}""")
+        # else:
+        #     print("trader on_event")
+        pass
 
     def on_stop(self) -> None:
         print("user on_stop")

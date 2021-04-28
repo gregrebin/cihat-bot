@@ -5,6 +5,7 @@ from cihatbot.scheduler import Scheduler
 from typing import Dict, Callable, Coroutine, List
 from configparser import SectionProxy
 import logging
+import asyncio
 
 
 class Module:
@@ -13,6 +14,7 @@ class Module:
 
     def __init__(self, config: SectionProxy) -> None:
         super().__init__()
+        self.loop = asyncio.get_event_loop()
         self.config: SectionProxy = config
         self.logger: Logger = Logger(self.log_name, logging.INFO)
         self.emitter: EventEmitter = EventEmitter()
@@ -59,8 +61,11 @@ class Module:
     def post_run(self) -> None:
         pass
 
-    def emit(self, event: Event) -> None:
-        self.emitter.emit(event)
+    def emit(self, event: Event, thread_safe: bool = True) -> None:
+        if thread_safe:
+            self.loop.call_soon_threadsafe(lambda: self.emitter.emit(event))
+        else:
+            self.emitter.emit(event)
 
     def log(self, message: str) -> None:
         self.logger.log(logging.INFO, message)
