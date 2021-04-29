@@ -2,6 +2,7 @@ from __future__ import annotations
 from cihatbot.logger import Logger
 from cihatbot.events import Event, EventEmitter, EventListener
 from cihatbot.scheduler import Scheduler
+from cihatbot.injector import Injector
 from typing import Dict, Callable, Coroutine, List
 from configparser import SectionProxy
 import logging
@@ -77,23 +78,3 @@ class Module:
         self.on_stop()
         self.is_running = False
 
-
-class Injector:
-
-    def inject_app(self, name: str) -> Module:
-        pass
-
-    def inject_user(self, name: str) -> Module:
-        pass
-
-    def inject_ui(self, name: str) -> Module:
-        pass
-
-    def inject_parser(self, name: str) -> Module:
-        pass
-
-    def inject_trader(self, name: str) -> Module:
-        pass
-
-    def inject_connector(self, name: str) -> Module:
-        pass

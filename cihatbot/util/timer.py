@@ -1,4 +1,5 @@
-from cihatbot.events import EventEmitter, EventListener, TimerEvent
+from cihatbot.events import EventEmitter, EventListener
+from cihatbot.application.events import TimerEvent
 from threading import Thread
 import time
 

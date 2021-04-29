@@ -1,4 +1,4 @@
-from cihatbot.injector import Injector
+from cihatbot.application.injector import Injector
 from configparser import ConfigParser
 from signal import SIGINT, SIGTERM
 import asyncio

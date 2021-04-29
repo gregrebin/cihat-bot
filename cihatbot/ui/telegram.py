@@ -1,6 +1,6 @@
 from cihatbot.logger import Logger
-from cihatbot.events import (
-    Event,
+from cihatbot.events import Event
+from cihatbot.application.events import (
     ConnectEvent,
     AddEvent,
     DeleteEvent,

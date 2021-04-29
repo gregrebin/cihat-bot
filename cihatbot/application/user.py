@@ -1,6 +1,7 @@
 from __future__ import annotations
 from cihatbot.module import Module
-from cihatbot.events import Event, EventListener, AddUiEvent, AddTraderEvent
+from cihatbot.events import Event, EventListener
+from cihatbot.application.events import AddUiEvent, AddTraderEvent
 from cihatbot.ui.ui import Ui
 from cihatbot.trader.trader import Trader
 from typing import Type, Dict, List

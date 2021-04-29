@@ -1,5 +1,5 @@
 from __future__ import annotations
-from cihatbot.events import UserEvent, TickerEvent
+from cihatbot.application.events import UserEvent, TickerEvent
 from cihatbot.connector.connector import Connector, ConnectorException
 from cihatbot.execution_order.execution_order import SingleExecutionOrder, ExecutionConditions, ExecutionParams
 from binance.client import Client

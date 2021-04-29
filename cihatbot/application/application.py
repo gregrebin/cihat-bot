@@ -1,8 +1,9 @@
 from __future__ import annotations
 from cihatbot.module import Module
-from cihatbot.user import User
-from cihatbot.events import Event, EventListener, AddUserEvent
-from typing import Dict, List
+from cihatbot.application.user import User
+from cihatbot.events import Event
+from cihatbot.application.events import AddUserEvent
+from typing import List
 from configparser import SectionProxy
 import logging
 
