@@ -1,29 +1,16 @@
-from cihatbot.events import Event, EventEmitter, EventListener
-from cihatbot.execution_order.execution_order import SingleExecutionOrder, ExecutionConditions, ExecutionParams
-from typing import Callable
+from cihatbot.module import Module
+from cihatbot.execution_order.execution_order import SingleExecutionOrder
 
 
-class Connector:
+class Connector(Module):
 
     ORDER_STATUS_FILLED = "FILLED"
     ORDER_STATUS_CANCELED = "CANCELED"
 
     def __init__(self):
-        self.emitter: EventEmitter = EventEmitter()
-
-    def add_listener(self, listener: EventListener):
-        self.emitter.add_listener(listener)
-
-    def emit(self, event: Event):
-        self.emitter.emit(event)
+        super().__init__({})
 
     def connect(self, key: str, secret: str) -> None:
-        pass
-
-    def start_listen(self):
-        pass
-
-    def stop_listen(self):
         pass
 
     def satisfied(self, execution_order: SingleExecutionOrder) -> bool:

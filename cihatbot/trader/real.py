@@ -1,4 +1,3 @@
-from cihatbot.logger import Logger
 from cihatbot.events import Event
 from cihatbot.application.events import (
     ConnectEvent,
@@ -18,28 +17,16 @@ from cihatbot.application.events import (
 from cihatbot.trader.trader import Trader
 from cihatbot.execution_order.execution_order import ExecutionOrder, EmptyExecutionOrder, SingleExecutionOrder, OrderStatus
 from cihatbot.connector.connector import Connector, ConnectorException
-from cihatbot.util.timer import Timer
-from typing import Dict
 from configparser import SectionProxy
-import logging
 
 
 class RealTrader(Trader):
-
-    TIMER_INTERVAL = 0.02
 
     log_name = __name__
 
     def __init__(self, config: SectionProxy, connector: Connector) -> None:
         super().__init__(config, connector)
-
-        self.logger: Logger = Logger(__name__, logging.INFO)
         self.execution_order: ExecutionOrder = EmptyExecutionOrder()
-        self.timer: Timer = Timer()
-
-    def pre_run(self) -> None:
-        self.connector.add_listener(self.listener)
-        self.timer.add_listener(self.listener)
 
     def on_event(self, event: Event) -> None:
         if event.is_type(ConnectEvent):
@@ -55,25 +42,19 @@ class RealTrader(Trader):
         elif event.is_type(TickerEvent) or event.is_type(TimerEvent):
             self.submit_next()
 
-    def post_run(self):
-        self.connector.stop_listen()
-        self.timer.stop()
-
     def connect(self, event: Event) -> None:
         user = event.data["user"]
         password = event.data["password"]
 
-        self.logger.log(logging.INFO, f"""CONNECT event: {user}""")
+        self.log(f"""CONNECT event: {user}""")
         self.connector.connect(user, password)
-        self.connector.start_listen()
-        self.timer.start(RealTrader.TIMER_INTERVAL)
         self.emit(ConnectedEvent({"user": user}))
 
     def add_order(self, event: Event) -> None:
         order = event.data["order"]
         mode = event.data["mode"]
 
-        self.logger.log(logging.INFO, f"""ADD event: {order}""")
+        self.log(f"""ADD event: {order}""")
         if mode == "parallel":
             self.execution_order = self.execution_order.add_parallel(order)
         elif mode == "sequent":
@@ -83,7 +64,7 @@ class RealTrader(Trader):
     def delete_order(self, event: Event) -> None:
         order_id = event.data["order_id"]
 
-        self.logger.log(logging.INFO, f"""DELETE event: {order_id}""")
+        self.log(f"""DELETE event: {order_id}""")
         self.execution_order = self.execution_order.cancel(order_id=order_id)
         self.emit(DeletedEvent({"all": self.execution_order, "order_id": order_id}))
 
@@ -95,7 +76,7 @@ class RealTrader(Trader):
         try:
             self.connector.cancel(order)
         except ConnectorException as exception:
-            self.logger.log(logging.INFO, f"""Connector error on cancel: {exception.order} - {exception.message}""")
+            self.log(f"""Connector error on cancel: {exception.order} - {exception.message}""")
             self.emit(ErrorEvent({"order": exception.order, "message": exception.message}))
 
     def submit_next(self) -> None:
@@ -109,7 +90,7 @@ class RealTrader(Trader):
         if not self._call_submit(order):
             return OrderStatus.REJECTED
 
-        self.logger.log(logging.INFO, f"""Order submitted: {order}""")
+        self.log(f"""Order submitted: {order}""")
         self.emit(SubmittedEvent({"all": self.execution_order, "single": order}))
         return OrderStatus.SUBMITTED
 
@@ -119,7 +100,7 @@ class RealTrader(Trader):
             return self.connector.satisfied(order)
 
         except ConnectorException as exception:
-            self.logger.log(logging.INFO, f"""Connector error on satisfied: {exception.order} - {exception.message}""")
+            self.log(f"""Connector error on satisfied: {exception.order} - {exception.message}""")
             self.emit(ErrorEvent({"order": exception.order, "message": exception.message}))
             return False
 
@@ -130,7 +111,7 @@ class RealTrader(Trader):
             return True
 
         except ConnectorException as exception:
-            self.logger.log(logging.INFO, f"""Connector error on submit: {exception.order} - {exception.message}""")
+            self.log(f"""Connector error on submit: {exception.order} - {exception.message}""")
             self.emit(ErrorEvent({"order": exception.order, "message": exception.message}))
             return False
 
@@ -139,7 +120,7 @@ class RealTrader(Trader):
         self.execution_order = self.execution_order.remove(external_id=external_id)
 
     def _signal_filled(self, order: SingleExecutionOrder) -> None:
-        self.logger.log(logging.INFO, f"""Filled order: {order}""")
+        self.log(f"""Filled order: {order}""")
         self.emit(FilledEvent({"all": self.execution_order, "single": order}))
 
     def remove_cancelled(self, external_id: int) -> None:
@@ -147,7 +128,7 @@ class RealTrader(Trader):
         self.execution_order = self.execution_order.remove(external_id=external_id)
 
     def _signal_cancelled(self, order: SingleExecutionOrder) -> None:
-        self.logger.log(logging.INFO, f"""Cancelled order: {order}""")
+        self.log(f"""Cancelled order: {order}""")
         self.emit(CancelledEvent({"all": self.execution_order, "single": order}))
 
 

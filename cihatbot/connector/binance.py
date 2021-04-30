@@ -5,7 +5,7 @@ from cihatbot.execution_order.execution_order import SingleExecutionOrder, Execu
 from binance.client import Client
 from binance.exceptions import BinanceOrderException, BinanceRequestException, BinanceAPIException
 from binance.websockets import BinanceSocketManager
-from typing import Callable, Dict, List
+from typing import Dict, List
 
 
 class BinanceConnector(Connector):
@@ -24,17 +24,11 @@ class BinanceConnector(Connector):
 
         self.client = Client(api_key=key, api_secret=secret)
         self.socket = BinanceSocketManager(self.client)
-        self.connected = True
-
-    def start_listen(self):
-
-        if not self.connected:
-            return
-
         self.socket.start_user_socket(self.user_handler)
         self.socket.start_miniticker_socket(self.ticker_handler)
         self.socket.daemon = True
         self.socket.start()
+        self.connected = True
 
     def user_handler(self, message: Dict):
 
@@ -60,9 +54,10 @@ class BinanceConnector(Connector):
 
         self.emit(TickerEvent({}))
 
-    def stop_listen(self):
+    def post_run(self) -> None:
 
-        self.socket.close()
+        if self.connected:
+            self.socket.close()
 
     def satisfied(self, execution_order: SingleExecutionOrder) -> bool:
 

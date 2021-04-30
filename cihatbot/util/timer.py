@@ -1,31 +1,30 @@
 from cihatbot.events import EventEmitter, EventListener
 from cihatbot.application.events import TimerEvent
+from cihatbot.module import Module
 from threading import Thread
 import time
 
 
-class Timer:
+class Timer(Module):
 
-    def __init__(self) -> None:
-        self.emitter: EventEmitter = EventEmitter()
+    def __init__(self, interval: float) -> None:
+        super().__init__({})
+        self.interval: float = interval
         self.thread: Thread = Thread()
         self.is_running: bool = False
 
-    def add_listener(self, listener: EventListener) -> None:
-        self.emitter.add_listener(listener)
-
-    def start(self, interval: float):
+    def pre_run(self) -> None:
         self.is_running = True
 
         def run():
             while self.is_running:
-                time.sleep(interval)
+                time.sleep(self.interval)
                 self.emitter.emit(TimerEvent({}))
 
         self.thread = Thread(target=run)
         self.thread.start()
 
-    def stop(self):
+    def post_run(self) -> None:
         if self.is_running:
             self.is_running = False
             self.thread.join()

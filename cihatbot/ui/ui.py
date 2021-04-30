@@ -1,7 +1,6 @@
 from cihatbot.module import Module
 from cihatbot.parser.parser import Parser
 from configparser import SectionProxy
-from typing import Dict
 
 
 class Ui(Module):
