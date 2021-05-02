@@ -10,6 +10,8 @@ from typing import Dict, List
 
 class BinanceConnector(Connector):
 
+    log_name = __name__
+
     BINANCE_ORDER_STATUS_FILLED = "FILLED"
     BINANCE_ORDER_STATUS_CANCELED = "CANCELED"
 
@@ -56,6 +58,7 @@ class BinanceConnector(Connector):
 
     def post_run(self) -> None:
 
+        super().post_run()
         if self.connected:
             self.socket.close()
 

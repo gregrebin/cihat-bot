@@ -130,14 +130,6 @@ class User(Module):
         for ui in self.uis:
             trader.connect_module(ui)
 
-    # async def on_run(self) -> None:
-    #     print("running user")
-    #     count = 0
-    #     while self.is_running:
-    #         await asyncio.sleep(1)
-    #         count += 1
-    #         print(f"""{count} seconds passed""""")
-
     def pre_run(self) -> None:
         print("user pre_run")
 
@@ -162,21 +154,6 @@ class App(Module):
     def __init__(self):
         super().__init__({})
         self.users: List[User] = []
-
-    def pre_run(self) -> None:
-        print("app pre_run")
-
-    async def on_run(self) -> None:
-        print("app on_run")
-
-    def on_event(self, event: Event) -> None:
-        print("app on_event")
-
-    def on_stop(self) -> None:
-        print("app on_stop")
-
-    def post_run(self) -> None:
-        print("app post_run")
 
     @inject_user
     def add_user(self, user: User):

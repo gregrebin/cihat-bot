@@ -17,6 +17,7 @@ from cihatbot.application.events import (
 from cihatbot.trader.trader import Trader
 from cihatbot.execution_order.execution_order import ExecutionOrder, EmptyExecutionOrder, SingleExecutionOrder, OrderStatus
 from cihatbot.connector.connector import Connector, ConnectorException
+from cihatbot.util.timer import Timer
 from configparser import SectionProxy
 
 
@@ -24,11 +25,12 @@ class RealTrader(Trader):
 
     log_name = __name__
 
-    def __init__(self, config: SectionProxy, connector: Connector) -> None:
-        super().__init__(config, connector)
+    def __init__(self, config: SectionProxy, connector: Connector, timer: Timer) -> None:
+        super().__init__(config, connector, timer)
         self.execution_order: ExecutionOrder = EmptyExecutionOrder()
 
     def on_event(self, event: Event) -> None:
+        # super().on_event(event)
         if event.is_type(ConnectEvent):
             self.connect(event)
         elif event.is_type(AddEvent):

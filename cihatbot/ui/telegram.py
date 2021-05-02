@@ -59,6 +59,7 @@ class Telegram(Ui):
             self.chat_id = None
 
     def pre_run(self) -> None:
+        super().pre_run()
         self.dispatcher.add_handler(
             CommandHandler("help", self.help_handler, filters=Filters.user(username=self.user)))
         self.dispatcher.add_handler(
@@ -118,6 +119,7 @@ class Telegram(Ui):
             self.chat_id = chat_id
 
     def on_event(self, event: Event) -> None:
+        # super().on_event(event)
         if event.is_type(ConnectedEvent):
             self.notify_connected(event)
         elif event.is_type(AddedEvent):
@@ -174,5 +176,6 @@ class Telegram(Ui):
             self.bot.send_message(self.chat_id, message)
 
     def post_run(self) -> None:
+        super().post_run()
         self.updater.stop()
 

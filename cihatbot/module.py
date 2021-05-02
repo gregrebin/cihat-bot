@@ -48,21 +48,22 @@ class Module:
         self.post_run()
 
     def pre_run(self) -> None:
-        pass
+        self.log("pre_run")
 
     async def on_run(self) -> None:
-        pass
+        self.log("on_run")
 
     def on_event(self, event: Event) -> None:
-        pass
+        self.log(f"""on_event: {event}""")
 
     def on_stop(self) -> None:
-        pass
+        self.log("on_stop")
 
     def post_run(self) -> None:
-        pass
+        self.log("post_run")
 
     def emit(self, event: Event, thread_safe: bool = True) -> None:
+        # self.log(f"""emit: {event}""")
         if thread_safe:
             self.loop.call_soon_threadsafe(lambda: self.emitter.emit(event))
         else:
@@ -77,4 +78,13 @@ class Module:
         await self.listener.stop()
         self.on_stop()
         self.is_running = False
+
+    @staticmethod
+    def log_decorator(message):
+        def decorator(method):
+            def wrapper(self, *args, **kwargs):
+                self.log(message)
+                method(self, *args, **kwargs)
+            return wrapper
+        return decorator
 

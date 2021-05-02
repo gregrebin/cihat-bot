@@ -34,6 +34,7 @@ class User(Module):
         self.logger.log(logging.INFO, f"""Added trader""")
 
     def on_event(self, event: Event) -> None:
+        # super().on_event(event)
         if event.is_type(AddTraderEvent):
             self.add_trader(self.injector.inject_trader(event.data["trader-name"]))
         elif event.is_type(AddUiEvent):

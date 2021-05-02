@@ -21,3 +21,6 @@ class Injector:
 
     def inject_connector(self, name: str) -> cihatbot.module.Module:
         pass
+
+    def inject_timer(self, name: str) -> cihatbot.module.Module:
+        pass

@@ -10,13 +10,14 @@ from cihatbot.trader.trader import Trader
 from cihatbot.trader.real import RealTrader
 from cihatbot.connector.connector import Connector
 from cihatbot.connector.binance import BinanceConnector
+from cihatbot.util.timer import Timer
 from configparser import ConfigParser
 from typing import Callable
 
 
-def inject_self(function: Callable) -> Callable:
+def inject_self(method: Callable) -> Callable:
     def wrapped(self, name) -> Module:
-        module = function(self, name)
+        module = method(self, name)
         module.injector = self
         return module
     return wrapped
@@ -54,12 +55,18 @@ class Injector(ModuleInjector):
     @inject_self
     def inject_trader(self, name: str) -> Trader:
         connector = self.inject_connector("binance_connector")
-        trader = RealTrader(self.config, connector).init()
+        timer = self.inject_timer("timer")
+        trader = RealTrader(self.config, connector, timer).init()
         return trader
 
     @inject_self
     def inject_connector(self, name: str) -> Connector:
-        connector = BinanceConnector()
+        connector = BinanceConnector().init()
         return connector
+
+    @inject_self
+    def inject_timer(self, name: str) -> Timer:
+        timer = Timer(0.02).init()
+        return timer
 
 
