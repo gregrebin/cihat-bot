@@ -19,7 +19,7 @@ class Timer(Module):
         def run():
             while self.is_running:
                 time.sleep(self.interval)
-                self.emitter.emit(TimerEvent({}))
+                self.emit(TimerEvent({}))
 
         self.thread = Thread(target=run)
         self.thread.start()
