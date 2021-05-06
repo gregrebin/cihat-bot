@@ -16,7 +16,7 @@ from cihatbot.application.events import (
 )
 from cihatbot.trader.trader import Trader
 from cihatbot.execution_order.execution_order import ExecutionOrder, EmptyExecutionOrder, SingleExecutionOrder, OrderStatus
-from cihatbot.connector.connector import Connector, ConnectorException
+from cihatbot.connector.connector import Connector, ConnectorException, FailedException
 from cihatbot.util.timer import Timer
 from configparser import SectionProxy
 
@@ -89,12 +89,13 @@ class RealTrader(Trader):
         if not (self.timer.is_later_than(order.from_time) and self._call_satisfied(order)):
             return OrderStatus.PENDING
 
-        if not self._call_submit(order):
-            return OrderStatus.REJECTED
+        status = self._call_submit(order)
 
-        self.log(f"""Order submitted: {order}""")
-        self.emit(SubmittedEvent({"all": self.execution_order, "single": order}))
-        return OrderStatus.SUBMITTED
+        if status == OrderStatus.SUBMITTED:
+            self.log(f"""Order submitted: {order}""")
+            self.emit(SubmittedEvent({"all": self.execution_order, "single": order}))
+
+        return status
 
     def _call_satisfied(self, order: SingleExecutionOrder) -> bool:
 
@@ -106,16 +107,20 @@ class RealTrader(Trader):
             self.emit(ErrorEvent({"order": exception.order, "message": exception.message}))
             return False
 
-    def _call_submit(self, order: SingleExecutionOrder) -> bool:
+    def _call_submit(self, order: SingleExecutionOrder) -> OrderStatus:
 
         try:
             order.external_id = self.connector.submit(order)
-            return True
+            return OrderStatus.SUBMITTED
+
+        except FailedException as exception:
+            self.log(f"""Order failed: {exception.order} - {exception.message}""")
+            return OrderStatus.PENDING
 
         except ConnectorException as exception:
             self.log(f"""Connector error on submit: {exception.order} - {exception.message}""")
             self.emit(ErrorEvent({"order": exception.order, "message": exception.message}))
-            return False
+            return OrderStatus.REJECTED
 
     def remove_filled(self, external_id: int) -> None:
         self.execution_order.call(self._signal_filled, external_id=external_id)

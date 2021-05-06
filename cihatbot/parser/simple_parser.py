@@ -66,8 +66,8 @@ class SimpleParser(Parser):
 
         return ParallelExecutionOrder(orders)
 
-    right_primary = re.compile("^(?P<right_quantity>\d+\.?\d*) at (?P<price>\d+\.?\d*)$")
-    left_primary = re.compile("^at (?P<price>\d+\.?\d*) for (?P<left_quantity>\d+\.?\d*)$")
+    right_primary = re.compile("^(?P<right_quantity>\d+\.?\d*) at (?P<price>-?\d+\.?\d*)$")
+    left_primary = re.compile("^at (?P<price>-?\d+\.?\d*) for (?P<left_quantity>\d+\.?\d*)$")
 
     def _parse_primary_orders(self, command_str: str, primary_orders_str: List[str], datetime: float, symbol: str) -> List[SingleExecutionOrder]:
 
@@ -88,8 +88,8 @@ class SimpleParser(Parser):
                 price = float(right_match["price"])
                 quantity = float(right_match["right_quantity"])
             elif left_match:
-                price = float(right_match["price"])
-                quantity = price * float(right_match["right_quantity"])
+                price = float(left_match["price"])
+                quantity = price * float(left_match["right_quantity"])
             else:
                 raise InvalidString(order)
 

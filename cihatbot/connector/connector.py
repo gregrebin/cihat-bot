@@ -30,3 +30,7 @@ class ConnectorException(Exception):
     def __init__(self, message: str, order: SingleExecutionOrder):
         self.message = message
         self.order = order
+
+
+class FailedException(ConnectorException):
+    pass
