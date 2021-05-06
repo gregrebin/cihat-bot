@@ -25,7 +25,8 @@ class BinanceConnector(Connector):
 
         super().__init__()
         self.client: Client = Client("", "")
-        self.socket = BinanceSocketManager(self.client)
+        self.socket: BinanceSocketManager = BinanceSocketManager(self.client)
+        self.market: Dict[str, List[float]] = {}
         self.connected: bool = False
 
     def connect(self, key: str, secret: str) -> None:
@@ -59,6 +60,12 @@ class BinanceConnector(Connector):
             message_type = ticker["e"]
             if not message_type == "24hrMiniTicker":
                 continue
+            symbol = ticker["s"]
+            price = ticker["c"]
+            if symbol not in self.market:
+                self.market[symbol] = [price]
+            else:
+                self.market[symbol].append(price)
 
         self.emit(TickerEvent({}))
 
@@ -71,6 +78,14 @@ class BinanceConnector(Connector):
     def satisfied(self, execution_order: SingleExecutionOrder) -> bool:
 
         execution_conditions = execution_order.conditions
+        symbol = execution_order.params.symbol
+        current_price = self.market[symbol][-1]
+
+        if execution_conditions.min_price and current_price < execution_conditions.min_price:
+            return False
+        if execution_conditions.max_price and current_price > execution_conditions.max_price:
+            return False
+
         return True
 
     def submit(self, execution_order: SingleExecutionOrder) -> int:

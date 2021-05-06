@@ -261,7 +261,10 @@ class ExecutionParams:
 
 
 class ExecutionConditions:
-    pass
+
+    def __init__(self, min_price: float = 0, max_price: float = 0):
+        self.min_price = min_price
+        self.max_price = max_price
 
 
 class EmptyOrderList(Exception):
