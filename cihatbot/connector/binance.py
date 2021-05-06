@@ -101,23 +101,23 @@ class BinanceConnector(Connector):
         binance_order, failed = self._submit(execution_order, params)
 
         if failed and is_market_fast:
-            self.logger.log(logging.INFO, f"""Failed order: {execution_order}; status: {binance_order["status"]}""")
+            self.log(f"""Failed order: {execution_order}; status: {binance_order["status"]}""")
             params["quantity"] = self._order_book_depth(execution_params.command, execution_params.symbol)
-            self.logger.log(logging.INFO, f"""Trying with quantity: {params["quantity"]}""")
+            self.log(f"""Trying with quantity: {params["quantity"]}""")
             binance_order, failed = self._submit(execution_order, params)
 
         elif failed and is_market_wait:
-            self.logger.log(logging.INFO, f"""Failed order: {execution_order}; status: {binance_order["status"]}""")
+            self.log(f"""Failed order: {execution_order}; status: {binance_order["status"]}""")
             self._wait_order_book(execution_params.quantity, execution_params.command, execution_params.symbol)
-            self.logger.log(logging.INFO, f"""Trying again""")
+            self.log(f"""Trying again""")
             binance_order, failed = self._submit(execution_order, params)
 
         if failed:
-            self.logger.log(logging.INFO, f"""Failed order: {execution_order}; status: {binance_order["status"]}""")
-            self.logger.log(logging.INFO, f"""Raising failed exception""")
+            self.log(f"""Failed order: {execution_order}; status: {binance_order["status"]}""")
+            self.log(f"""Raising failed exception""")
             raise FailedException(f"""Order {binance_order["status"]}""", execution_order)
 
-        self.logger.log(logging.INFO, f"""Submitted order: {execution_order}; status: {binance_order["status"]}""")
+        self.log(f"""Submitted order: {execution_order}; status: {binance_order["status"]}""")
         return binance_order["orderId"]
 
     def _submit(self, execution_order: SingleExecutionOrder, params: Dict[str, Any]) -> Tuple[dict, bool]:
@@ -126,7 +126,7 @@ class BinanceConnector(Connector):
             binance_order = self.client.create_order(**params)
 
         except (BinanceRequestException, BinanceOrderException, BinanceAPIException) as exception:
-            self.logger.log(logging.INFO, f"""Binance exception: {exception.message}""")
+            self.log(f"""Binance exception: {exception.message}""")
             raise ConnectorException(exception.message, execution_order)
 
         return binance_order, binance_order["status"] not in BinanceConnector.BINANCE_ORDER_STATUS_GOOD

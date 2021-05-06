@@ -24,14 +24,14 @@ class User(Module):
         self.add_submodule(ui)
         for trader in self.traders:
             ui.connect_module(trader)
-        self.logger.log(logging.INFO, f"""Added ui""")
+        self.log(f"""Added ui""")
 
     def add_trader(self, trader: Trader):
         self.traders.append(trader)
         self.add_submodule(trader)
         for ui in self.uis:
             trader.connect_module(ui)
-        self.logger.log(logging.INFO, f"""Added trader""")
+        self.log(f"""Added trader""")
 
     def on_event(self, event: Event) -> None:
         # super().on_event(event)

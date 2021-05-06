@@ -19,5 +19,5 @@ class Application(Module):
     def add_user(self, user: User) -> User:
         self.users.append(user)
         self.add_submodule(user)
-        self.logger.log(logging.INFO, "Created new user")
+        self.log("Created new user")
         return user
