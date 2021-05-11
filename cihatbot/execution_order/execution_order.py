@@ -262,9 +262,30 @@ class ExecutionParams:
 
 class ExecutionConditions:
 
-    def __init__(self, min_price: float = 0, max_price: float = 0):
-        self.min_price = min_price
-        self.max_price = max_price
+    def __init__(self, min_price: float = 0, max_price: float = 0, reference: ExecutionParams = None):
+        self.min_p = min_price
+        self.max_p = max_price
+        self.reference = reference
+        print(f"""initialized conditions: min {self.min_p}, max {self.max_p}, ref {self.reference}""")
+
+    @staticmethod
+    def _percent(f: float):
+        return f / 100
+
+    def max_price(self) -> float:
+        if self.reference:
+            return self._percent(self.max_p) * self.reference.price
+        else:
+            return self.max_p
+
+    def min_price(self) -> float:
+        print(f"""getting min price: min {self.min_p}, max {self.max_p}, ref {self.reference}""")
+        if self.reference:
+            print(f"""with ref: {self._percent(self.min_p) * self.reference.price}""")
+            return self._percent(self.min_p) * self.reference.price
+        else:
+            print(f"""no ref: {self.min_p}""")
+            return self.min_p
 
 
 class EmptyOrderList(Exception):

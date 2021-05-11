@@ -1,5 +1,6 @@
 from cihatbot.module import Module
 from cihatbot.execution_order.execution_order import SingleExecutionOrder
+from typing import Tuple
 
 
 class Connector(Module):
@@ -16,7 +17,7 @@ class Connector(Module):
     def satisfied(self, execution_order: SingleExecutionOrder) -> bool:
         pass
 
-    def submit(self, execution_order: SingleExecutionOrder) -> int:
+    def submit(self, execution_order: SingleExecutionOrder) -> Tuple[int, float]:
         pass
 
     def is_filled(self, execution_order: SingleExecutionOrder) -> bool:

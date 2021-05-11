@@ -110,7 +110,8 @@ class RealTrader(Trader):
     def _call_submit(self, order: SingleExecutionOrder) -> OrderStatus:
 
         try:
-            order.external_id = self.connector.submit(order)
+            order.external_id, order.params.price = self.connector.submit(order)
+            print(f"""order price changed: {order.params.price}""")
             return OrderStatus.SUBMITTED
 
         except FailedException as exception:

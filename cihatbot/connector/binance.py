@@ -83,15 +83,16 @@ class BinanceConnector(Connector):
             current_price = self.market[symbol][-1]
         except KeyError:
             return False
-
-        if execution_conditions.min_price and current_price < execution_conditions.min_price:
+        print(f"""min: {execution_conditions.min_price()}""")
+        print(f"""max: {execution_conditions.max_price()}""")
+        if execution_conditions.min_price() and current_price < execution_conditions.min_price():
             return False
-        if execution_conditions.max_price and current_price > execution_conditions.max_price:
+        if execution_conditions.max_price() and current_price > execution_conditions.max_price():
             return False
 
         return True
 
-    def submit(self, execution_order: SingleExecutionOrder) -> int:
+    def submit(self, execution_order: SingleExecutionOrder) -> Tuple[int, float]:
 
         execution_params = execution_order.params
         is_market_fast = execution_params.price == 0.0
@@ -136,7 +137,13 @@ class BinanceConnector(Connector):
             raise FailedException(f"""Order {binance_order["status"]}""", execution_order)
 
         self.log(f"""Submitted order: {execution_order}; status: {binance_order["status"]}""")
-        return binance_order["orderId"]
+
+        if is_market or is_market_fast or is_market_wait:
+            new_price = float(binance_order["fills"][0]["price"])
+        else:
+            new_price = execution_params.price
+
+        return binance_order["orderId"], new_price
 
     def _submit(self, execution_order: SingleExecutionOrder, params: Dict[str, Any]) -> Tuple[dict, bool]:
 

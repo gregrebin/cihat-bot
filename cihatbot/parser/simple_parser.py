@@ -58,7 +58,7 @@ class SimpleParser(Parser):
         orders = []
 
         for primary_order in primary_orders:
-            secondary_orders = self._parse_secondary_orders(secondary_command, secondary_orders_str, datetime, symbol, primary_order.params.quantity)
+            secondary_orders = self._parse_secondary_orders(secondary_command, secondary_orders_str, datetime, symbol, primary_order.params)
             orders.append(SequentExecutionOrder([
                 primary_order,
                 ParallelExecutionOrder(secondary_orders)
@@ -110,7 +110,7 @@ class SimpleParser(Parser):
 
     secondary = re.compile("^(?P<percent>\d\d|100)% at (?P<price>\d+\.?\d*)(?P<conditions>.*)$")
 
-    def _parse_secondary_orders(self, command_str: str, secondary_orders_str: List[str], datetime: float, symbol: str, total_quantity: float) -> List[SingleExecutionOrder]:
+    def _parse_secondary_orders(self, command_str: str, secondary_orders_str: List[str], datetime: float, symbol: str, primary_params: ExecutionParams) -> List[SingleExecutionOrder]:
 
         if command_str == "buy":
             command = ExecutionParams.CMD_BUY
@@ -128,11 +128,11 @@ class SimpleParser(Parser):
 
             price = float(secondary_match["price"])
             percent = float(secondary_match["percent"]) / 100
-            quantity = total_quantity * percent
+            quantity = primary_params.quantity * percent
             conditions = secondary_match["conditions"]
 
             if conditions.startswith(" if "):
-                execution_conditions = self._get_conditions(conditions)
+                execution_conditions = self._get_conditions(conditions, primary_params)
             else:
                 execution_conditions = ExecutionConditions()
 
@@ -144,18 +144,28 @@ class SimpleParser(Parser):
 
         return secondary_orders
 
-    conditions = re.compile("^ if price (?P<symbol>[<>]) (?P<price>\d+\.?\d*)$")
+    conditions = re.compile("^ if price (?P<symbol>[<>]) (?P<price>(\d+\.?\d*)|(\d+%))$")
 
-    def _get_conditions(self, conditions: str) -> ExecutionConditions:
+    def _get_conditions(self, conditions: str, reference: ExecutionParams = None) -> ExecutionConditions:
+
         conditions_match = self.conditions.match(conditions)
         if not conditions_match:
             raise InvalidString(conditions)
+
         symbol = conditions_match["symbol"]
-        price = float(conditions_match["price"])
+        price_str = conditions_match["price"]
+
+        if price_str.endswith("%"):
+            price = float(price_str.rstrip("%"))
+            ref = reference
+        else:
+            price = float(price_str)
+            ref = None
+
         if symbol == "<":
-            return ExecutionConditions(max_price=price)
+            return ExecutionConditions(max_price=price, reference=ref)
         elif symbol == ">":
-            return ExecutionConditions(min_price=price)
+            return ExecutionConditions(min_price=price, reference=ref)
         else:
             raise InvalidString(symbol)
 
