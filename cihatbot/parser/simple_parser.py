@@ -66,8 +66,8 @@ class SimpleParser(Parser):
 
         return ParallelExecutionOrder(orders)
 
-    right_primary = re.compile("^(?P<right_quantity>\d+\.?\d*) at (?P<price>-?\d+\.?\d*)(?P<conditions>.+)$")
-    left_primary = re.compile("^at (?P<price>-?\d+\.?\d*) for (?P<left_quantity>\d+\.?\d*)(?P<conditions>.+)$")
+    right_primary = re.compile("^(?P<right_quantity>\d+\.?\d*) at (?P<price>-?\d+\.?\d*)(?P<conditions>.*)$")
+    left_primary = re.compile("^at (?P<price>-?\d+\.?\d*) for (?P<left_quantity>\d+\.?\d*)(?P<conditions>.*)$")
 
     def _parse_primary_orders(self, command_str: str, primary_orders_str: List[str], datetime: float, symbol: str) -> List[SingleExecutionOrder]:
 
@@ -108,7 +108,7 @@ class SimpleParser(Parser):
 
         return primary_orders
 
-    secondary = re.compile("^(?P<percent>\d\d|100)% at (?P<price>\d+\.?\d*)(?P<conditions>.+)$")
+    secondary = re.compile("^(?P<percent>\d\d|100)% at (?P<price>\d+\.?\d*)(?P<conditions>.*)$")
 
     def _parse_secondary_orders(self, command_str: str, secondary_orders_str: List[str], datetime: float, symbol: str, total_quantity: float) -> List[SingleExecutionOrder]:
 
@@ -144,7 +144,7 @@ class SimpleParser(Parser):
 
         return secondary_orders
 
-    conditions = re.compile("^if price (?P<symbol>[<>]) (?P<price>\d+\.?\d*)$")
+    conditions = re.compile("^ if price (?P<symbol>[<>]) (?P<price>\d+\.?\d*)$")
 
     def _get_conditions(self, conditions: str) -> ExecutionConditions:
         conditions_match = self.conditions.match(conditions)

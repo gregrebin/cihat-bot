@@ -61,7 +61,7 @@ class BinanceConnector(Connector):
             if not message_type == "24hrMiniTicker":
                 continue
             symbol = ticker["s"]
-            price = ticker["c"]
+            price = float(ticker["c"])
             if symbol not in self.market:
                 self.market[symbol] = [price]
             else:
@@ -79,7 +79,10 @@ class BinanceConnector(Connector):
 
         execution_conditions = execution_order.conditions
         symbol = execution_order.params.symbol
-        current_price = self.market[symbol][-1]
+        try:
+            current_price = self.market[symbol][-1]
+        except KeyError:
+            return False
 
         if execution_conditions.min_price and current_price < execution_conditions.min_price:
             return False
