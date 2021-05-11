@@ -66,8 +66,8 @@ class SimpleParser(Parser):
 
         return ParallelExecutionOrder(orders)
 
-    right_primary = re.compile("^(?P<right_quantity>\d+\.?\d*) at (?P<price>-?\d+\.?\d*)$")
-    left_primary = re.compile("^at (?P<price>-?\d+\.?\d*) for (?P<left_quantity>\d+\.?\d*)$")
+    right_primary = re.compile("^(?P<right_quantity>\d+\.?\d*) at (?P<price>-?\d+\.?\d*)(?P<conditions>.+)$")
+    left_primary = re.compile("^at (?P<price>-?\d+\.?\d*) for (?P<left_quantity>\d+\.?\d*)(?P<conditions>.+)$")
 
     def _parse_primary_orders(self, command_str: str, primary_orders_str: List[str], datetime: float, symbol: str) -> List[SingleExecutionOrder]:
 
@@ -87,21 +87,28 @@ class SimpleParser(Parser):
             if right_match:
                 price = float(right_match["price"])
                 quantity = float(right_match["right_quantity"])
+                conditions = right_match["conditions"]
             elif left_match:
                 price = float(left_match["price"])
                 quantity = price * float(left_match["right_quantity"])
+                conditions = left_match["conditions"]
             else:
                 raise InvalidString(order)
+
+            if conditions.startswith(" if "):
+                execution_conditions = self._get_conditions(conditions)
+            else:
+                execution_conditions = ExecutionConditions()
 
             primary_orders.append(SingleExecutionOrder(
                 datetime,
                 ExecutionParams(command, symbol, price, quantity),
-                ExecutionConditions()
+                execution_conditions
             ))
 
         return primary_orders
 
-    secondary = re.compile("^(?P<percent>\d\d|100)% at (?P<price>\d+\.?\d*)$")
+    secondary = re.compile("^(?P<percent>\d\d|100)% at (?P<price>\d+\.?\d*)(?P<conditions>.+)$")
 
     def _parse_secondary_orders(self, command_str: str, secondary_orders_str: List[str], datetime: float, symbol: str, total_quantity: float) -> List[SingleExecutionOrder]:
 
@@ -122,14 +129,35 @@ class SimpleParser(Parser):
             price = float(secondary_match["price"])
             percent = float(secondary_match["percent"]) / 100
             quantity = total_quantity * percent
+            conditions = secondary_match["conditions"]
+
+            if conditions.startswith(" if "):
+                execution_conditions = self._get_conditions(conditions)
+            else:
+                execution_conditions = ExecutionConditions()
 
             secondary_orders.append(SingleExecutionOrder(
                 datetime,
                 ExecutionParams(command, symbol, price, quantity),
-                ExecutionConditions()
+                execution_conditions
             ))
 
         return secondary_orders
+
+    conditions = re.compile("^if price (?P<symbol>[<>]) (?P<price>\d+\.?\d*)$")
+
+    def _get_conditions(self, conditions: str) -> ExecutionConditions:
+        conditions_match = self.conditions.match(conditions)
+        if not conditions_match:
+            raise InvalidString(conditions)
+        symbol = conditions_match["symbol"]
+        price = float(conditions_match["price"])
+        if symbol == "<":
+            return ExecutionConditions(max_price=price)
+        elif symbol == ">":
+            return ExecutionConditions(min_price=price)
+        else:
+            raise InvalidString(symbol)
 
     datetime = re.compile("^(?P<day>\d\d)\.(?P<month>\d\d)\.(?P<year>\d\d\d\d) (?P<hour>\d\d):(?P<minute>\d\d) $")
 
