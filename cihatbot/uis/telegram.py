@@ -1,4 +1,4 @@
-from cihatbot.events import Event
+from cihatbot.framework.events import Event
 from cihatbot.application.events import (
     ConnectEvent,
     AddEvent,
@@ -11,8 +11,8 @@ from cihatbot.application.events import (
     CancelledEvent,
     ErrorEvent
 )
-from cihatbot.ui.ui import Ui
-from cihatbot.parser.parser import Parser, InvalidString
+from cihatbot.application.ui import Ui
+from cihatbot.application.parser import Parser, InvalidString
 from telegram import Update
 from telegram.ext import Updater, CommandHandler, Filters, CallbackContext
 from configparser import SectionProxy

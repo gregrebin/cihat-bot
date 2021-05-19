@@ -1,9 +1,9 @@
 from __future__ import annotations
-from cihatbot.logger import Logger
-from cihatbot.events import Event, EventEmitter, EventListener
-from cihatbot.scheduler import Scheduler
-from cihatbot.injector import Injector
-from typing import Dict, Callable, Coroutine, List
+from cihatbot.framework.logger import Logger
+from cihatbot.framework.events import Event, EventEmitter, EventListener
+from cihatbot.framework.scheduler import Scheduler
+from cihatbot.framework.injector import Injector
+from typing import List
 from configparser import SectionProxy
 import logging
 import asyncio

@@ -1,6 +1,5 @@
-from cihatbot.events import EventEmitter, EventListener
 from cihatbot.application.events import TimerEvent
-from cihatbot.module import Module
+from cihatbot.framework.module import Module
 from threading import Thread
 import asyncio
 import time

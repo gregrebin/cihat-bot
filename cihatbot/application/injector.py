@@ -1,16 +1,16 @@
-from cihatbot.module import Module
-from cihatbot.injector import Injector as ModuleInjector
+from cihatbot.framework.module import Module
+from cihatbot.framework.injector import Injector as ModuleInjector
 from cihatbot.application.application import Application
 from cihatbot.application.user import User
-from cihatbot.ui.ui import Ui
-from cihatbot.ui.telegram import Telegram
-from cihatbot.parser.parser import Parser
-from cihatbot.parser.simple_parser import SimpleParser
-from cihatbot.trader.trader import Trader
-from cihatbot.trader.real import RealTrader
-from cihatbot.connector.connector import Connector
-from cihatbot.connector.binance import BinanceConnector
-from cihatbot.util.timer import Timer
+from cihatbot.application.ui import Ui
+from cihatbot.uis.telegram import Telegram
+from cihatbot.application.parser import Parser
+from cihatbot.parsers.simple_parser import SimpleParser
+from cihatbot.application.trader import Trader
+from cihatbot.traders.real import RealTrader
+from cihatbot.application.connector import Connector
+from cihatbot.connectors.binance import BinanceConnector
+from cihatbot.utils.timer import Timer
 from configparser import ConfigParser
 from typing import Callable
 

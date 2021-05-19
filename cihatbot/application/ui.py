@@ -1,5 +1,5 @@
-from cihatbot.module import Module
-from cihatbot.parser.parser import Parser
+from cihatbot.framework.module import Module
+from cihatbot.application.parser import Parser
 from configparser import SectionProxy
 
 

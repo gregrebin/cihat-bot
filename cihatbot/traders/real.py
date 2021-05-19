@@ -1,4 +1,4 @@
-from cihatbot.events import Event
+from cihatbot.framework.events import Event
 from cihatbot.application.events import (
     ConnectEvent,
     AddEvent,
@@ -14,10 +14,10 @@ from cihatbot.application.events import (
     ErrorEvent,
     TimerEvent
 )
-from cihatbot.trader.trader import Trader
-from cihatbot.execution_order.execution_order import ExecutionOrder, EmptyExecutionOrder, SingleExecutionOrder, OrderStatus
-from cihatbot.connector.connector import Connector, ConnectorException, FailedException
-from cihatbot.util.timer import Timer
+from cihatbot.application.trader import Trader
+from cihatbot.application.execution_order import ExecutionOrder, EmptyExecutionOrder, SingleExecutionOrder, OrderStatus
+from cihatbot.application.connector import Connector, ConnectorException, FailedException
+from cihatbot.utils.timer import Timer
 from configparser import SectionProxy
 
 

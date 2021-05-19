@@ -1,12 +1,11 @@
 from __future__ import annotations
-from cihatbot.module import Module
-from cihatbot.events import Event, EventListener
+from cihatbot.framework.module import Module
+from cihatbot.framework.events import Event
 from cihatbot.application.events import AddUiEvent, AddTraderEvent
-from cihatbot.ui.ui import Ui
-from cihatbot.trader.trader import Trader
-from typing import Type, Dict, List
+from cihatbot.application.ui import Ui
+from cihatbot.application.trader import Trader
+from typing import List
 from configparser import SectionProxy
-import logging
 
 
 class User(Module):

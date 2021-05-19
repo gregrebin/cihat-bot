@@ -1,4 +1,4 @@
-from cihatbot.events import Event
+from cihatbot.framework.events import Event
 
 
 class ConnectEvent(Event):

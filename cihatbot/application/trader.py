@@ -1,6 +1,6 @@
-from cihatbot.module import Module
-from cihatbot.connector.connector import Connector
-from cihatbot.util.timer import Timer
+from cihatbot.framework.module import Module
+from cihatbot.application.connector import Connector
+from cihatbot.utils.timer import Timer
 from configparser import SectionProxy
 
 
