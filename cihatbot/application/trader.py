@@ -14,8 +14,6 @@ class Trader(Module):
         super().__init__(config)
         self.connector: Connector = connector
         self.add_submodule(self.connector)
-        self.timer: Timer = timer
-        self.add_submodule(self.timer)
 
     def on_event(self, event: Event) -> None:
         super().on_event(event)
@@ -23,13 +21,13 @@ class Trader(Module):
         if event.is_type(TickerEvent):
             self.ticker()
 
-        elif event.is_type(ClockEvent):
-            self.clock()
+        elif event.is_type(TimerEvent):
+            self.timer()
 
     def ticker(self):
         pass
 
-    def clock(self):
+    def timer(self):
         pass
 
     def add(self, order: ExecutionOrder):

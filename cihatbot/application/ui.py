@@ -1,5 +1,4 @@
 from cihatbot.framework.module import Module
-from cihatbot.application.events import UiEvent
 from cihatbot.application.execution_order import ExecutionOrder
 from cihatbot.application.parser import Parser
 from configparser import SectionProxy
