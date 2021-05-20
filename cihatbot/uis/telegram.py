@@ -1,15 +1,15 @@
 from cihatbot.framework.events import Event
 from cihatbot.application.events import (
     ConnectEvent,
-    AddEvent,
-    DeleteEvent,
+    AddOrderEvent,
+    CancelOrderEvent,
     ConnectedEvent,
     AddedEvent,
     DeletedEvent,
     SubmittedEvent,
     FilledEvent,
     CancelledEvent,
-    ErrorEvent
+    RejectedEvent
 )
 from cihatbot.application.ui import Ui
 from cihatbot.application.parser import Parser, InvalidString
@@ -105,13 +105,13 @@ class Telegram(Ui):
             self._send_message(f"""Invalid command: {invalid_string.order_string}""")
             return
         self.log(f"""New execution order: {order}""")
-        self.emit(AddEvent({"order": order, "mode": mode}))
+        self.emit(AddOrderEvent({"order": order, "mode": mode}))
 
     def delete_handler(self, update: Update, _: CallbackContext) -> None:
         self._update_chat_id(update.message.chat_id)
         order_id = update.message.text.lstrip("/delete ")
         self.log(f"""Received delete message: {order_id}""")
-        self.emit(DeleteEvent({"order_id": order_id}))
+        self.emit(CancelOrderEvent({"order_id": order_id}))
 
     def _update_chat_id(self, chat_id: int):
         if not self.chat_id == chat_id:
@@ -132,7 +132,7 @@ class Telegram(Ui):
             self.notify_filled(event)
         elif event.is_type(CancelledEvent):
             self.notify_cancelled(event)
-        elif event.is_type(ErrorEvent):
+        elif event.is_type(RejectedEvent):
             self.notify_error(event)
 
     def notify_connected(self, event: Event) -> None:

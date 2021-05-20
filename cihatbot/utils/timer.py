@@ -1,4 +1,4 @@
-from cihatbot.application.events import TimerEvent
+from cihatbot.application.events import ClockEvent
 from cihatbot.framework.module import Module
 from threading import Thread
 import asyncio
@@ -19,7 +19,7 @@ class Timer(Module):
         await super().on_run()
         while self.is_running:
             await asyncio.sleep(self.interval)
-            self.emit(TimerEvent({}))
+            self.emit(ClockEvent({}))
 
     # def pre_run(self) -> None:
     #     self.is_running = True

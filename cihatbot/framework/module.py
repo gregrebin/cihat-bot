@@ -37,10 +37,6 @@ class Module:
         self.scheduler.schedule(submodule.run())
         self.submodules.append(submodule)
 
-    def connect_module(self, module: Module) -> None:
-        module.emitter.add_listener(self.listener)
-        self.emitter.add_listener(module.listener)
-
     async def run(self) -> None:
         self.pre_run()
         self.is_running = True

@@ -28,6 +28,21 @@ class ExecutionOrder:
     def __str__(self):
         return f"""{self.order_type} order"""
 
+    def add(self, order: ExecutionOrder, mode: str):
+        pass
+
+    def cancel(self, order_id: str):
+        pass
+
+    def submitted(self, order_id: str):
+        pass
+
+    def filled(self, order_id: str):
+        pass
+
+    def rejected(self, order_id: str):
+        pass
+
     @locked
     def add_parallel(self, execution_order: ExecutionOrder) -> ExecutionOrder:
         return execution_order
