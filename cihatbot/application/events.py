@@ -1,15 +1,15 @@
 from cihatbot.framework.events import Event
 
 
-# fires app.add_user
-class AddUserEvent(Event):
+# fires app.add_session
+class AddSessionEvent(Event):
     """
     emitted by: ui
     handled by: app
-    fires: app.add_user
+    fires: app.add_session
     """
-    name = "NEW_USER"
-    data_fields = {"user"}
+    name = "NEW_SESSION"
+    data_fields = {"session"}
 
 
 # fires app.config
@@ -22,23 +22,23 @@ class ConfigEvent(Event):
     name = "CONFIG"
 
 
-# fires user.add_trader
+# fires session.add_trader
 class AddTraderEvent(Event):
     """
     emitted by: ui
-    handled by: user
-    fires: user.add_trader
+    handled by: session
+    fires: session.add_trader
     """
     name = "ADD_TRADER"
     data_fields = {"trader"}
 
 
-# fires user.add_ui
+# fires session.add_ui
 class AddUiEvent(Event):
     """
     emitted by: ui
-    handled by: user
-    fires: user.add_ui
+    handled by: session
+    fires: session.add_ui
     """
     name = "ADD_UI"
     data_fields = {"ui"}
@@ -48,7 +48,7 @@ class AddUiEvent(Event):
 class AddOrderEvent(Event):
     """
     emitted by: ui
-    handled by: user
+    handled by: session
     fires: trader.add
     """
     name = "ADD"
@@ -59,7 +59,7 @@ class AddOrderEvent(Event):
 class CancelOrderEvent(Event):
     """
     emitted by: ui
-    handled by: user
+    handled by: session
     fires: trader.cancel
     """
     name = "CANCEL"
@@ -90,7 +90,7 @@ class TimerEvent(Event):
 class SubmittedEvent(Event):
     """
     emitted by: connector
-    handled by: user
+    handled by: session
     fires: ui.submitted
     """
     name = "SUBMITTED"
@@ -101,7 +101,7 @@ class SubmittedEvent(Event):
 class FilledEvent(Event):
     """
     emitted by: connector
-    handled by: user
+    handled by: session
     fires: ui.filled
     """
     name = "FILLED"
@@ -112,7 +112,7 @@ class FilledEvent(Event):
 class RejectedEvent(Event):
     """
     emitted by: connector
-    handled by: user
+    handled by: session
     fires: ui.rejected
     """
     name = "ERROR"

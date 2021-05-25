@@ -8,7 +8,7 @@ from typing import List
 from configparser import SectionProxy
 
 
-class User(Module):
+class Session(Module):
 
     log_name = __name__
 
@@ -17,7 +17,7 @@ class User(Module):
         self.execution_order: ExecutionOrder = EmptyExecutionOrder()
         self.uis: List[Ui] = []
         self.traders: List[Trader] = []
-        self.log(f"""New user initialized""")
+        self.log(f"""New session initialized""")
 
     def on_event(self, event: Event) -> None:
         super().on_event(event)
@@ -53,7 +53,7 @@ class User(Module):
         elif event.is_type(AddUiEvent):
             self.add_ui(self.injector.inject_ui(event.data["ui"]))
 
-        elif event.is_type(AddUserEvent) or event.is_type(ConfigEvent):
+        elif event.is_type(AddSessionEvent) or event.is_type(ConfigEvent):
             self.emit(event)
 
     def add_ui(self, ui: Ui):
