@@ -1,30 +1,16 @@
 from __future__ import annotations
 from asyncio import Queue
 from typing import Dict, Any, Set, List, Callable, Type
+from dataclasses import dataclass
 
 
+@dataclass
 class Event:
-    name: str = "EVENT"
-    data_fields: Set[str] = {}
-
-    def __init__(self, data: Dict[str, Any]):
-        for field in self.data_fields:
-            if field not in data:
-                raise DataException()
-        self.data: Dict[str, Any] = data
-
-    def __str__(self):
-        return f"""{self.name} - {self.data}"""
-
-    def is_type(self, event_type: Type[Event]):
-        return self.name == event_type.name
+    pass
 
 
+@dataclass
 class StopEvent(Event):
-    name = "STOP"
-
-
-class DataException(Exception):
     pass
 
 
@@ -38,7 +24,7 @@ class EventListener:
         while not stop:
             event = await self.queue.get()
             on_event(event)
-            stop = event.is_type(StopEvent)
+            stop = isinstance(event, StopEvent)
 
     async def stop(self):
         await self.queue.put(StopEvent({}))

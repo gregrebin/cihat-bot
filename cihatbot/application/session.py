@@ -22,38 +22,38 @@ class Session(Module):
     def on_event(self, event: Event) -> None:
         super().on_event(event)
 
-        if event.is_type(AddOrderEvent):
-            self.execution_order.add(event.data["order"], event.data["mode"])
+        if isinstance(event, AddOrderEvent):
+            self.execution_order.add(event.order, event.mode)
             for trader in self.traders:
                 trader.add(self.execution_order)
 
-        elif event.is_type(CancelOrderEvent):
-            self.execution_order.cancel(event.data["order_id"])
+        elif isinstance(event, CancelOrderEvent):
+            self.execution_order.cancel(event.order_id)
             for trader in self.traders:
                 trader.cancel(self.execution_order)
 
-        elif event.is_type(SubmittedEvent):
-            self.execution_order.submitted(event.data["order_id"])
+        elif isinstance(event, SubmittedEvent):
+            self.execution_order.submitted(event.order_id)
             for ui in self.uis:
                 ui.submitted(self.execution_order)
 
-        elif event.is_type(FilledEvent):
-            self.execution_order.filled(event.data["order_id"])
+        elif isinstance(event, FilledEvent):
+            self.execution_order.filled(event.order_id)
             for ui in self.uis:
                 ui.filled(self.execution_order)
 
-        elif event.is_type(RejectedEvent):
-            self.execution_order.rejected(event.data["order_id"])
+        elif isinstance(event, RejectedEvent):
+            self.execution_order.rejected(event.order_id)
             for ui in self.uis:
                 ui.rejected(self.execution_order)
 
-        elif event.is_type(AddTraderEvent):
-            self.add_trader(self.injector.inject_trader(event.data["trader"]))
+        elif isinstance(event, AddTraderEvent):
+            self.add_trader(self.injector.inject_trader(event.trader_name))
 
-        elif event.is_type(AddUiEvent):
-            self.add_ui(self.injector.inject_ui(event.data["ui"]))
+        elif isinstance(event, AddUiEvent):
+            self.add_ui(self.injector.inject_ui(event.ui_name))
 
-        elif event.is_type(AddSessionEvent) or event.is_type(ConfigEvent):
+        elif isinstance(event, AddSessionEvent) or isinstance(event, ConfigEvent):
             self.emit(event)
 
     def add_ui(self, ui: Ui):

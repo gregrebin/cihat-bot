@@ -18,10 +18,10 @@ class Trader(Module):
     def on_event(self, event: Event) -> None:
         super().on_event(event)
 
-        if event.is_type(TickerEvent):
+        if isinstance(event, TickerEvent):
             self.ticker()
 
-        elif event.is_type(TimerEvent):
+        elif isinstance(event, TimerEvent):
             self.timer()
 
     def ticker(self):

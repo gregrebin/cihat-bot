@@ -17,10 +17,10 @@ class Application(Module):
     def on_event(self, event: Event) -> None:
         super().on_event(event)
 
-        if event.is_type(AddSessionEvent):
-            self.add_session(self.injector.inject_session(event.data["session"]))
+        if isinstance(event, AddSessionEvent):
+            self.add_session(self.injector.inject_session(event.session_name))
 
-        if event.is_type(ConfigEvent):
+        if isinstance(event, ConfigEvent):
             self.config()
 
     def add_session(self, session: Session) -> None:
