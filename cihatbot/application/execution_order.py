@@ -23,7 +23,6 @@ class Command(Enum):
 class Mode(Enum):
     PARALLEL = auto()
     SEQUENT = auto()
-    EXCLUSIVE = auto()
 
 
 @dataclass(frozen=True)
@@ -54,6 +53,8 @@ class Order(ABC):
 
 @dataclass(frozen=True)
 class Single(Order):
+
+    # TODO: implement multiple prices, think better about conditions
 
     eid: str = ""
     exchange: str = ""
@@ -102,7 +103,6 @@ class Multiple(Order):
             if self.mode is Mode.SEQUENT and pending and orders:
                 break
         return result
-    # TODO: manage exclusive mode
 
     def update(self, status: Status) -> Order:
         pass
