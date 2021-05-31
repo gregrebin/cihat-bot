@@ -1,8 +1,159 @@
 from __future__ import annotations
 from threading import Lock
-from typing import List, Callable
+from typing import List, Callable, Dict, Tuple
 from uuid import uuid4, UUID
 from enum import Enum, auto
+from dataclasses import dataclass, field, replace
+from abc import ABC, abstractmethod
+
+
+class Status(Enum):
+    NEW = auto()
+    SUBMITTED = auto()
+    CANCELLED = auto()
+    FILLED = auto()
+    REJECTED = auto()
+
+
+class Command(Enum):
+    BUY = auto()
+    SELL = auto()
+
+
+class Mode(Enum):
+    PARALLEL = auto()
+    SEQUENT = auto()
+    EXCLUSIVE = auto()
+
+
+@dataclass(frozen=True)
+class Order(ABC):
+
+    status: Status = Status.NEW
+    uid: str = field(default_factory=uuid4().hex)
+
+    @abstractmethod
+    def add(self, order: Order, mode: Mode) -> Order:
+        pass
+
+    @abstractmethod
+    def get(self, pending: bool = False) -> List[Order]:
+        pass
+
+    @abstractmethod
+    def update(self, status: Status) -> Order:
+        pass
+
+    def _add(self, order: Order, mode: Mode) -> Order:
+        orders = self._add_term(mode) + order._add_term(mode)
+        return Multiple(mode=mode, orders=orders)
+
+    def _add_term(self, mode: Mode) -> Tuple[Order, ...]:
+        return self,
+
+
+@dataclass(frozen=True)
+class Single(Order):
+
+    eid: str = ""
+    exchange: str = ""
+    command: Command = Command.BUY
+    quote_asset: str = ""
+    base_asset: str = ""
+    quote_quantity: float = 0
+    base_quantity: float = 0
+    price: float = 0
+    conditions: Dict[str, float] = field(default_factory=dict)
+
+    def add(self, order: Order, mode: Mode) -> Order:
+        return super()._add(order, mode)
+
+    def get(self, pending: bool = False) -> List[Order]:
+        if pending and self.status is not Status.NEW:
+            return []
+        return [self]
+
+    def update(self, status: Status) -> Order:
+        return replace(self, status=status)
+
+
+@dataclass(frozen=True)
+class Multiple(Order):
+
+    mode: Mode = Mode.PARALLEL
+    orders: Tuple[Order, ...] = field(default_factory=tuple)
+
+    def add(self, order: Order, mode: Mode) -> Order:
+        return super()._add(order, mode)
+
+    def _add_term(self, mode: Mode) -> Tuple[Order, ...]:
+        if self.mode is mode:
+            return self.orders
+        else:
+            return self,
+
+    def get(self, pending: bool = False) -> List[Order]:
+        if pending and self.status is not Status.NEW:
+            return []
+        result = []
+        for order in self.orders:
+            orders = order.get(pending)
+            result += orders
+            if self.mode is Mode.SEQUENT and pending and orders:
+                break
+        return result
+    # TODO: manage exclusive mode
+
+    def update(self, status: Status) -> Order:
+        pass
+
+
+# @dataclass(frozen=True)
+# class Parallel(Multiple):
+#
+#     def add(self, order: Order) -> Order:
+#         pass
+#
+#     def get(self, status: Status = None, uid: str = None, pending: bool = False) -> List[Order]:
+#         pass
+#
+#     def update(self, status: Status) -> Order:
+#         pass
+#
+#     def cancel(self, uid: str) -> Order:
+#         pass
+#
+#
+# @dataclass(frozen=True)
+# class Sequent(Multiple):
+#
+#     def add(self, order: Order) -> Order:
+#         pass
+#
+#     def get(self, status: Status = None, uid: str = None, pending: bool = False) -> List[Order]:
+#         pass
+#
+#     def update(self, status: Status) -> Order:
+#         pass
+#
+#     def cancel(self, uid: str) -> Order:
+#         pass
+#
+#
+# @dataclass(frozen=True)
+# class Exclusive(Multiple):
+#
+#     def add(self, order: Order) -> Order:
+#         pass
+#
+#     def get(self, status: Status = None, uid: str = None, pending: bool = False) -> List[Order]:
+#         pass
+#
+#     def update(self, status: Status) -> Order:
+#         pass
+#
+#     def cancel(self, uid: str) -> Order:
+#         pass
 
 
 def locked(no_lock: Callable):
