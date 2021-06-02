@@ -12,73 +12,32 @@ class Ui(Module):
         super().__init__(config)
         self.parser: Parser = parser
 
-    def submitted(self, order: Order):
-        pass
-
-    def filled(self, order: Order):
-        pass
-
-    def rejected(self, order: Order):
+    def trades_update(self, order: Order):
         pass
 
 
 @dataclass
-class AddSessionEvent(Event):
-    """
-    emitted by: ui
-    handled by: app
-    fires: app.add_session
-    """
-    session_name: str
+class AddModuleEvent(Event):
+    """ Fires app.add_session """
+    session_name: str = ""
+    trader_name: str = ""
+    ui_name: str = ""
 
 
 @dataclass
 class ConfigEvent(Event):
-    """
-    emitted by: ui
-    handled by: app
-    fires: app.config
-    """
+    """ Fires app.config """
     pass
 
 
 @dataclass
-class AddTraderEvent(Event):
-    """
-    emitted by: ui
-    handled by: session
-    fires: session.add_trader
-    """
-    trader_name: str
-
-
-@dataclass
-class AddUiEvent(Event):
-    """
-    emitted by: ui
-    handled by: session
-    fires: session.add_ui
-    """
-    ui_name: str
-
-
-@dataclass
 class AddOrderEvent(Event):
-    """
-    emitted by: ui
-    handled by: session
-    fires: trader.add
-    """
+    """ Fires trader.add """
     order: Order
     mode: Mode
 
 
 @dataclass
 class CancelOrderEvent(Event):
-    """
-    emitted by: ui
-    handled by: session
-    fires: trader.cancel
-    """
+    """ Fires trader.cancel """
     uid: str
-    data_fields = {"order_id"}

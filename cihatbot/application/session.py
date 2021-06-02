@@ -2,11 +2,9 @@ from __future__ import annotations
 from cihatbot.framework.module import Module
 from cihatbot.framework.events import Event
 from cihatbot.application.order import Order, Empty, Status
-from cihatbot.application.ui import Ui, AddOrderEvent, CancelOrderEvent, AddTraderEvent, AddUiEvent, AddSessionEvent, \
-    ConfigEvent
+from cihatbot.application.ui import Ui, AddOrderEvent, CancelOrderEvent, AddModuleEvent, ConfigEvent
 from cihatbot.application.trader import Trader
-from cihatbot.application.connector import SubmittedEvent, FilledEvent, RejectedEvent, TradeEvent, CandleEvent, \
-    BookEvent, TimeEvent
+from cihatbot.application.connector import UserEvent, TickerEvent, ExchangeEvent
 from typing import List
 from configparser import SectionProxy
 
@@ -24,59 +22,40 @@ class Session(Module):
     def on_event(self, event: Event) -> None:
         super().on_event(event)
 
-        if isinstance(event, AddOrderEvent):
+        if isinstance(event, AddModuleEvent):
+            if event.ui_name:
+                self.add_ui(self.injector.inject_ui(event.ui_name))
+            if event.trader_name:
+                self.add_trader(self.injector.inject_trader(event.trader_name))
+            if event.session_name:
+                self.emit(event)
+
+        elif isinstance(event, ConfigEvent):
+            self.emit(event)
+
+        elif isinstance(event, AddOrderEvent):
             self.order.add(event.order, event.mode)
             for trader in self.traders:
-                trader.add(self.order)
+                trader.add_order(self.order)
 
         elif isinstance(event, CancelOrderEvent):
-            self.order.update(event.uid, Status.CANCELLED)
             for trader in self.traders:
-                trader.cancel(self.order)
+                trader.cancel_order(self.order)
 
-        elif isinstance(event, SubmittedEvent):
-            self.order.update(event.uid, Status.SUBMITTED)
+        elif isinstance(event, ExchangeEvent):
+            # update market
+            for trader in self.traders:
+                trader.exchange_update()  # pass market
+
+        elif isinstance(event, TickerEvent):
+            # update market
+            for trader in self.traders:
+                trader.ticker_update()  # pass market
+
+        elif isinstance(event, UserEvent):
+            self.order.update(event.uid, event.status)
             for ui in self.uis:
-                ui.submitted(self.order)
-
-        elif isinstance(event, FilledEvent):
-            self.order.update(event.uid, Status.FILLED)
-            for ui in self.uis:
-                ui.filled(self.order)
-
-        elif isinstance(event, RejectedEvent):
-            self.order.update(event.uid, Status.REJECTED)
-            for ui in self.uis:
-                ui.rejected(self.order)
-
-        elif isinstance(event, TradeEvent):
-            # update market
-            for trader in self.traders:
-                trader.trade()
-
-        elif isinstance(event, CandleEvent):
-            # update market
-            for trader in self.traders:
-                trader.candle()
-
-        elif isinstance(event, BookEvent):
-            # update market
-            for trader in self.traders:
-                trader.book()
-
-        elif isinstance(event, TimeEvent):
-            # update market
-            for trader in self.traders:
-                trader.time()
-
-        elif isinstance(event, AddTraderEvent):
-            self.add_trader(self.injector.inject_trader(event.trader_name))
-
-        elif isinstance(event, AddUiEvent):
-            self.add_ui(self.injector.inject_ui(event.ui_name))
-
-        elif isinstance(event, (AddSessionEvent, ConfigEvent)):
-            self.emit(event)
+                ui.trades_update(self.order)
 
     def add_ui(self, ui: Ui):
         self.uis.append(ui)

@@ -1,6 +1,6 @@
 from cihatbot.framework.module import Module
 from cihatbot.framework.events import Event
-from cihatbot.application.order import SingleExecutionOrder
+from cihatbot.application.order import SingleExecutionOrder, Status
 from dataclasses import dataclass
 from typing import Tuple
 
@@ -39,38 +39,17 @@ class FailedException(ConnectorException):
 
 
 @dataclass
-class TradeEvent(Event):
-    """ Fires trader.trade """
+class ExchangeEvent(Event):
+    """ Fires trader.exchange_update """
 
 
 @dataclass
-class CandleEvent(Event):
-    """ Fires trader.candle """
+class TickerEvent(Event):
+    """ Fires trader.ticker_update """
 
 
 @dataclass
-class BookEvent(Event):
-    """ Fires trader.book """
-
-
-@dataclass
-class TimeEvent(Event):
-    """ Fires trader.time """
-
-
-@dataclass
-class SubmittedEvent(Event):
-    """ Fires ui.submitted """
+class UserEvent(Event):
+    """ Fires ui.trades_update """
     uid: str
-
-
-@dataclass
-class FilledEvent(Event):
-    """ Fires ui.filled """
-    uid: str
-
-
-@dataclass
-class RejectedEvent(Event):
-    """ Fires ui.rejected """
-    uid: str
+    status: Status

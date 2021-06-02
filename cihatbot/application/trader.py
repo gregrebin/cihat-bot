@@ -18,23 +18,14 @@ class Trader(Module):
         super().on_event(event)
         self.emit(event)
 
-    def trade(self):
+    def add_order(self, order: Order):
         pass
 
-    def candle(self):
+    def cancel_order(self, order: Order):
         pass
 
-    def book(self):
+    def exchange_update(self):
         pass
 
-    def time(self):
-        pass
-
-    def timer(self):
-        pass
-
-    def add(self, order: Order):
-        pass
-
-    def cancel(self, order: Order):
+    def ticker_update(self):
         pass
