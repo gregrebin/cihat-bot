@@ -2,7 +2,8 @@ from __future__ import annotations
 from cihatbot.framework.module import Module
 from cihatbot.application.events import *
 from cihatbot.application.order import Order, Empty, Status
-from cihatbot.application.ui import Ui
+from cihatbot.application.ui import (
+    Ui, AddOrderEvent, CancelOrderEvent, AddTraderEvent, AddUiEvent, AddSessionEvent, ConfigEvent)
 from cihatbot.application.trader import Trader
 from typing import List
 from configparser import SectionProxy

@@ -11,6 +11,32 @@ import asyncio
 
 class Module:
 
+    """
+    Runs concurrently, listens to submodules events, emits events to parent module, has a logger.
+
+    Methods
+    -------
+    add_submodule(submodule):
+        adds new submodule
+    emit(event):
+        emit event
+    log(message):
+        log message
+
+    Methods to reimplement
+    ----------------------
+    pre_run():
+        initialization logic
+    on_run():
+        asynchronous runtime code
+    on_event(event):
+        event handling logic
+    on_stop():
+        stop asynchronous runtime code
+    post_run():
+        termination logic
+    """
+
     log_name = __name__
 
     def __init__(self, config: SectionProxy) -> None:
@@ -21,7 +47,7 @@ class Module:
         self.emitter: EventEmitter = EventEmitter()
         self.listener: EventListener = EventListener()
         self.scheduler: Scheduler = Scheduler()
-        self.injector = Injector()
+        self.injector = Injector({})
         self.submodules: List[Module] = []
         self.is_running: bool = False
 
