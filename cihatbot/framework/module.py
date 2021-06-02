@@ -12,7 +12,7 @@ import asyncio
 class Module:
 
     """
-    Runs concurrently, listens to submodules events, emits events to parent module, has a logger.
+    Part of a program, hierarchically structured, concurrent, listening to each other via events. Has a build in logger.
 
     Methods
     -------

@@ -1,6 +1,7 @@
 from __future__ import annotations
 from cihatbot.framework.module import Module
-from cihatbot.application.events import Event, AddSessionEvent, ConfigEvent
+from cihatbot.framework.events import Event
+from cihatbot.application.ui import AddSessionEvent, ConfigEvent
 from cihatbot.application.session import Session
 from typing import List
 from configparser import SectionProxy

@@ -1,16 +1,17 @@
 from __future__ import annotations
 from cihatbot.framework.module import Module
-from cihatbot.application.events import *
+from cihatbot.framework.events import Event
 from cihatbot.application.order import Order, Empty, Status
-from cihatbot.application.ui import (
-    Ui, AddOrderEvent, CancelOrderEvent, AddTraderEvent, AddUiEvent, AddSessionEvent, ConfigEvent)
+from cihatbot.application.ui import Ui, AddOrderEvent, CancelOrderEvent, AddTraderEvent, AddUiEvent, AddSessionEvent, \
+    ConfigEvent
 from cihatbot.application.trader import Trader
+from cihatbot.application.connector import SubmittedEvent, FilledEvent, RejectedEvent, TradeEvent, CandleEvent, \
+    BookEvent, TimeEvent
 from typing import List
 from configparser import SectionProxy
 
 
 class Session(Module):
-
     log_name = __name__
 
     def __init__(self, config: SectionProxy) -> None:
@@ -48,13 +49,33 @@ class Session(Module):
             for ui in self.uis:
                 ui.rejected(self.order)
 
+        elif isinstance(event, TradeEvent):
+            # update market
+            for trader in self.traders:
+                trader.trade()
+
+        elif isinstance(event, CandleEvent):
+            # update market
+            for trader in self.traders:
+                trader.candle()
+
+        elif isinstance(event, BookEvent):
+            # update market
+            for trader in self.traders:
+                trader.book()
+
+        elif isinstance(event, TimeEvent):
+            # update market
+            for trader in self.traders:
+                trader.time()
+
         elif isinstance(event, AddTraderEvent):
             self.add_trader(self.injector.inject_trader(event.trader_name))
 
         elif isinstance(event, AddUiEvent):
             self.add_ui(self.injector.inject_ui(event.ui_name))
 
-        elif isinstance(event, AddSessionEvent) or isinstance(event, ConfigEvent):
+        elif isinstance(event, (AddSessionEvent, ConfigEvent)):
             self.emit(event)
 
     def add_ui(self, ui: Ui):
@@ -66,4 +87,3 @@ class Session(Module):
         self.traders.append(trader)
         self.add_submodule(trader)
         self.log(f"""Added trader""")
-

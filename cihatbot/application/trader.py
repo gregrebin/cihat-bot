@@ -2,8 +2,6 @@ from cihatbot.framework.module import Module
 from cihatbot.framework.events import Event
 from cihatbot.application.order import Order
 from cihatbot.application.connector import Connector
-from cihatbot.utils.timer import Timer
-from dataclasses import dataclass
 from configparser import SectionProxy
 
 
@@ -11,21 +9,25 @@ class Trader(Module):
 
     TIMER_INTERVAL = 0.02
 
-    def __init__(self, config: SectionProxy, connector: Connector, timer: Timer):
+    def __init__(self, config: SectionProxy, connector: Connector):
         super().__init__(config)
         self.connector: Connector = connector
         self.add_submodule(self.connector)
 
     def on_event(self, event: Event) -> None:
         super().on_event(event)
+        self.emit(event)
 
-        if isinstance(event, TickerEvent):
-            self.ticker()
+    def trade(self):
+        pass
 
-        elif isinstance(event, TimerEvent):
-            self.timer()
+    def candle(self):
+        pass
 
-    def ticker(self):
+    def book(self):
+        pass
+
+    def time(self):
         pass
 
     def timer(self):
@@ -36,52 +38,3 @@ class Trader(Module):
 
     def cancel(self, order: Order):
         pass
-
-
-@dataclass
-class TickerEvent(Event):
-    """
-    emitted by: connector
-    handled by: trader
-    fires: trader.ticker
-    """
-
-
-@dataclass
-class TimerEvent(Event):
-    """
-    emitted by: connector
-    handled by: trader
-    fires: trader.timer
-    """
-
-
-@dataclass
-class SubmittedEvent(Event):
-    """
-    emitted by: connector
-    handled by: session
-    fires: ui.submitted
-    """
-    uid: str
-
-
-@dataclass
-class FilledEvent(Event):
-    """
-    emitted by: connector
-    handled by: session
-    fires: ui.filled
-    """
-    uid: str
-
-
-@dataclass
-class RejectedEvent(Event):
-    """
-    emitted by: connector
-    handled by: session
-    fires: ui.rejected
-    """
-    uid: str
-
