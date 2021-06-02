@@ -1,6 +1,6 @@
 from cihatbot.framework.module import Module
 from cihatbot.application.events import *
-from cihatbot.application.execution_order import ExecutionOrder
+from cihatbot.application.order import Order
 from cihatbot.application.connector import Connector
 from cihatbot.utils.timer import Timer
 from configparser import SectionProxy
@@ -30,8 +30,8 @@ class Trader(Module):
     def timer(self):
         pass
 
-    def add(self, order: ExecutionOrder):
+    def add(self, order: Order):
         pass
 
-    def cancel(self, order: ExecutionOrder):
+    def cancel(self, order: Order):
         pass

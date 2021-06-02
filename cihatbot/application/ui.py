@@ -1,5 +1,5 @@
 from cihatbot.framework.module import Module
-from cihatbot.application.execution_order import ExecutionOrder
+from cihatbot.application.order import Order
 from cihatbot.application.parser import Parser
 from configparser import SectionProxy
 
@@ -10,11 +10,11 @@ class Ui(Module):
         super().__init__(config)
         self.parser: Parser = parser
 
-    def submitted(self, order: ExecutionOrder):
+    def submitted(self, order: Order):
         pass
 
-    def filled(self, order: ExecutionOrder):
+    def filled(self, order: Order):
         pass
 
-    def rejected(self, order: ExecutionOrder):
+    def rejected(self, order: Order):
         pass

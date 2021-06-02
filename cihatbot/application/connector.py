@@ -1,5 +1,5 @@
 from cihatbot.framework.module import Module
-from cihatbot.application.execution_order import SingleExecutionOrder
+from cihatbot.application.order import SingleExecutionOrder
 from typing import Tuple
 
 

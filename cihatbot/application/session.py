@@ -1,7 +1,7 @@
 from __future__ import annotations
 from cihatbot.framework.module import Module
 from cihatbot.application.events import *
-from cihatbot.application.execution_order import ExecutionOrder, EmptyExecutionOrder
+from cihatbot.application.order import Order, Empty, Status
 from cihatbot.application.ui import Ui
 from cihatbot.application.trader import Trader
 from typing import List
@@ -14,7 +14,7 @@ class Session(Module):
 
     def __init__(self, config: SectionProxy) -> None:
         super().__init__(config)
-        self.execution_order: ExecutionOrder = EmptyExecutionOrder()
+        self.order: Order = Empty()
         self.uis: List[Ui] = []
         self.traders: List[Trader] = []
         self.log(f"""New session initialized""")
@@ -23,29 +23,29 @@ class Session(Module):
         super().on_event(event)
 
         if isinstance(event, AddOrderEvent):
-            self.execution_order.add(event.order, event.mode)
+            self.order.add(event.order, event.mode)
             for trader in self.traders:
-                trader.add(self.execution_order)
+                trader.add(self.order)
 
         elif isinstance(event, CancelOrderEvent):
-            self.execution_order.cancel(event.order_id)
+            self.order.update(event.uid, Status.CANCELLED)
             for trader in self.traders:
-                trader.cancel(self.execution_order)
+                trader.cancel(self.order)
 
         elif isinstance(event, SubmittedEvent):
-            self.execution_order.submitted(event.order_id)
+            self.order.update(event.uid, Status.SUBMITTED)
             for ui in self.uis:
-                ui.submitted(self.execution_order)
+                ui.submitted(self.order)
 
         elif isinstance(event, FilledEvent):
-            self.execution_order.filled(event.order_id)
+            self.order.update(event.uid, Status.FILLED)
             for ui in self.uis:
-                ui.filled(self.execution_order)
+                ui.filled(self.order)
 
         elif isinstance(event, RejectedEvent):
-            self.execution_order.rejected(event.order_id)
+            self.order.update(event.uid, Status.REJECTED)
             for ui in self.uis:
-                ui.rejected(self.execution_order)
+                ui.rejected(self.order)
 
         elif isinstance(event, AddTraderEvent):
             self.add_trader(self.injector.inject_trader(event.trader_name))

@@ -15,7 +15,7 @@ from cihatbot.application.events import (
     ClockEvent
 )
 from cihatbot.application.trader import Trader
-from cihatbot.application.execution_order import ExecutionOrder, EmptyExecutionOrder, SingleExecutionOrder, OrderStatus
+from cihatbot.application.order import ExecutionOrder, EmptyExecutionOrder, SingleExecutionOrder, OrderStatus
 from cihatbot.application.connector import Connector, ConnectorException, FailedException
 from cihatbot.utils.timer import Timer
 from configparser import SectionProxy

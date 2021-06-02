@@ -1,5 +1,5 @@
 from cihatbot.framework.events import Event
-from cihatbot.application.execution_order import ExecutionOrder
+from cihatbot.application.order import Order, Mode
 from dataclasses import dataclass
 
 
@@ -55,8 +55,8 @@ class AddOrderEvent(Event):
     handled by: session
     fires: trader.add
     """
-    order: ExecutionOrder
-    mode: str
+    order: Order
+    mode: Mode
 
 
 # fires trader.cancel
@@ -67,7 +67,7 @@ class CancelOrderEvent(Event):
     handled by: session
     fires: trader.cancel
     """
-    order_id: str
+    uid: str
     data_fields = {"order_id"}
 
 
@@ -99,7 +99,7 @@ class SubmittedEvent(Event):
     handled by: session
     fires: ui.submitted
     """
-    order_id: str
+    uid: str
 
 
 # fires ui.filled
@@ -110,7 +110,7 @@ class FilledEvent(Event):
     handled by: session
     fires: ui.filled
     """
-    order_id: str
+    uid: str
 
 
 # fires ui.rejected
@@ -121,4 +121,4 @@ class RejectedEvent(Event):
     handled by: session
     fires: ui.rejected
     """
-    order_id: str
+    uid: str

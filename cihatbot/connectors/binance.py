@@ -1,7 +1,7 @@
 from __future__ import annotations
 from cihatbot.application.events import UserEvent, TickerEvent
 from cihatbot.application.connector import Connector, ConnectorException, FailedException
-from cihatbot.application.execution_order import SingleExecutionOrder, ExecutionParams
+from cihatbot.application.order import SingleExecutionOrder, ExecutionParams
 from binance.client import Client
 from binance.exceptions import BinanceOrderException, BinanceRequestException, BinanceAPIException
 from binance.websockets import BinanceSocketManager

@@ -36,11 +36,11 @@ class Order(ABC):
         pass
 
     @abstractmethod
-    def get(self, pending: bool = False) -> List[Order]:
+    def get(self, pending: bool = True) -> List[Order]:
         pass
 
     @abstractmethod
-    def update(self, status: Status) -> Order:
+    def update(self, uid: str, status: Status) -> Order:
         pass
 
     def _add(self, order: Order, mode: Mode) -> Order:
@@ -49,6 +49,19 @@ class Order(ABC):
 
     def _add_term(self, mode: Mode) -> Tuple[Order, ...]:
         return self,
+
+
+@dataclass(frozen=True)
+class Empty(Order):
+
+    def add(self, order: Order, mode: Mode) -> Order:
+        return order
+
+    def get(self, pending: bool = True) -> List[Order]:
+        return []
+
+    def update(self, uid: str, status: Status) -> Order:
+        return self
 
 
 @dataclass(frozen=True)
@@ -69,13 +82,16 @@ class Single(Order):
     def add(self, order: Order, mode: Mode) -> Order:
         return super()._add(order, mode)
 
-    def get(self, pending: bool = False) -> List[Order]:
+    def get(self, pending: bool = True) -> List[Order]:
         if pending and self.status is not Status.NEW:
             return []
         return [self]
 
-    def update(self, status: Status) -> Order:
-        return replace(self, status=status)
+    def update(self, uid: str, status: Status) -> Order:
+        if self.uid == uid:
+            return replace(self, status=status)
+        else:
+            return self
 
 
 @dataclass(frozen=True)
@@ -93,7 +109,7 @@ class Multiple(Order):
         else:
             return self,
 
-    def get(self, pending: bool = False) -> List[Order]:
+    def get(self, pending: bool = True) -> List[Order]:
         if pending and self.status is not Status.NEW:
             return []
         result = []
@@ -104,8 +120,12 @@ class Multiple(Order):
                 break
         return result
 
-    def update(self, status: Status) -> Order:
-        pass
+    def update(self, uid: str, status: Status) -> Order:
+        if self.uid == uid:
+            return replace(self, status=status)
+        else:
+            orders = tuple(order.update(uid, status) for order in self.orders)
+            return replace(self, orders=orders)
 
 
 # @dataclass(frozen=True)

@@ -1,5 +1,5 @@
 from cihatbot.application.parser import Parser, InvalidString
-from cihatbot.application.execution_order import (
+from cihatbot.application.order import (
     ExecutionOrder,
     SingleExecutionOrder,
     ParallelExecutionOrder,
