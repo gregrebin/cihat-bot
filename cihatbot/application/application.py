@@ -1,7 +1,7 @@
 from __future__ import annotations
 from cihatbot.framework.module import Module
 from cihatbot.framework.events import Event
-from cihatbot.application.ui import AddSessionEvent, ConfigEvent
+from cihatbot.application.ui import AddModuleEvent, ConfigEvent
 from cihatbot.application.session import Session
 from typing import List
 from configparser import SectionProxy
@@ -18,7 +18,7 @@ class Application(Module):
     def on_event(self, event: Event) -> None:
         super().on_event(event)
 
-        if isinstance(event, AddSessionEvent):
+        if isinstance(event, AddModuleEvent):
             self.add_session(self.injector.inject_session(event.session_name))
 
         if isinstance(event, ConfigEvent):
