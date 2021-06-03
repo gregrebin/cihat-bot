@@ -72,10 +72,9 @@ class Single(Order):
     eid: str = ""
     exchange: str = ""
     command: Command = Command.BUY
-    quote_asset: str = ""
-    base_asset: str = ""
-    quote_quantity: float = 0
-    base_quantity: float = 0
+    symbol: str = ""
+    quote: float = 0
+    base: float = 0
     price: float = 0
     conditions: Dict[str, float] = field(default_factory=dict)
 
