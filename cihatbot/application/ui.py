@@ -1,17 +1,17 @@
 from cihatbot.framework.module import Module
 from cihatbot.framework.events import Event
 from cihatbot.application.order import Order, Mode
-from cihatbot.application.parser import Parser
 from configparser import SectionProxy
 from dataclasses import dataclass
+from abc import abstractmethod
 
 
 class Ui(Module):
 
-    def __init__(self, config: SectionProxy, parser: Parser):
+    def __init__(self, config: SectionProxy):
         super().__init__(config)
-        self.parser: Parser = parser
 
+    @abstractmethod
     def trades_update(self, order: Order):
         pass
 

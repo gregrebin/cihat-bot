@@ -3,14 +3,12 @@ from cihatbot.framework.injector import Injector as ModuleInjector
 from cihatbot.application.application import Application
 from cihatbot.application.session import Session
 from cihatbot.application.ui import Ui
-from cihatbot.uis.telegram import Telegram
-from cihatbot.application.parser import Parser
-from cihatbot.parsers.simple_parser import SimpleParser
+from cihatbot.old.telegram import Telegram
 from cihatbot.application.trader import Trader
-from cihatbot.traders.real import RealTrader
+from cihatbot.old.real import RealTrader
 from cihatbot.application.connector import Connector
-from cihatbot.connectors.binance import BinanceConnector
-from cihatbot.utils.timer import Timer
+from cihatbot.old.binance import BinanceConnector
+from cihatbot.old.timer import Timer
 from typing import Callable
 
 
@@ -44,14 +42,8 @@ class Injector(ModuleInjector):
         return ui
 
     @inject_self
-    def inject_parser(self, name: str) -> Parser:
-        parser = SimpleParser()
-        return parser
-
-    @inject_self
     def inject_trader(self, name: str) -> Trader:
         connector = self.inject_connector("binance_connector")
-        timer = self.inject_timer("timer")
         trader = RealTrader(self.config, connector, timer).init()
         return trader
 
@@ -59,10 +51,5 @@ class Injector(ModuleInjector):
     def inject_connector(self, name: str) -> Connector:
         connector = BinanceConnector().init()
         return connector
-
-    @inject_self
-    def inject_timer(self, name: str) -> Timer:
-        timer = Timer(0.02).init()
-        return timer
 
 

@@ -5,11 +5,12 @@ from cihatbot.framework.scheduler import Scheduler
 from cihatbot.framework.injector import Injector
 from typing import List
 from configparser import SectionProxy
+from abc import ABC
 import logging
 import asyncio
 
 
-class Module:
+class Module(ABC):
 
     """
     Part of a program, hierarchically structured, concurrent, listening to each other via events. Has a build in logger.

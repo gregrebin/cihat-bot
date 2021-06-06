@@ -3,6 +3,7 @@ from cihatbot.framework.events import Event
 from cihatbot.application.order import SingleExecutionOrder, Status
 from dataclasses import dataclass
 from typing import Tuple
+from abc import abstractmethod
 
 
 class Connector(Module):
@@ -12,18 +13,23 @@ class Connector(Module):
     def __init__(self):
         super().__init__({})
 
+    @abstractmethod
     def connect(self, key: str, secret: str) -> None:
         pass
 
+    @abstractmethod
     def satisfied(self, execution_order: SingleExecutionOrder) -> bool:
         pass
 
+    @abstractmethod
     def submit(self, execution_order: SingleExecutionOrder) -> Tuple[int, float]:
         pass
 
+    @abstractmethod
     def is_filled(self, execution_order: SingleExecutionOrder) -> bool:
         pass
 
+    @abstractmethod
     def cancel(self, execution_order: SingleExecutionOrder) -> None:
         pass
 

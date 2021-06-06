@@ -3,6 +3,7 @@ from cihatbot.framework.events import Event
 from cihatbot.application.order import Order
 from cihatbot.application.connector import Connector
 from configparser import SectionProxy
+from abc import abstractmethod
 
 
 class Trader(Module):
@@ -18,14 +19,18 @@ class Trader(Module):
         super().on_event(event)
         self.emit(event)
 
+    @abstractmethod
     def add_order(self, order: Order):
         pass
 
+    @abstractmethod
     def cancel_order(self, order: Order):
         pass
 
+    @abstractmethod
     def exchange_update(self):
         pass
 
+    @abstractmethod
     def ticker_update(self):
         pass
