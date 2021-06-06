@@ -1,4 +1,5 @@
 from cihatbot.application.injector import Injector
+from cihatbot.application.application import Application
 from configparser import ConfigParser
 from signal import SIGINT, SIGTERM
 import asyncio
@@ -9,7 +10,7 @@ async def main():
     configparser.read("cihatbot.local.cfg")
 
     injector = Injector(configparser)
-    application = injector.inject_app("app")
+    application: Application = injector.inject(Application, "test")
 
     loop = asyncio.get_event_loop()
     loop.add_signal_handler(SIGINT, lambda: asyncio.create_task(application.stop()))

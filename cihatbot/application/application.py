@@ -19,7 +19,7 @@ class Application(Module):
         super().on_event(event)
 
         if isinstance(event, AddModuleEvent):
-            self.add_session(self.injector.inject_session(event.session_name))
+            self.add_session(self.injector.inject(Session, event.session_name))
 
         if isinstance(event, ConfigEvent):
             self.config()

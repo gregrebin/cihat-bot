@@ -57,6 +57,7 @@ class Module(ABC):
             await self.listener.listen(self.on_event)
         self.scheduler.schedule(listen())
         self.scheduler.schedule(self.on_run())
+        self.log("initialized")
         return self
 
     def add_submodule(self, submodule: Module) -> None:

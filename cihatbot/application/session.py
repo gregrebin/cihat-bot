@@ -24,9 +24,9 @@ class Session(Module):
 
         if isinstance(event, AddModuleEvent):
             if event.ui_name:
-                self.add_ui(self.injector.inject_ui(event.ui_name))
+                self.add_ui(self.injector.inject(Ui, event.ui_name))
             if event.trader_name:
-                self.add_trader(self.injector.inject_trader(event.trader_name))
+                self.add_trader(self.injector.inject(Trader, event.trader_name))
             if event.session_name:
                 self.emit(event)
 

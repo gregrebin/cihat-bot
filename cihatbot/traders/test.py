@@ -1,8 +1,17 @@
 from cihatbot.application.order import Order
-from cihatbot.application.ui import Ui
+from cihatbot.application.trader import Trader
 
 
-class TestUi(Ui):
+class TestTrader(Trader):
 
-    def trades_update(self, order: Order):
+    def add_order(self, order: Order):
+        pass
+
+    def cancel_order(self, order: Order):
+        pass
+
+    def exchange_update(self):
+        pass
+
+    def ticker_update(self):
         pass

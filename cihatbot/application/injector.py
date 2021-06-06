@@ -1,55 +1,16 @@
-from cihatbot.framework.module import Module
-from cihatbot.framework.injector import Injector as ModuleInjector
+from cihatbot.framework.module import Module  # DO NOT DELETE
+from cihatbot.framework.injector import Injector as ModuleInjector, Type, ModuleType
 from cihatbot.application.application import Application
-from cihatbot.application.session import Session
-from cihatbot.application.ui import Ui
-from cihatbot.old.telegram import Telegram
-from cihatbot.application.trader import Trader
-from cihatbot.old.real import RealTrader
-from cihatbot.application.connector import Connector
-from cihatbot.old.binance import BinanceConnector
-from cihatbot.old.timer import Timer
-from typing import Callable
-
-
-def inject_self(method: Callable) -> Callable:
-    def wrapped(self, name) -> Module:
-        module = method(self, name)
-        module.injector = self
-        return module
-    return wrapped
 
 
 class Injector(ModuleInjector):
 
-    @inject_self
-    def inject_app(self, name: str) -> Application:
-        app = Application(self.config["app"]).init()
-        app.add_session(self.inject_session("session"))
+    def test(self):
+        app = Application({})
         return app
 
-    @inject_self
-    def inject_session(self, name: str) -> Session:
-        session = Session(self.config["session"]).init()
-        session.add_ui(self.inject_ui("telegram_ui"))
-        session.add_trader(self.inject_trader("real_trader"))
-        return session
+    def inject(self, module_type: Type[ModuleType], name: str) -> ModuleType:
+        return super().inject(module_type, name)
 
-    @inject_self
-    def inject_ui(self, name: str) -> Ui:
-        parser = self.inject_parser("simple_parser")
-        ui = Telegram(self.config["telegram-ui"], parser).init()
-        return ui
-
-    @inject_self
-    def inject_trader(self, name: str) -> Trader:
-        connector = self.inject_connector("binance_connector")
-        trader = RealTrader(self.config, connector, timer).init()
-        return trader
-
-    @inject_self
-    def inject_connector(self, name: str) -> Connector:
-        connector = BinanceConnector().init()
-        return connector
 
 
