@@ -6,6 +6,7 @@ from typing import Tuple
 
 
 class TestConnector(Connector):
+    log_name = __name__
 
     async def on_run(self) -> None:
         self.log(f"""username {self.username}; password {self.password}""")

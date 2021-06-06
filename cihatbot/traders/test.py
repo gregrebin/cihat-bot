@@ -3,6 +3,7 @@ from cihatbot.application.trader import Trader
 
 
 class TestTrader(Trader):
+    log_name = __name__
 
     def add_order(self, order: Order):
         pass
