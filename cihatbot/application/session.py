@@ -26,9 +26,11 @@ class Session(Module):
                 self.add_ui(self.injector.inject(Ui, event.ui_name))
             if event.trader_name:
                 self.add_trader(self.injector.inject(Trader, event.trader_name))
-            if event.connector_name:
+            if event.connector_name and event.connector_username and event.connector_password:
                 for trader in self.traders:
-                    trader.add_connector(self.injector.inject(Connector, event.connector_name))
+                    trader.add_connector(self.injector.inject(Connector, event.connector_name,
+                                                              username=event.connector_username,
+                                                              password=event.connector_password))
             if event.session_name:
                 self.emit(event)
 

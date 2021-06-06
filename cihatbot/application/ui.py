@@ -23,6 +23,8 @@ class AddModuleEvent(Event):
     session_name: str = ""
     trader_name: str = ""
     connector_name: str = ""
+    connector_username: str = ""
+    connector_password: str = ""
     ui_name: str = ""
 
 
