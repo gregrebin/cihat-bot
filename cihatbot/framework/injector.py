@@ -1,5 +1,4 @@
 from __future__ import annotations
-import cihatbot.framework.module
 from configparser import ConfigParser
 from typing import Type, TypeVar, Callable
 
@@ -8,7 +7,7 @@ ModuleType = TypeVar("ModuleType")
 
 
 def init(method: Callable) -> Callable:
-    def wrapped(self, module_type, name) -> cihatbot.framework.module.Module:
+    def wrapped(self, module_type, name) -> ModuleType:
         module = method(self, module_type, name)
         module.injector = self
         module.init()

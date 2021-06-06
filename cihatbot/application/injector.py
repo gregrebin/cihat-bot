@@ -1,4 +1,3 @@
-from cihatbot.framework.module import Module  # DO NOT DELETE
 from cihatbot.framework.injector import Injector as ModuleInjector, Type, ModuleType
 from cihatbot.application.application import Application
 
