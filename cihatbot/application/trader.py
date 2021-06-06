@@ -10,27 +10,28 @@ class Trader(Module):
 
     TIMER_INTERVAL = 0.02
 
-    def __init__(self, config: SectionProxy, connector: Connector):
+    def __init__(self, config: SectionProxy):
         super().__init__(config)
-        self.connector: Connector = connector
-        self.add_submodule(self.connector)
 
     def on_event(self, event: Event) -> None:
         super().on_event(event)
         self.emit(event)
 
+    def add_connector(self, connector: Connector) -> None:
+        self.add_submodule(connector)
+
     @abstractmethod
-    def add_order(self, order: Order):
+    def add_order(self, order: Order) -> None:
         pass
 
     @abstractmethod
-    def cancel_order(self, order: Order):
+    def cancel_order(self, order: Order) -> None:
         pass
 
     @abstractmethod
-    def exchange_update(self):
+    def exchange_update(self) -> None:
         pass
 
     @abstractmethod
-    def ticker_update(self):
+    def ticker_update(self) -> None:
         pass

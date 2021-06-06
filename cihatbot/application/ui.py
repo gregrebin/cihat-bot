@@ -18,9 +18,10 @@ class Ui(Module):
 
 @dataclass
 class AddModuleEvent(Event):
-    """ Fires app.add_session """
+    """ Fires app.add_session, session.add_ui, session.add_trader, trader.add_connector """
     session_name: str = ""
     trader_name: str = ""
+    connector_name: str = ""
     ui_name: str = ""
 
 

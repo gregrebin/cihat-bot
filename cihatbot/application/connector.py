@@ -2,6 +2,7 @@ from cihatbot.framework.module import Module
 from cihatbot.framework.events import Event
 from cihatbot.application.order import SingleExecutionOrder, Status
 from dataclasses import dataclass
+from configparser import SectionProxy
 from typing import Tuple
 from abc import abstractmethod
 
@@ -10,23 +11,13 @@ class Connector(Module):
     ORDER_STATUS_FILLED = "FILLED"
     ORDER_STATUS_CANCELED = "CANCELED"
 
-    def __init__(self):
-        super().__init__({})
-
-    @abstractmethod
-    def connect(self, key: str, secret: str) -> None:
-        pass
-
-    @abstractmethod
-    def satisfied(self, execution_order: SingleExecutionOrder) -> bool:
-        pass
+    def __init__(self, config: SectionProxy, user: str, password: str):
+        super().__init__(config)
+        self.user = user
+        self.password = password
 
     @abstractmethod
     def submit(self, execution_order: SingleExecutionOrder) -> Tuple[int, float]:
-        pass
-
-    @abstractmethod
-    def is_filled(self, execution_order: SingleExecutionOrder) -> bool:
         pass
 
     @abstractmethod

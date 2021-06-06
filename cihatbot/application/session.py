@@ -4,7 +4,7 @@ from cihatbot.framework.events import Event
 from cihatbot.application.order import Order, Empty, Status
 from cihatbot.application.ui import Ui, AddOrderEvent, CancelOrderEvent, AddModuleEvent, ConfigEvent
 from cihatbot.application.trader import Trader
-from cihatbot.application.connector import UserEvent, TickerEvent, ExchangeEvent
+from cihatbot.application.connector import Connector, UserEvent, TickerEvent, ExchangeEvent
 from typing import List
 from configparser import SectionProxy
 
@@ -27,6 +27,9 @@ class Session(Module):
                 self.add_ui(self.injector.inject(Ui, event.ui_name))
             if event.trader_name:
                 self.add_trader(self.injector.inject(Trader, event.trader_name))
+            if event.connector_name:
+                for trader in self.traders:
+                    trader.add_connector(self.injector.inject(Connector, event.connector_name))
             if event.session_name:
                 self.emit(event)
 
