@@ -7,6 +7,10 @@ from dataclasses import dataclass, field, replace
 from abc import ABC, abstractmethod
 
 
+def new_uid():
+    return uuid4().hex
+
+
 class Status(Enum):
     NEW = auto()
     SUBMITTED = auto()
@@ -29,7 +33,7 @@ class Mode(Enum):
 class Order(ABC):
 
     status: Status = Status.NEW
-    uid: str = field(default_factory=uuid4().hex)
+    uid: str = field(default_factory=new_uid)
 
     @abstractmethod
     def add(self, order: Order, mode: Mode) -> Order:

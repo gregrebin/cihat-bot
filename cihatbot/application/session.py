@@ -14,10 +14,9 @@ class Session(Module):
 
     def __init__(self, config: SectionProxy) -> None:
         super().__init__(config)
-        self.order: Order = Empty()
+        # self.order: Order = Empty()
         self.uis: List[Ui] = []
         self.traders: List[Trader] = []
-        self.log(f"""New session initialized""")
 
     def on_event(self, event: Event) -> None:
         super().on_event(event)
@@ -63,9 +62,7 @@ class Session(Module):
     def add_ui(self, ui: Ui):
         self.uis.append(ui)
         self.add_submodule(ui)
-        self.log(f"""Added ui""")
 
     def add_trader(self, trader: Trader):
         self.traders.append(trader)
         self.add_submodule(trader)
-        self.log(f"""Added trader""")

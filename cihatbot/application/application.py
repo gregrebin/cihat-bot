@@ -8,7 +8,6 @@ from configparser import SectionProxy
 
 
 class Application(Module):
-
     log_name = __name__
 
     def __init__(self, config: SectionProxy) -> None:
@@ -27,7 +26,6 @@ class Application(Module):
     def add_session(self, session: Session) -> None:
         self.sessions.append(session)
         self.add_submodule(session)
-        self.log("Created new session")
 
     def config(self):
         pass

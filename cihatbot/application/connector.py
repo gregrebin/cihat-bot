@@ -11,6 +11,8 @@ class Connector(Module):
     ORDER_STATUS_FILLED = "FILLED"
     ORDER_STATUS_CANCELED = "CANCELED"
 
+    log_name = __name__
+
     def __init__(self, config: SectionProxy, user: str, password: str):
         super().__init__(config)
         self.user = user

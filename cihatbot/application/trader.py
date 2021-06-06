@@ -7,6 +7,7 @@ from abc import abstractmethod
 
 
 class Trader(Module):
+    log_name = __name__
 
     TIMER_INTERVAL = 0.02
 

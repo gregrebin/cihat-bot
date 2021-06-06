@@ -7,6 +7,7 @@ from abc import abstractmethod
 
 
 class Ui(Module):
+    log_name = __name__
 
     def __init__(self, config: SectionProxy):
         super().__init__(config)
