@@ -7,8 +7,8 @@ ModuleType = TypeVar("ModuleType")
 
 
 def init(method: Callable) -> Callable:
-    def wrapped(self, module_type, name) -> ModuleType:
-        module = method(self, module_type, name)
+    def wrapped(self, module_type, name, **arguments) -> ModuleType:
+        module = method(self, module_type, name, **arguments)
         module.injector = self
         module.init()
         return module
@@ -22,4 +22,5 @@ class Injector:
 
     @init
     def inject(self, module_type: Type[ModuleType], name: str, **arguments: str) -> ModuleType:
+        """ Returns the result of the method "name", keyword arguments can be passed to the method. """
         return self.__getattribute__(name)(**arguments)

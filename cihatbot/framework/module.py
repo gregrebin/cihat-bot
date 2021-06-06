@@ -14,6 +14,7 @@ class Module(ABC):
 
     """
     Part of a program, hierarchically structured, concurrent, listening to each other via events. Has a build in logger.
+    Better to be initialized via injector.
 
     Methods
     -------
@@ -55,12 +56,13 @@ class Module(ABC):
     def init(self) -> Module:
         async def listen() -> None:
             await self.listener.listen(self.on_event)
+        self.log(f"""init""")
         self.scheduler.schedule(listen())
         self.scheduler.schedule(self.on_run())
-        self.log("initialized")
         return self
 
     def add_submodule(self, submodule: Module) -> None:
+        self.log(f"""add_submodule {submodule.log_name}""")
         submodule.emitter.add_listener(self.listener)
         self.scheduler.schedule(submodule.run())
         self.submodules.append(submodule)
@@ -87,14 +89,16 @@ class Module(ABC):
         self.log("post_run")
 
     def emit(self, event: Event, thread_safe: bool = True) -> None:
-        # self.log(f"""emit: {event}""")
+        self.log(f"""emit: {event}""")
         if thread_safe:
             self.loop.call_soon_threadsafe(lambda: self.emitter.emit(event))
         else:
             self.emitter.emit(event)
 
     def log(self, message: str) -> None:
-        self.logger.log(logging.INFO, message)
+        self.logger.log(
+            logging.INFO, f"""{message} : {asyncio.current_task().get_name()} : {len(asyncio.all_tasks())}"""
+        )
 
     async def stop(self):
         for submodule in self.submodules:
