@@ -27,7 +27,7 @@ class EventListener:
             stop = isinstance(event, StopEvent)
 
     async def stop(self):
-        await self.queue.put(StopEvent({}))
+        await self.queue.put(StopEvent())
 
 
 class EventEmitter:
