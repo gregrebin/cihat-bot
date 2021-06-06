@@ -10,7 +10,7 @@ async def main():
     configparser.read("cihatbot.local.cfg")
 
     injector = Injector(configparser)
-    application: Application = injector.inject(Application, "test")
+    application = injector.inject(Application, "test_app")
 
     loop = asyncio.get_event_loop()
     loop.add_signal_handler(SIGINT, lambda: asyncio.create_task(application.stop()))

@@ -14,7 +14,7 @@ class Session(Module):
 
     def __init__(self, config: SectionProxy) -> None:
         super().__init__(config)
-        # self.order: Order = Empty()
+        self.order: Order = Empty()
         self.uis: List[Ui] = []
         self.traders: List[Trader] = []
 
