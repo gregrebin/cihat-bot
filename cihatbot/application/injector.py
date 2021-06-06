@@ -36,8 +36,8 @@ class Injector(ModuleInjector):
         return ui
 
     # Needed for type hinting
-    def inject(self, module_type: Type[ModuleType], name: str) -> ModuleType:
-        return super().inject(module_type, name)
+    def inject(self, module_type: Type[ModuleType], name: str, **arguments) -> ModuleType:
+        return super().inject(module_type, name, **arguments)
 
 
 

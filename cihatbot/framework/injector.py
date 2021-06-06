@@ -21,5 +21,5 @@ class Injector:
         self.config = config
 
     @init
-    def inject(self, t: Type[ModuleType], name: str) -> ModuleType:
-        return self.__getattribute__(name)()
+    def inject(self, module_type: Type[ModuleType], name: str, **arguments: str) -> ModuleType:
+        return self.__getattribute__(name)(**arguments)

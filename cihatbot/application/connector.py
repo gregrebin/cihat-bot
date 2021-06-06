@@ -13,9 +13,9 @@ class Connector(Module):
 
     log_name = __name__
 
-    def __init__(self, config: SectionProxy, user: str, password: str):
+    def __init__(self, config: SectionProxy, username: str, password: str):
         super().__init__(config)
-        self.user = user
+        self.user = username
         self.password = password
 
     @abstractmethod
