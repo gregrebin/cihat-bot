@@ -5,7 +5,7 @@ from cihatbot.application.order import Order, Empty, Status
 from cihatbot.application.ui import Ui, AddOrderEvent, CancelOrderEvent, AddModuleEvent, ConfigEvent
 from cihatbot.application.trader import Trader
 from cihatbot.application.connector import Connector, UserEvent, TickerEvent, ExchangeEvent
-from typing import List
+from typing import List, Dict, Callable
 from configparser import SectionProxy
 
 
@@ -17,49 +17,52 @@ class Session(Module):
         self.order: Order = Empty()
         self.uis: List[Ui] = []
         self.traders: List[Trader] = []
+        self.events: Dict[str, Callable] = {
+            AddModuleEvent.name: self._add_module_event,
+            ConfigEvent.name: self.emit,
+            AddOrderEvent.name: self._add_order_event,
+            CancelOrderEvent.name: self._cancel_order_event,
+            ExchangeEvent.name: self._exchange_event,
+            TickerEvent.name: self._ticker_event,
+            UserEvent.name: self._user_event
+        }
 
-    def on_event(self, event: Event) -> None:
-        super().on_event(event)
-
-        if isinstance(event, AddModuleEvent):
-            if event.ui_name:
-                self.add_ui(self.injector.inject(Ui, event.ui_name))
-            if event.trader_name:
-                self.add_trader(self.injector.inject(Trader, event.trader_name))
-            if event.connector_name and event.connector_username and event.connector_password:
-                for trader in self.traders:
-                    trader.add_connector(self.injector.inject(Connector, event.connector_name,
-                                                              username=event.connector_username,
-                                                              password=event.connector_password))
-            if event.session_name:
-                self.emit(event)
-
-        elif isinstance(event, ConfigEvent):
+    def _add_module_event(self, event: AddModuleEvent):
+        if event.ui_name:
+            self.add_ui(self.injector.inject(Ui, event.ui_name))
+        if event.trader_name:
+            self.add_trader(self.injector.inject(Trader, event.trader_name))
+        if event.connector_name and event.connector_username and event.connector_password:
+            for trader in self.traders:
+                trader.add_connector(self.injector.inject(Connector, event.connector_name,
+                                                          username=event.connector_username,
+                                                          password=event.connector_password))
+        if event.session_name:
             self.emit(event)
 
-        elif isinstance(event, AddOrderEvent):
-            self.order.add(event.order, event.mode)
-            for trader in self.traders:
-                trader.add_order(self.order)
+    def _add_order_event(self, event: AddOrderEvent):
+        self.order.add(event.order, event.mode)
+        for trader in self.traders:
+            trader.add_order(self.order)
 
-        elif isinstance(event, CancelOrderEvent):
-            for trader in self.traders:
-                trader.cancel_order(self.order)
+    def _cancel_order_event(self, event: CancelOrderEvent):
+        for trader in self.traders:
+            trader.cancel_order(self.order)
 
-        elif isinstance(event, ExchangeEvent):
-            # update market
-            for trader in self.traders:
-                trader.exchange_update()  # pass market
+    def _exchange_event(self, event: ExchangeEvent):
+        # update market
+        for trader in self.traders:
+            trader.exchange_update()  # pass market
 
-        elif isinstance(event, TickerEvent):
-            # update market
-            for trader in self.traders:
-                trader.ticker_update()  # pass market
+    def _ticker_event(self, event: TickerEvent):
+        # update market
+        for trader in self.traders:
+            trader.ticker_update()  # pass market
 
-        elif isinstance(event, UserEvent):
-            self.order.update(event.uid, event.status)
-            for ui in self.uis:
-                ui.trades_update(self.order)
+    def _user_event(self, event: UserEvent):
+        self.order.update(event.uid, event.status)
+        for ui in self.uis:
+            ui.trades_update(self.order)
 
     def add_ui(self, ui: Ui):
         self.uis.append(ui)

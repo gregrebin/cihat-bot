@@ -2,8 +2,9 @@ from cihatbot.framework.module import Module
 from cihatbot.framework.events import Event
 from cihatbot.application.order import Order, Mode
 from configparser import SectionProxy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from abc import abstractmethod
+from typing import Dict, Callable
 
 
 class Ui(Module):
@@ -11,6 +12,7 @@ class Ui(Module):
 
     def __init__(self, config: SectionProxy):
         super().__init__(config)
+        self.events: Dict[str, Callable] = {}
 
     @abstractmethod
     def trades_update(self, order: Order):
@@ -26,12 +28,13 @@ class AddModuleEvent(Event):
     connector_username: str = ""
     connector_password: str = ""
     ui_name: str = ""
+    name: str = field(init=False, default="AddModuleEvent")
 
 
 @dataclass
 class ConfigEvent(Event):
     """ Fires app.config """
-    pass
+    name: str = field(init=False, default="ConfigEvent")
 
 
 @dataclass
@@ -39,9 +42,11 @@ class AddOrderEvent(Event):
     """ Fires trader.add """
     order: Order
     mode: Mode
+    name: str = field(init=False, default="AddOrderEvent")
 
 
 @dataclass
 class CancelOrderEvent(Event):
     """ Fires trader.cancel """
     uid: str
+    name: str = field(init=False, default="CancelOrderEvent")

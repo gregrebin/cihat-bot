@@ -1,10 +1,11 @@
 from cihatbot.framework.module import Module
 from cihatbot.framework.events import Event
 from cihatbot.application.order import SingleExecutionOrder, Status
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from configparser import SectionProxy
 from typing import Tuple
 from abc import abstractmethod
+from typing import Dict, Callable
 
 
 class Connector(Module):
@@ -17,6 +18,7 @@ class Connector(Module):
         super().__init__(config)
         self.username = username
         self.password = password
+        self.events: Dict[str, Callable] = {}
 
     @abstractmethod
     def submit(self, execution_order: SingleExecutionOrder) -> Tuple[int, float]:
@@ -27,24 +29,26 @@ class Connector(Module):
         pass
 
 
-class ConnectorException(Exception):
-    def __init__(self, message: str, order: SingleExecutionOrder):
-        self.message = message
-        self.order = order
-
-
-class FailedException(ConnectorException):
-    pass
+# class ConnectorException(Exception):
+#     def __init__(self, message: str, order: SingleExecutionOrder):
+#         self.message = message
+#         self.order = order
+#
+#
+# class FailedException(ConnectorException):
+#     pass
 
 
 @dataclass
 class ExchangeEvent(Event):
     """ Fires trader.exchange_update """
+    name: str = field(init=False, default="ExchangeEvent")
 
 
 @dataclass
 class TickerEvent(Event):
     """ Fires trader.ticker_update """
+    name: str = field(init=False, default="TickerEvent")
 
 
 @dataclass
@@ -52,3 +56,4 @@ class UserEvent(Event):
     """ Fires ui.trades_update """
     uid: str
     status: Status
+    name: str = field(init=False, default="UserEvent")

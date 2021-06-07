@@ -1,17 +1,17 @@
 from __future__ import annotations
 from asyncio import Queue
-from typing import Dict, Any, Set, List, Callable, Type
-from dataclasses import dataclass
+from typing import List, Callable
+from dataclasses import dataclass, field
 
 
 @dataclass
 class Event:
-    pass
+    name: str = field(init=False, default="Event")
 
 
 @dataclass
 class StopEvent(Event):
-    pass
+    name: str = field(init=False, default="StopEvent")
 
 
 class EventListener:
@@ -24,7 +24,7 @@ class EventListener:
         while not stop:
             event = await self.queue.get()
             on_event(event)
-            stop = isinstance(event, StopEvent)
+            stop = event.name == StopEvent.name
 
     async def stop(self):
         await self.queue.put(StopEvent())

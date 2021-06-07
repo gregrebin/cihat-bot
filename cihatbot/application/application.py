@@ -1,9 +1,8 @@
 from __future__ import annotations
 from cihatbot.framework.module import Module
-from cihatbot.framework.events import Event
 from cihatbot.application.ui import AddModuleEvent, ConfigEvent
 from cihatbot.application.session import Session
-from typing import List
+from typing import List, Dict, Callable
 from configparser import SectionProxy
 
 
@@ -13,15 +12,16 @@ class Application(Module):
     def __init__(self, config: SectionProxy) -> None:
         super().__init__(config)
         self.sessions: List[Session] = []
+        self.events: Dict[str, Callable] = {
+            AddModuleEvent.name: self._add_module_event,
+            ConfigEvent.name: self._config_event
+        }
 
-    def on_event(self, event: Event) -> None:
-        super().on_event(event)
+    def _add_module_event(self, event: AddModuleEvent):
+        self.add_session(self.injector.inject(Session, event.session_name))
 
-        if isinstance(event, AddModuleEvent):
-            self.add_session(self.injector.inject(Session, event.session_name))
-
-        if isinstance(event, ConfigEvent):
-            self.config()
+    def _config_event(self, event: ConfigEvent):
+        self.config()
 
     def add_session(self, session: Session) -> None:
         self.sessions.append(session)

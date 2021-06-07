@@ -1,9 +1,9 @@
 from cihatbot.framework.module import Module
-from cihatbot.framework.events import Event
 from cihatbot.application.order import Order
-from cihatbot.application.connector import Connector
+from cihatbot.application.connector import Connector, ExchangeEvent, TickerEvent, UserEvent
 from configparser import SectionProxy
 from abc import abstractmethod
+from typing import Dict, Callable
 
 
 class Trader(Module):
@@ -13,10 +13,11 @@ class Trader(Module):
 
     def __init__(self, config: SectionProxy):
         super().__init__(config)
-
-    def on_event(self, event: Event) -> None:
-        super().on_event(event)
-        self.emit(event)
+        self.events: Dict[str, Callable] = {
+            ExchangeEvent.name: self.emit,
+            TickerEvent.name: self.emit,
+            UserEvent.name: self.emit
+        }
 
     def add_connector(self, connector: Connector) -> None:
         self.add_submodule(connector)

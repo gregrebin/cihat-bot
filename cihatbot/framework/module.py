@@ -3,7 +3,7 @@ from cihatbot.framework.logger import Logger
 from cihatbot.framework.events import Event, EventEmitter, EventListener
 from cihatbot.framework.scheduler import Scheduler
 from cihatbot.framework.injector import Injector
-from typing import List
+from typing import List, Dict, Callable
 from configparser import SectionProxy
 from abc import ABC
 import logging
@@ -52,6 +52,7 @@ class Module(ABC):
         self.injector = Injector({})
         self.submodules: List[Module] = []
         self.is_running: bool = False
+        self.events: Dict[str, Callable] = {}
 
     def init(self) -> Module:
         async def listen() -> None:
@@ -81,6 +82,7 @@ class Module(ABC):
 
     def on_event(self, event: Event) -> None:
         self.log(f"""on_event: {event}""")
+        self.events.get(event.name, lambda e: None)(event)
 
     def on_stop(self) -> None:
         self.log("on_stop")
