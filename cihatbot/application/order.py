@@ -5,7 +5,7 @@ from uuid import uuid4, UUID
 from enum import Enum, auto
 from dataclasses import dataclass, field, replace
 from abc import ABC, abstractmethod
-from sly import Lexer
+from sly import Lexer, Parser
 
 def new_uid():
     return uuid4().hex
@@ -142,27 +142,84 @@ class Multiple(Order):
 #       exchange ::= <string>
 #       price ::= <decimal>
 #       base ::= <string>
-#   multiple ::= [<mode> <orders>]
+#   multiple ::= [<mode> <orders>] (ex. [parallel buy 5 BTCUSDT in Binance at 30000, buy ETHUSDT in Coinbase at 2000 for 1000])
 #       mode ::= parallel | sequent
 #       orders ::= <order> | <order>, <orders>
 
-# https://sly.readthedocs.io/en/latest/sly.html
-# https://yahel-oppenheimer.medium.com/create-your-own-scripting-language-in-python-with-sly-7b864e762e07
-# https://www.rexegg.com/regex-quickstart.html
 
-# noinspection PyUnresolvedReferences,PyUnboundLocalVariable
+# noinspection PyUnresolvedReferences,PyUnboundLocalVariable,PyPep8Naming,PyRedeclaration,PyMethodMayBeStatic
 class OrderLexer(Lexer):
 
-    tokens = {COMMAND, MODE, IN, AT, FOR, DECIMAL, STRING}
-    literals = {","}
+    tokens = {COMMAND, MODE, IN, AT, FOR, COMMA, LBRACKET, RBRACKET, DECIMAL, STRING}
 
     ignore = r" \t"
 
+    COMMAND = r"(buy|sell)"
+    MODE = r"(parallel|sequent)"
     IN = r"in"
     AT = r"at"
     FOR = r"for"
-    COMMAND = r"(buy|sell)"
-    MODE = r"(parallel|sequent)"
-    DECIMAL = "\d+\.?\d*"
-    STRING = "\w+"
+    COMMA = ","
+    LBRACKET = r"\["
+    RBRACKET = r"\]"
+    DECIMAL = r"\d+\.?\d*"
+    STRING = r"\w+"
+
+    def DECIMAL(self, t):
+        t.value = float(t.value)
+        return t
+
+
+# noinspection PyUnresolvedReferences
+class OrderParser(Parser):
+
+    tokens = OrderLexer.tokens
+
+    @_('single')
+    def order(self, p):
+        return p.single
+
+    @_('multiple')
+    def order(self, p):
+        return p.multiple
+
+    @_("LBRACKET MODE orders RBRACKET")
+    def multiple(self, p):
+        return Multiple(mode=p.MODE, orders=p.orders)
+
+    @_("order COMMA orders")
+    def orders(self, p):
+        return (p.order,) + p.orders
+
+    @_("order")
+    def orders(self, p):
+        return p.order,
+
+    @_('COMMAND quote symbol IN exchange AT price')
+    def single(self, p):
+        return Single(command=p.COMMAND, quote=p.quote, symbol=p.symbol, exchange=p.exchange, price=p.price)
+
+    @_('COMMAND symbol IN exchange AT price FOR base')
+    def single(self, p):
+        return Single(command=p.COMMAND, symbol=p.symbol, exchange=p.exchange, price=p.price, base=p.base)
+
+    @_('DECIMAL')
+    def quote(self, p):
+        return p.DECIMAL
+
+    @_('STRING')
+    def symbol(self, p):
+        return p.STRING
+
+    @_('STRING')
+    def exchange(self, p):
+        return p.STRING
+
+    @_('DECIMAL')
+    def price(self, p):
+        return p.DECIMAL
+
+    @_('DECIMAL')
+    def base(self, p):
+        return p.DECIMAL
 
