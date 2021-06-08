@@ -1,7 +1,7 @@
 from __future__ import annotations
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field, replace, InitVar
 from enum import Enum, auto
-from typing import Tuple, Dict
+from typing import Tuple, Dict, Iterable
 from pandas import DataFrame
 
 
@@ -24,8 +24,7 @@ class Market:
             exchanges = tuple((exchange.update(symbol, trade, interval, candle) if exchange == name else exchange)
                               for exchange in self.exchanges)
         else:
-            pairs = (Pair(symbol=symbol, trades=(trade,), candles={interval: (candle,)},
-                          candles_df={interval: candle_to_df(candle)}),)
+            pairs = (Pair(symbol=symbol, trades=(trade,), candles={interval: (candle,)}),)
             exchanges = self.exchanges + (Exchange(name=name, pairs=pairs),)
         return replace(self, exchanges=exchanges)
 
@@ -41,8 +40,7 @@ class Exchange:
         if symbol in self.pairs:
             pairs = tuple(pair.update(trade, interval, candle) if pair == symbol else pair for pair in self.pairs)
         else:
-            pairs = self.pairs + (Pair(symbol=symbol, trades=(trade,), candles={interval: (candle,)},
-                                       candles_df={interval: candle_to_df(candle)}),)
+            pairs = self.pairs + (Pair(symbol=symbol, trades=(trade,), candles={interval: (candle,)}),)
         return replace(self, pairs=pairs)
 
     def __eq__(self, other) -> bool:
@@ -59,19 +57,33 @@ class Pair:
     trades: Tuple[Trade, ...] = field(default_factory=tuple)
     candles: Dict[Interval, Tuple[Candle, ...]] = field(default_factory=dict)
     candles_df: Dict[Interval, DataFrame] = field(default_factory=dict)
+    rebuild_df: InitVar[bool] = True
+
+    def __post_init__(self, rebuild_df: bool):
+        if rebuild_df:
+            self._build_df()
 
     def update(self, trade: Trade, interval: Interval, candle: Candle) -> Pair:
         trades = self.trades + (trade,)
         candles = self.candles
         candles_df = self.candles_df
-        new_df = candle_to_df(candle)
         if interval in candles:
             candles[interval] += (candle,)
-            candles_df[interval] = candles_df[interval].append(new_df)
+            candles_df[interval] = candles_df[interval].append(self._candles_to_df((candle,)))
         else:
             candles[interval] = (candle,)
-            candles_df[interval] = new_df
-        return replace(self, trades=trades, candles=candles, candles_df=candles_df)
+            candles_df[interval] = self._candles_to_df((candle,))
+        return replace(self, trades=trades, candles=candles, candles_df=candles_df, rebuild_df=False)
+
+    def _build_df(self):
+        for interval, candles in self.candles.items():
+            self.candles_df[interval] = self._candles_to_df(candles)
+
+    @staticmethod
+    def _candles_to_df(candles: Iterable[Candle]):
+        return DataFrame(
+            [[candle.time, candle.open, candle.high, candle.low, candle.close, candle.volume] for candle in candles],
+            columns=["Timestamp", "Open", "High", "Low", "Close", "Volume"])
 
     def __eq__(self, other) -> bool:
         if isinstance(other, str):
@@ -103,8 +115,3 @@ class Candle:
     high: float = 0
     low: float = 0
     volume: float = 0
-
-
-def candle_to_df(candle: Candle) -> DataFrame:
-    return DataFrame({"Timestamp": [candle.time], "Open": [candle.open], "High": [candle.high], "Low": [candle.low],
-                      "Close": [candle.close], "Volume": [candle.volume]})
