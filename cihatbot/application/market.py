@@ -2,6 +2,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field, replace
 from enum import Enum, auto
 from typing import Tuple, Dict
+from pandas import DataFrame
 
 
 class TimeFrame(Enum):
@@ -55,14 +56,20 @@ class Pair:
     symbol: str = ""
     trades: Tuple[Trade, ...] = field(default_factory=tuple)
     candles: Dict[Interval, Tuple[Candle, ...]] = field(default_factory=dict)
+    candles_df: Dict[Interval, DataFrame] = field(default_factory=dict)
 
     def update(self, trade: Trade, interval: Interval, candle: Candle) -> Pair:
         trades = self.trades + (trade,)
         candles = self.candles
+        candles_df = self.candles_df
+        new_df = DataFrame({"Timestamp": candle.time, "Open": candle.open, "High": candle.high, "Low": candle.low,
+                            "Close": candle.close, "Volume": candle.close})
         if interval in candles:
             candles[interval] += (candle,)
+            candles_df[interval] = candles_df[interval].append(new_df)
         else:
             candles[interval] = (candle,)
+            candles_df[interval] = new_df
         return replace(self, trades=trades, candles=candles)
 
     def __eq__(self, other) -> bool:
@@ -89,8 +96,9 @@ class Interval:
 @dataclass(frozen=True)
 class Candle:
 
+    time: float = 0
     open: float = 0
     close: float = 0
-    height: float = 0
+    high: float = 0
     low: float = 0
     volume: float = 0
