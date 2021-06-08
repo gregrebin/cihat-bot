@@ -44,19 +44,19 @@ class TestMarket(unittest.TestCase):
 
         trade1 = Trade(price=4, quantity=10)
         interval1 = Interval(quantity=1, time_frame=TimeFrame.HOUR)
-        candle1 = Candle(open=4, close=4, height=4, low=4, volume=10)
+        candle1 = Candle(time=0, open=4, close=4, high=4, low=4, volume=10)
 
         trade2 = Trade(price=5, quantity=20)
         interval2 = Interval(quantity=1, time_frame=TimeFrame.HOUR)
-        candle2 = Candle(open=4, close=5, height=5, low=4, volume=30)
+        candle2 = Candle(time=1, open=4, close=5, high=5, low=4, volume=30)
 
         trade3 = Trade(price=4, quantity=3)
         interval3 = Interval(quantity=12, time_frame=TimeFrame.HOUR)
-        candle3 = Candle(open=4, close=4, height=5, low=4, volume=33)
+        candle3 = Candle(time=2, open=4, close=4, high=5, low=4, volume=33)
 
         trade4 = Trade(price=3, quantity=7)
         interval4 = Interval(quantity=1, time_frame=TimeFrame.DAY)
-        candle4 = Candle(open=4, close=3, height=5, low=3, volume=40)
+        candle4 = Candle(time=3, open=4, close=3, high=5, low=3, volume=40)
 
         self.market = self.market.update("Binance", "BTCUSDT", trade1, interval1, candle1)
         self.market = self.market.update("Binance", "BTCUSDT", trade2, interval2, candle2)

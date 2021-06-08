@@ -24,7 +24,8 @@ class Market:
             exchanges = tuple((exchange.update(symbol, trade, interval, candle) if exchange == name else exchange)
                               for exchange in self.exchanges)
         else:
-            pairs = (Pair(symbol=symbol, trades=(trade,), candles={interval: (candle,)}),)
+            pairs = (Pair(symbol=symbol, trades=(trade,), candles={interval: (candle,)},
+                          candles_df={interval: candle_to_df(candle)}),)
             exchanges = self.exchanges + (Exchange(name=name, pairs=pairs),)
         return replace(self, exchanges=exchanges)
 
@@ -40,7 +41,8 @@ class Exchange:
         if symbol in self.pairs:
             pairs = tuple(pair.update(trade, interval, candle) if pair == symbol else pair for pair in self.pairs)
         else:
-            pairs = self.pairs + (Pair(symbol=symbol),)
+            pairs = self.pairs + (Pair(symbol=symbol, trades=(trade,), candles={interval: (candle,)},
+                                       candles_df={interval: candle_to_df(candle)}),)
         return replace(self, pairs=pairs)
 
     def __eq__(self, other) -> bool:
@@ -62,15 +64,14 @@ class Pair:
         trades = self.trades + (trade,)
         candles = self.candles
         candles_df = self.candles_df
-        new_df = DataFrame({"Timestamp": candle.time, "Open": candle.open, "High": candle.high, "Low": candle.low,
-                            "Close": candle.close, "Volume": candle.close})
+        new_df = candle_to_df(candle)
         if interval in candles:
             candles[interval] += (candle,)
             candles_df[interval] = candles_df[interval].append(new_df)
         else:
             candles[interval] = (candle,)
             candles_df[interval] = new_df
-        return replace(self, trades=trades, candles=candles)
+        return replace(self, trades=trades, candles=candles, candles_df=candles_df)
 
     def __eq__(self, other) -> bool:
         if isinstance(other, str):
@@ -102,3 +103,8 @@ class Candle:
     high: float = 0
     low: float = 0
     volume: float = 0
+
+
+def candle_to_df(candle: Candle) -> DataFrame:
+    return DataFrame({"Timestamp": [candle.time], "Open": [candle.open], "High": [candle.high], "Low": [candle.low],
+                      "Close": [candle.close], "Volume": [candle.volume]})
