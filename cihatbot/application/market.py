@@ -1,7 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass, field, replace, InitVar
 from enum import Enum, auto
-from typing import Tuple, Dict, Iterable
+from typing import Tuple, Dict, Iterable, Any, Callable, TypeVar
 from pandas import DataFrame, DatetimeIndex
 import pandas_ta as ta
 
@@ -20,13 +20,18 @@ class Market:
 
     exchanges: Tuple[Exchange, ...] = field(default_factory=tuple)
 
-    def update(self, name: str, symbol: str, trade: Trade, interval: Interval, candle: Candle) -> Market:
-        if name in self.exchanges:
-            exchanges = tuple((exchange.update(symbol, trade, interval, candle) if exchange == name else exchange)
-                              for exchange in self.exchanges)
-        else:
-            exchange = Exchange.factory(name=name, symbol=symbol, trade=trade, interval=interval, candle=candle)
-            exchanges = self.exchanges + (exchange,)
+    def trade(self, name: str, symbol: str, trade: Trade):
+        exchanges = update_tuple(
+            self.exchanges, name, lambda exchange: exchange.trade(symbol, trade),
+            lambda: Exchange.from_trade(name=name, symbol=symbol, trade=trade)
+        )
+        return replace(self, exchanges=exchanges)
+
+    def candle(self, name: str, symbol: str, interval: Interval, candle: Candle):
+        exchanges = update_tuple(
+            self.exchanges, name, lambda exchange: exchange.candle(symbol, interval, candle),
+            lambda: Exchange.from_candle(name=name, symbol=symbol, interval=interval, candle=candle)
+        )
         return replace(self, exchanges=exchanges)
 
     def __getitem__(self, name) -> Exchange:
@@ -43,17 +48,27 @@ class Exchange:
     time: float = 0
     pairs: Tuple[Pair, ...] = field(default_factory=tuple)
 
-    def update(self, symbol: str, trade: Trade, interval: Interval, candle: Candle) -> Exchange:
-        if symbol in self.pairs:
-            pairs = tuple(pair.update(trade, interval, candle) if pair == symbol else pair for pair in self.pairs)
-        else:
-            pair = Pair.factory(symbol=symbol, trade=trade, interval=interval, candle=candle)
-            pairs = self.pairs + (pair,)
+    def trade(self, symbol: str, trade: Trade):
+        pairs = update_tuple(
+            self.pairs, symbol, lambda pair: pair.trade(trade), lambda: Pair.from_trade(symbol=symbol, trade=trade)
+        )
+        return replace(self, pairs=pairs)
+
+    def candle(self, symbol: str, interval: Interval, candle: Candle):
+        pairs = update_tuple(
+            self.pairs, symbol, lambda pair: pair.candle(interval, candle),
+            lambda: Pair.from_candle(symbol=symbol, interval=interval, candle=candle)
+        )
         return replace(self, pairs=pairs)
 
     @staticmethod
-    def factory(name: str, symbol: str, trade: Trade, interval: Interval, candle: Candle):
-        pairs = (Pair.factory(symbol=symbol, trade=trade, interval=interval, candle=candle),)
+    def from_trade(name: str, symbol: str, trade: Trade):
+        pairs = (Pair.from_trade(symbol=symbol, trade=trade),)
+        return Exchange(name=name, pairs=pairs)
+
+    @staticmethod
+    def from_candle(name: str, symbol: str, interval: Interval = None, candle: Candle = None):
+        pairs = (Pair.from_candle(symbol=symbol, interval=interval, candle=candle),)
         return Exchange(name=name, pairs=pairs)
 
     def __eq__(self, other) -> bool:
@@ -75,19 +90,25 @@ class Pair:
     trades: Tuple[Trade, ...] = field(default_factory=tuple)
     graphs: Tuple[Graph, ...] = field(default_factory=tuple)
 
-    def update(self, trade: Trade, interval: Interval, candle: Candle) -> Pair:
+    def trade(self, trade: Trade):
         trades = self.trades + (trade,)
-        if interval in self.graphs:
-            graphs = tuple(graph.update(candle) if graph == interval else graph for graph in self.graphs)
-        else:
-            graph = Graph.factory(interval=interval, candle=candle)
-            graphs = self.graphs + (graph,)
-        return replace(self, trades=trades, graphs=graphs)
+        return replace(self, trades=trades)
+
+    def candle(self, interval: Interval, candle: Candle):
+        graphs = update_tuple(
+            self.graphs, interval, lambda graph: graph.candle(candle),
+            lambda: Graph.from_candle(interval=interval, candle=candle)
+        )
+        return replace(self, graphs=graphs)
 
     @staticmethod
-    def factory(symbol: str, trade: Trade, interval: Interval, candle: Candle):
+    def from_trade(symbol: str, trade: Trade):
+        return Pair(symbol=symbol, trades=(trade,))
+
+    @staticmethod
+    def from_candle(symbol: str, interval: Interval = None, candle: Candle = None):
         graphs = (Graph.factory(interval=interval, candle=candle),)
-        return Pair(symbol=symbol, trades=(trade,), graphs=graphs)
+        return Pair(symbol=symbol, graphs=graphs)
 
     def __eq__(self, other) -> bool:
         if isinstance(other, str):
@@ -133,13 +154,13 @@ class Graph:
     candles: Tuple[Candle, ...] = field(default_factory=tuple)
     dataframe: DataFrame = field(default_factory=DataFrame)
 
-    def update(self, candle: Candle):
+    def candle(self, candle: Candle):
         candles = self.candles + (candle,)
         dataframe = self.dataframe.append(self.candles_to_df((candle,)))
         return replace(self, candles=candles, dataframe=dataframe)
 
     @staticmethod
-    def factory(interval: Interval, candle: Candle):
+    def from_candle(interval: Interval, candle: Candle):
         return Graph(interval=interval, candles=(candle,), dataframe=Graph.candles_to_df((candle,)))
 
     @staticmethod
@@ -159,3 +180,14 @@ class Graph:
             for candle in self.candles:
                 if candle.time == time:
                     return candle
+
+
+E = TypeVar("E")
+
+
+def update_tuple(t: Tuple[E, ...], key: Any, update: Callable[[E], E], factory: Callable[[], E]) -> tuple:
+    if key in t:
+        t = tuple(update(element) if element == key else element for element in t)
+    else:
+        t += (factory(),)
+    return t
