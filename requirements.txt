@@ -2,3 +2,5 @@ python-binance == 0.7.10
 python-telegram-bot == 13.5
 sly
 pandas
+pandas_ta
+ta
