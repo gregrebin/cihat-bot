@@ -107,7 +107,7 @@ class Pair:
 
     @staticmethod
     def from_candle(symbol: str, interval: Interval = None, candle: Candle = None):
-        graphs = (Graph.factory(interval=interval, candle=candle),)
+        graphs = (Graph.from_candle(interval=interval, candle=candle),)
         return Pair(symbol=symbol, graphs=graphs)
 
     def __eq__(self, other) -> bool:
