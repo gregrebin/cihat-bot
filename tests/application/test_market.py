@@ -60,10 +60,14 @@ class TestMarket(unittest.TestCase):
         interval4 = Interval(quantity=1, time_frame=TimeFrame.DAY)
         candle4 = Candle(time=1623184833e9, open=4, close=3, high=5, low=3, volume=40)
 
-        self.market = self.market.update("Binance", "BTCUSDT", trade1, interval1, candle1)
-        self.market = self.market.update("Binance", "BTCUSDT", trade2, interval2, candle2)
-        self.market = self.market.update("Binance", "BTCUSDT", trade3, interval3, candle3)
-        self.market = self.market.update("Binance", "BTCUSDT", trade4, interval4, candle4)
+        self.market = self.market.trade("Binance", "BTCUSDT", trade1)
+        self.market = self.market.candle("Binance", "BTCUSDT", interval1, candle1)
+        self.market = self.market.trade("Binance", "BTCUSDT", trade2)
+        self.market = self.market.candle("Binance", "BTCUSDT", interval2, candle2)
+        self.market = self.market.trade("Binance", "BTCUSDT", trade3)
+        self.market = self.market.candle("Binance", "BTCUSDT", interval3, candle3)
+        self.market = self.market.trade("Binance", "BTCUSDT", trade4)
+        self.market = self.market.candle("Binance", "BTCUSDT", interval4, candle4)
 
         self.assertEqual(len(self.market["Binance"]["BTCUSDT"].trades), 4)
         self.assertIn(trade1, self.market["Binance"]["BTCUSDT"].trades)
