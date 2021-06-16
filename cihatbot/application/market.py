@@ -78,7 +78,7 @@ class Pair:
     def update(self, trade: Trade, interval: Interval, candle: Candle) -> Pair:
         trades = self.trades + (trade,)
         if interval in self.graphs:
-            graphs = (graph.update(candle) if graph == interval else graph for graph in self.graphs)
+            graphs = tuple(graph.update(candle) if graph == interval else graph for graph in self.graphs)
         else:
             graph = Graph.factory(interval=interval, candle=candle)
             graphs = self.graphs + (graph,)
