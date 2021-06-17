@@ -1,10 +1,10 @@
 from __future__ import annotations
-from cihatbot.framework.module import Module
-from cihatbot.framework.events import Event
-from cihatbot.application.order import Order, Empty, Status
-from cihatbot.application.ui import Ui, AddOrderEvent, CancelOrderEvent, AddModuleEvent, ConfigEvent
-from cihatbot.application.trader import Trader
-from cihatbot.application.connector import Connector, UserEvent, TickerEvent, ExchangeEvent
+from mocobot.framework.module import Module
+from mocobot.framework.events import Event
+from mocobot.application.order import Order, Empty, Status
+from mocobot.application.ui import Ui, AddOrderEvent, CancelOrderEvent, AddModuleEvent, ConfigEvent
+from mocobot.application.trader import Trader
+from mocobot.application.connector import Connector, UserEvent, TickerEvent, ExchangeEvent
 from typing import List, Dict, Callable
 from configparser import SectionProxy
 

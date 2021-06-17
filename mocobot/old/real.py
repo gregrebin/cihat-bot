@@ -1,5 +1,5 @@
-from cihatbot.framework.events import Event
-from cihatbot.application.events import (
+from mocobot.framework.events import Event
+from mocobot.application.events import (
     ConnectEvent,
     AddOrderEvent,
     CancelOrderEvent,
@@ -14,10 +14,10 @@ from cihatbot.application.events import (
     RejectedEvent,
     ClockEvent
 )
-from cihatbot.application.trader import Trader
-from cihatbot.application.order import ExecutionOrder, EmptyExecutionOrder, SingleExecutionOrder, OrderStatus
-from cihatbot.application.connector import Connector, ConnectorException, FailedException
-from cihatbot.old.timer import Timer
+from mocobot.application.trader import Trader
+from mocobot.application.order import ExecutionOrder, EmptyExecutionOrder, SingleExecutionOrder, OrderStatus
+from mocobot.application.connector import Connector, ConnectorException, FailedException
+from mocobot.old.timer import Timer
 from configparser import SectionProxy
 
 

@@ -1,6 +1,6 @@
-from cihatbot.framework.module import Module
-from cihatbot.application.order import Order
-from cihatbot.application.connector import Connector, ExchangeEvent, TickerEvent, UserEvent
+from mocobot.framework.module import Module
+from mocobot.application.order import Order
+from mocobot.application.connector import Connector, ExchangeEvent, TickerEvent, UserEvent
 from configparser import SectionProxy
 from abc import abstractmethod
 from typing import Dict, Callable

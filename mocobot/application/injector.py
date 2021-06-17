@@ -1,13 +1,13 @@
-from cihatbot.framework.injector import Injector as ModuleInjector, Type, ModuleType
-from cihatbot.application.application import Application
-from cihatbot.application.session import Session
-from cihatbot.application.trader import Trader
-from cihatbot.traders.test import TestTrader
-from cihatbot.application.connector import Connector
-from cihatbot.connectors.test import TestConnector
-from cihatbot.connectors.binance import BinanceConnector
-from cihatbot.application.ui import Ui
-from cihatbot.uis.test import TestUi
+from mocobot.framework.injector import Injector as ModuleInjector, Type, ModuleType
+from mocobot.application.application import Application
+from mocobot.application.session import Session
+from mocobot.application.trader import Trader
+from mocobot.traders.test import TestTrader
+from mocobot.application.connector import Connector
+from mocobot.connectors.test import TestConnector
+from mocobot.connectors.binance import BinanceConnector
+from mocobot.application.ui import Ui
+from mocobot.uis.test import TestUi
 from configparser import SectionProxy
 
 

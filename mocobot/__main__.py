@@ -1,5 +1,5 @@
-from cihatbot.application.injector import Injector
-from cihatbot.application.application import Application
+from mocobot.application.injector import Injector
+from mocobot.application.application import Application
 from configparser import ConfigParser
 from signal import SIGINT, SIGTERM
 import asyncio
@@ -7,7 +7,7 @@ import asyncio
 
 async def main():
     configparser = ConfigParser()
-    configparser.read("cihatbot.local.cfg")
+    configparser.read("mocobot.local.cfg")
 
     injector = Injector(configparser)
     application = injector.inject(Application, "test_app")

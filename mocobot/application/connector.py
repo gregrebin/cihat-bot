@@ -1,6 +1,6 @@
-from cihatbot.framework.module import Module
-from cihatbot.framework.events import Event
-from cihatbot.application.order import SingleExecutionOrder, Status
+from mocobot.framework.module import Module
+from mocobot.framework.events import Event
+from mocobot.application.order import SingleExecutionOrder, Status
 from dataclasses import dataclass, field
 from configparser import SectionProxy
 from typing import Tuple

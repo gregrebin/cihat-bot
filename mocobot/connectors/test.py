@@ -1,6 +1,6 @@
-from cihatbot.application.connector import Connector
-from cihatbot.application.connector import TickerEvent
-from cihatbot.application.order import SingleExecutionOrder
+from mocobot.application.connector import Connector
+from mocobot.application.connector import TickerEvent
+from mocobot.application.order import SingleExecutionOrder
 from asyncio import sleep
 from typing import Tuple
 

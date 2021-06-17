@@ -1,5 +1,5 @@
-from cihatbot.framework.events import Event
-from cihatbot.application.events import (
+from mocobot.framework.events import Event
+from mocobot.application.events import (
     ConnectEvent,
     AddOrderEvent,
     CancelOrderEvent,
@@ -11,8 +11,8 @@ from cihatbot.application.events import (
     CancelledEvent,
     RejectedEvent
 )
-from cihatbot.application.ui import Ui
-from cihatbot.application.parser import Parser, InvalidString
+from mocobot.application.ui import Ui
+from mocobot.application.parser import Parser, InvalidString
 from telegram import Update
 from telegram.ext import Updater, CommandHandler, Filters, CallbackContext
 from configparser import SectionProxy

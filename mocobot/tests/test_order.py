@@ -1,4 +1,4 @@
-from cihatbot.application.order import Empty, Status, OrderLexer, OrderParser
+from mocobot.application.order import Empty, Status, OrderLexer, OrderParser
 import unittest
 
 

@@ -1,5 +1,5 @@
-from cihatbot.application.order import Order
-from cihatbot.application.ui import Ui, AddModuleEvent
+from mocobot.application.order import Order
+from mocobot.application.ui import Ui, AddModuleEvent
 from asyncio import sleep
 
 

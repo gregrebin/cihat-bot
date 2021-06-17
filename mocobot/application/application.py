@@ -1,7 +1,7 @@
 from __future__ import annotations
-from cihatbot.framework.module import Module
-from cihatbot.application.ui import AddModuleEvent, ConfigEvent
-from cihatbot.application.session import Session
+from mocobot.framework.module import Module
+from mocobot.application.ui import AddModuleEvent, ConfigEvent
+from mocobot.application.session import Session
 from typing import List, Dict, Callable
 from configparser import SectionProxy
 

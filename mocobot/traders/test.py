@@ -1,5 +1,5 @@
-from cihatbot.application.order import Order
-from cihatbot.application.trader import Trader
+from mocobot.application.order import Order
+from mocobot.application.trader import Trader
 
 
 class TestTrader(Trader):

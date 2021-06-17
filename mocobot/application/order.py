@@ -7,6 +7,7 @@ from dataclasses import dataclass, field, replace
 from abc import ABC, abstractmethod
 from sly import Lexer, Parser
 
+
 def new_uid():
     return uuid4().hex
 

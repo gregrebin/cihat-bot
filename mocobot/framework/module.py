@@ -1,8 +1,8 @@
 from __future__ import annotations
-from cihatbot.framework.logger import Logger
-from cihatbot.framework.events import Event, EventEmitter, EventListener
-from cihatbot.framework.scheduler import Scheduler
-from cihatbot.framework.injector import Injector
+from mocobot.framework.logger import Logger
+from mocobot.framework.events import Event, EventEmitter, EventListener
+from mocobot.framework.scheduler import Scheduler
+from mocobot.framework.injector import Injector
 from typing import List, Dict, Callable
 from configparser import SectionProxy
 from abc import ABC

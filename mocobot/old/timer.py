@@ -1,5 +1,5 @@
-from cihatbot.application.events import TimerEvent
-from cihatbot.framework.module import Module
+from mocobot.application.events import TimerEvent
+from mocobot.framework.module import Module
 from threading import Thread
 import asyncio
 import time

@@ -1,6 +1,6 @@
-from cihatbot.framework.module import Module
-from cihatbot.framework.events import Event
-from cihatbot.application.order import Order, Mode
+from mocobot.framework.module import Module
+from mocobot.framework.events import Event
+from mocobot.application.order import Order, Mode
 from configparser import SectionProxy
 from dataclasses import dataclass, field
 from abc import abstractmethod

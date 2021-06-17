@@ -1,4 +1,4 @@
-from cihatbot.application.market import Market, Trade, Interval, Candle, TimeFrame
+from mocobot.application.market import Market, Trade, Interval, Candle, TimeFrame
 import unittest
 from pandas import DataFrame, DatetimeIndex, read_csv
 import pandas_ta as ta
