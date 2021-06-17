@@ -1,5 +1,6 @@
-from mocobot.application.market import Market, Trade, Interval, Candle, TimeFrame
+from mocobot.application.market import Market, Trade, Interval, Candle, TimeFrame, Indicator
 import unittest
+from dataclasses import replace
 from pandas import DataFrame, DatetimeIndex, read_csv
 import pandas_ta as ta
 
@@ -50,7 +51,7 @@ class TestMarket(unittest.TestCase):
 
         trade2 = Trade(price=5, quantity=20)
         interval2 = Interval(quantity=1, time_frame=TimeFrame.HOUR)
-        candle2 = Candle(time=1623188433e9, open=4, close=5, high=5, low=4, volume=30)
+        candle2 = Candle(time=1623184933e9, open=4, close=5, high=5, low=4, volume=30)
 
         trade3 = Trade(price=4, quantity=3)
         interval3 = Interval(quantity=12, time_frame=TimeFrame.HOUR)
@@ -69,6 +70,9 @@ class TestMarket(unittest.TestCase):
         self.market = self.market.trade("Binance", "BTCUSDT", trade4)
         self.market = self.market.candle("Binance", "BTCUSDT", interval4, candle4)
 
+        sma = Indicator("sma", (("length", 2),))
+        self.market = self.market.indicator("Binance", "BTCUSDT", interval1, sma)
+
         self.assertEqual(len(self.market["Binance"]["BTCUSDT"].trades), 4)
         self.assertIn(trade1, self.market["Binance"]["BTCUSDT"].trades)
         self.assertIn(trade2, self.market["Binance"]["BTCUSDT"].trades)
@@ -76,11 +80,11 @@ class TestMarket(unittest.TestCase):
         self.assertIn(trade4, self.market["Binance"]["BTCUSDT"].trades)
         self.assertNotIn(Trade(), self.market["Binance"]["BTCUSDT"].trades)
 
-        self.assertEqual(len(self.market["Binance"]["BTCUSDT"].graphs), 3)
-        self.assertIn(interval1, self.market["Binance"]["BTCUSDT"].graphs)
-        self.assertIn(interval2, self.market["Binance"]["BTCUSDT"].graphs)
-        self.assertIn(interval3, self.market["Binance"]["BTCUSDT"].graphs)
-        self.assertIn(interval4, self.market["Binance"]["BTCUSDT"].graphs)
+        self.assertEqual(len(self.market["Binance"]["BTCUSDT"].charts), 3)
+        self.assertIn(interval1, self.market["Binance"]["BTCUSDT"].charts)
+        self.assertIn(interval2, self.market["Binance"]["BTCUSDT"].charts)
+        self.assertIn(interval3, self.market["Binance"]["BTCUSDT"].charts)
+        self.assertIn(interval4, self.market["Binance"]["BTCUSDT"].charts)
         self.assertEqual(interval1, interval2)
 
         self.assertEqual(len(self.market["Binance"]["BTCUSDT"][interval1].candles), 2)
@@ -93,6 +97,35 @@ class TestMarket(unittest.TestCase):
         self.assertIn(candle4, self.market["Binance"]["BTCUSDT"][interval4].candles)
 
         print(self.market["Binance"]["BTCUSDT"][interval1].dataframe)
+
+        for i in range(20):
+            candle2 = replace(candle2, time=(candle2.time+100e9))
+            self.market = self.market.candle("Binance", "BTCUSDT", interval1, candle2)
+
+        macd = Indicator("macd", (("fast", 8), ("slow", 41)))
+        self.market = self.market.indicator("Binance", "BTCUSDT", interval1, macd)
+        macd = Indicator("macd", (("fast", 8), ("slow", 21)))
+        self.market = self.market.indicator("Binance", "BTCUSDT", interval1, macd)
+
+        print(self.market["Binance"]["BTCUSDT"][interval1].dataframe)
+        print(self.market["Binance"]["BTCUSDT"][interval1].indicators)
+        print(self.market["Binance"]["BTCUSDT"][interval1].pending)
+
+        for i in range(20):
+            candle2 = replace(candle2, time=(candle2.time+100e9))
+            self.market = self.market.candle("Binance", "BTCUSDT", interval1, candle2)
+
+        print(self.market["Binance"]["BTCUSDT"][interval1].dataframe)
+        print(self.market["Binance"]["BTCUSDT"][interval1].indicators)
+        print(self.market["Binance"]["BTCUSDT"][interval1].pending)
+
+        for i in range(20):
+            candle2 = replace(candle2, time=(candle2.time+100e9))
+            self.market = self.market.candle("Binance", "BTCUSDT", interval1, candle2)
+
+        print(self.market["Binance"]["BTCUSDT"][interval1].dataframe)
+        print(self.market["Binance"]["BTCUSDT"][interval1].indicators)
+        print(self.market["Binance"]["BTCUSDT"][interval1].pending)
 
     def test_pandas_ta(self):
 

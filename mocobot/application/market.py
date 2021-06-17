@@ -34,6 +34,13 @@ class Market:
         )
         return replace(self, exchanges=exchanges)
 
+    def indicator(self, name: str, symbol: str, interval: Interval, indicator: Indicator):
+        """ Should be added to an existent chart, otherwise will be ignored """
+        exchanges = update_tuple(
+            self.exchanges, name, lambda exchange: exchange.indicator(symbol, interval, indicator),
+        )
+        return replace(self, exchanges=exchanges)
+
     def __getitem__(self, name) -> Exchange:
         if isinstance(name, str):
             for exchange in self.exchanges:
@@ -58,6 +65,12 @@ class Exchange:
         pairs = update_tuple(
             self.pairs, symbol, lambda pair: pair.candle(interval, candle),
             lambda: Pair.from_candle(symbol=symbol, interval=interval, candle=candle)
+        )
+        return replace(self, pairs=pairs)
+
+    def indicator(self, symbol: str, interval: Interval, indicator: Indicator):
+        pairs = update_tuple(
+            self.pairs, symbol, lambda pair: pair.indicator(interval, indicator)
         )
         return replace(self, pairs=pairs)
 
@@ -88,18 +101,24 @@ class Pair:
 
     symbol: str = ""
     trades: Tuple[Trade, ...] = field(default_factory=tuple)
-    graphs: Tuple[Graph, ...] = field(default_factory=tuple)
+    charts: Tuple[Chart, ...] = field(default_factory=tuple)
 
     def trade(self, trade: Trade):
         trades = self.trades + (trade,)
         return replace(self, trades=trades)
 
     def candle(self, interval: Interval, candle: Candle):
-        graphs = update_tuple(
-            self.graphs, interval, lambda graph: graph.candle(candle),
-            lambda: Graph.from_candle(interval=interval, candle=candle)
+        charts = update_tuple(
+            self.charts, interval, lambda chart: chart.candle(candle),
+            lambda: Chart.from_candle(interval=interval, candle=candle)
         )
-        return replace(self, graphs=graphs)
+        return replace(self, charts=charts)
+
+    def indicator(self, interval: Interval, indicator: Indicator):
+        charts = update_tuple(
+            self.charts, interval, lambda chart: chart.indicator(indicator)
+        )
+        return replace(self, charts=charts)
 
     @staticmethod
     def from_trade(symbol: str, trade: Trade):
@@ -107,17 +126,17 @@ class Pair:
 
     @staticmethod
     def from_candle(symbol: str, interval: Interval = None, candle: Candle = None):
-        graphs = (Graph.from_candle(interval=interval, candle=candle),)
-        return Pair(symbol=symbol, graphs=graphs)
+        charts = (Chart.from_candle(interval=interval, candle=candle),)
+        return Pair(symbol=symbol, charts=charts)
 
     def __eq__(self, other) -> bool:
         if isinstance(other, str):
             return other == self.symbol
         return super().__eq__(other)
 
-    def __getitem__(self, interval) -> Graph:
+    def __getitem__(self, interval) -> Chart:
         if isinstance(interval, Interval):
-            for pair in self.graphs:
+            for pair in self.charts:
                 if pair == interval:
                     return pair
 
@@ -148,27 +167,61 @@ class Candle:
 
 
 @dataclass(frozen=True)
-class Graph:
+class Chart:
 
     interval: Interval = field(default_factory=Interval)
     candles: Tuple[Candle, ...] = field(default_factory=tuple)
     dataframe: DataFrame = field(default_factory=DataFrame)
+    indicators: Tuple[Indicator, ...] = field(default_factory=tuple)
+    pending: Tuple[Indicator, ...] = field(default_factory=tuple)
 
     def candle(self, candle: Candle):
         candles = self.candles + (candle,)
         dataframe = self.dataframe.append(self.candles_to_df((candle,)))
-        return replace(self, candles=candles, dataframe=dataframe)
+        dataframe = self._ta(dataframe, self.indicators)
+        dataframe, indicators, pending = Chart._try_pending(dataframe, self.indicators, self.pending)
+        return replace(self, candles=candles, dataframe=dataframe, indicators=indicators, pending=pending)
+
+    def indicator(self, indicator: Indicator) -> Chart:
+        dataframe, indicators, pending = Chart._try_new(self.dataframe, indicator, self.indicators, self.pending)
+        return replace(self, dataframe=dataframe, indicators=indicators, pending=pending)
 
     @staticmethod
-    def from_candle(interval: Interval, candle: Candle):
-        return Graph(interval=interval, candles=(candle,), dataframe=Graph.candles_to_df((candle,)))
+    def from_candle(interval: Interval, candle: Candle) -> Chart:
+        return Chart(interval=interval, candles=(candle,), dataframe=Chart.candles_to_df((candle,)))
 
     @staticmethod
-    def candles_to_df(candles: Iterable[Candle]):
+    def candles_to_df(candles: Iterable[Candle]) -> DataFrame:
         return DataFrame(
             [[candle.time, candle.open, candle.high, candle.low, candle.close, candle.volume] for candle in candles],
             columns=["timestamp", "open", "high", "low", "close", "volume"],
             index=DatetimeIndex([candle.time for candle in candles]))
+
+    @staticmethod
+    def _ta(dataframe: DataFrame, indicators: Tuple[Indicator, ...]) -> DataFrame:
+        if indicators:
+            dataframe.ta.strategy(ta.Strategy(name="custom", ta=[indicator.to_dict() for indicator in indicators]))
+        return dataframe
+
+    @staticmethod
+    def _try_new(dataframe: DataFrame, indicator: Indicator, indicators: Tuple[Indicator, ...], pending: Tuple[Indicator, ...]) -> Tuple[DataFrame, Tuple[Indicator, ...], Tuple[Indicator, ...]]:
+        try:
+            dataframe = Chart._ta(dataframe, (indicator,))
+            indicators = indicators + (indicator,)
+        except IndexError:
+            pending = pending + (indicator,)
+        return dataframe, indicators, pending
+
+    @staticmethod
+    def _try_pending(dataframe: DataFrame, indicators: Tuple[Indicator, ...], pending: Tuple[Indicator, ...]) -> Tuple[DataFrame, Tuple[Indicator, ...], Tuple[Indicator, ...]]:
+        for indicator in pending:
+            try:
+                dataframe = Chart._ta(dataframe, (indicator,))
+                indicators += (indicator,)
+                pending = tuple(i for i in pending if i is not indicator)
+            except IndexError:
+                continue
+        return dataframe, indicators, pending
 
     def __eq__(self, other) -> bool:
         if isinstance(other, Interval):
@@ -182,12 +235,25 @@ class Graph:
                     return candle
 
 
+@dataclass(frozen=True)
+class Indicator:
+    """ Check https://github.com/twopirllc/pandas-ta for all the possibilities """
+    name: str
+    params: Tuple[Tuple[str, Any], ...] = field(default_factory=tuple)
+
+    def to_dict(self) -> Dict[str, Any]:
+        d = dict(self.params)
+        d["kind"] = self.name
+        return d
+
+
 E = TypeVar("E")
 
 
-def update_tuple(t: Tuple[E, ...], key: Any, update: Callable[[E], E], factory: Callable[[], E]) -> tuple:
-    if key in t:
+def update_tuple(t: Tuple[E, ...], key: Any, update: Callable[[E], E] = None, factory: Callable[[], E] = None) -> tuple:
+    present = key in t
+    if update and present:
         t = tuple(update(element) if element == key else element for element in t)
-    else:
+    elif factory and not present:
         t += (factory(),)
     return t
