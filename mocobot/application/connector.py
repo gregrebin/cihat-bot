@@ -1,6 +1,6 @@
 from mocobot.framework.module import Module
 from mocobot.framework.events import Event
-from mocobot.application.order import SingleExecutionOrder, Status
+from mocobot.application.order import Single, Status
 from dataclasses import dataclass, field
 from configparser import SectionProxy
 from typing import Tuple
@@ -21,11 +21,11 @@ class Connector(Module):
         self.events: Dict[str, Callable] = {}
 
     @abstractmethod
-    def submit(self, execution_order: SingleExecutionOrder) -> Tuple[int, float]:
+    def submit(self, execution_order: Single) -> Tuple[int, float]:
         pass
 
     @abstractmethod
-    def cancel(self, execution_order: SingleExecutionOrder) -> None:
+    def cancel(self, execution_order: Single) -> None:
         pass
 
 

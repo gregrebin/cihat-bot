@@ -1,6 +1,6 @@
 from mocobot.application.connector import Connector
 from mocobot.application.connector import TickerEvent
-from mocobot.application.order import SingleExecutionOrder
+from mocobot.application.order import Single
 from asyncio import sleep
 from typing import Tuple
 
@@ -14,8 +14,8 @@ class BinanceConnector(Connector):
             await sleep(5)
             self.emit(TickerEvent())
 
-    def submit(self, execution_order: SingleExecutionOrder) -> Tuple[int, float]:
+    def submit(self, execution_order: Single) -> Tuple[int, float]:
         pass
 
-    def cancel(self, execution_order: SingleExecutionOrder) -> None:
+    def cancel(self, execution_order: Single) -> None:
         pass
