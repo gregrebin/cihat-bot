@@ -8,10 +8,9 @@ from typing import Dict, Callable
 
 
 class Ui(Module):
-    log_name = __name__
 
-    def __init__(self, config: SectionProxy):
-        super().__init__(config)
+    def __init__(self, config: SectionProxy, log_name: str):
+        super().__init__(config, log_name)
         self.events: Dict[str, Callable] = {}
 
     @abstractmethod

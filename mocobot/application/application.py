@@ -7,10 +7,9 @@ from configparser import SectionProxy
 
 
 class Application(Module):
-    log_name = __name__
 
-    def __init__(self, config: SectionProxy) -> None:
-        super().__init__(config)
+    def __init__(self, config: SectionProxy, log_name: str) -> None:
+        super().__init__(config, log_name)
         self.sessions: List[Session] = []
         self.events: Dict[str, Callable] = {
             AddSessionEvent.name: self._add_session_event,

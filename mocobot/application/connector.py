@@ -12,10 +12,8 @@ class Connector(Module):
     ORDER_STATUS_FILLED = "FILLED"
     ORDER_STATUS_CANCELED = "CANCELED"
 
-    log_name = __name__
-
-    def __init__(self, config: SectionProxy, username: str, password: str):
-        super().__init__(config)
+    def __init__(self, config: SectionProxy, log_name: str, username: str, password: str):
+        super().__init__(config, log_name)
         self.username = username
         self.password = password
         self.events: Dict[str, Callable] = {}

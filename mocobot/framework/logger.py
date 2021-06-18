@@ -8,6 +8,9 @@ class Logger:
         self.logger: logging.Logger = logging.getLogger(name)
         self.logger.setLevel(level)
 
+        if self.logger.handlers:
+            return
+
         self.log_handler: logging.Handler = logging.StreamHandler()
         self.log_handler.setLevel(level)
 

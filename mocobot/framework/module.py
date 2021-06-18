@@ -39,10 +39,9 @@ class Module(ABC):
         termination logic
     """
 
-    log_name = __name__
-
-    def __init__(self, config: SectionProxy) -> None:
+    def __init__(self, config: SectionProxy, log_name: str) -> None:
         super().__init__()
+        self.log_name = log_name
         self.loop = asyncio.get_event_loop()
         self.config: SectionProxy = config
         self.logger: Logger = Logger(self.log_name, logging.INFO)
@@ -99,7 +98,7 @@ class Module(ABC):
 
     def log(self, message: str) -> None:
         self.logger.log(
-            logging.INFO, f"""{message} : {asyncio.current_task().get_name()} : {len(asyncio.all_tasks())}"""
+            logging.INFO, f"""{message} : {asyncio.current_task().get_name()} / {len(asyncio.all_tasks())}"""
         )
 
     async def stop(self):

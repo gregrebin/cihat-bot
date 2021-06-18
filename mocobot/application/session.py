@@ -9,10 +9,9 @@ from configparser import SectionProxy
 
 
 class Session(Module):
-    log_name = __name__
 
-    def __init__(self, config: SectionProxy) -> None:
-        super().__init__(config)
+    def __init__(self, config: SectionProxy, log_name: str) -> None:
+        super().__init__(config, log_name)
         self.order: Order = Empty()
         self.uis: List[Ui] = []
         self.traders: List[Trader] = []

@@ -7,12 +7,11 @@ from typing import Dict, Callable
 
 
 class Trader(Module):
-    log_name = __name__
 
     TIMER_INTERVAL = 0.02
 
-    def __init__(self, config: SectionProxy):
-        super().__init__(config)
+    def __init__(self, config: SectionProxy, log_name: str):
+        super().__init__(config, log_name)
         self.events: Dict[str, Callable] = {
             ExchangeEvent.name: self.emit,
             TickerEvent.name: self.emit,
