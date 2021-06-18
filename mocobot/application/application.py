@@ -18,7 +18,7 @@ class Application(Module):
         }
 
     def _add_module_event(self, event: AddModuleEvent):
-        self.add_session(self.injector.inject(Session, event.session_name))
+        self.add_session(self.injector.inject("session", event.session_name))
 
     def _config_event(self, event: ConfigEvent):
         self.config()

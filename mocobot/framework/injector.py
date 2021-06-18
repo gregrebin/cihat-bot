@@ -1,18 +1,5 @@
 from __future__ import annotations
-from configparser import ConfigParser
-from typing import Type, TypeVar, Callable
-
-
-ModuleType = TypeVar("ModuleType")
-
-
-def init(method: Callable) -> Callable:
-    def wrapped(self, module_type, name, **arguments) -> ModuleType:
-        module = method(self, module_type, name, **arguments)
-        module.injector = self
-        module.init()
-        return module
-    return wrapped
+from configparser import ConfigParser, SectionProxy
 
 
 class Injector:
@@ -20,7 +7,16 @@ class Injector:
     def __init__(self, config: ConfigParser):
         self.config = config
 
-    @init
-    def inject(self, module_type: Type[ModuleType], name: str, **arguments: str) -> ModuleType:
-        """ Returns the result of the method "name", keyword arguments can be passed to the method. """
-        return self.__getattribute__(name)(**arguments)
+    def inject(self, module: str, name: str, **arguments):
+        entry = self.__getattribute__(module)[name]
+        arguments = arguments if arguments else entry["args"]
+        instance = entry["type"](self.get_config(name), **arguments)
+        for submodule in entry["submodules"]:
+            sub_instance = self.inject(submodule["module"], submodule["name"])
+            instance.__getattribute__(submodule["add"])(sub_instance)
+        instance.injector = self
+        instance.init()
+        return instance
+
+    def get_config(self, section_name: str) -> SectionProxy:
+        return self.config[section_name] if section_name in self.config else {}
