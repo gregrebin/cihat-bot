@@ -1,5 +1,4 @@
 from mocobot.application.injector import Injector
-from mocobot.application.application import Application
 from configparser import ConfigParser
 from signal import SIGINT, SIGTERM
 from typing import Type, Callable

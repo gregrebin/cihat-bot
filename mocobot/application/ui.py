@@ -20,15 +20,33 @@ class Ui(Module):
 
 
 @dataclass
-class AddModuleEvent(Event):
-    """ Fires app.add_session, session.add_ui, session.add_trader, trader.add_connector """
+class AddSessionEvent(Event):
+    """ Fires app.add_session """
     session_name: str = ""
+    name: str = field(init=False, default="AddSessionEvent")
+
+
+@dataclass
+class AddUiEvent(Event):
+    """ Fires session.add_ui """
+    ui_name: str = ""
+    name: str = field(init=False, default="AddUiEvent")
+
+
+@dataclass
+class AddTraderEvent(Event):
+    """ Fires session.add_trader """
     trader_name: str = ""
+    name: str = field(init=False, default="AddTraderEvent")
+
+
+@dataclass
+class AddConnectorEvent(Event):
+    """ Fires trader.add_connector """
     connector_name: str = ""
     connector_username: str = ""
     connector_password: str = ""
-    ui_name: str = ""
-    name: str = field(init=False, default="AddModuleEvent")
+    name: str = field(init=False, default="AddConnectorEvent")
 
 
 @dataclass

@@ -1,10 +1,9 @@
 from __future__ import annotations
 from mocobot.framework.module import Module
-from mocobot.framework.events import Event
-from mocobot.application.order import Order, Empty, Status
-from mocobot.application.ui import Ui, AddOrderEvent, CancelOrderEvent, AddModuleEvent, ConfigEvent
+from mocobot.application.order import Order, Empty
+from mocobot.application.ui import Ui, AddOrderEvent, CancelOrderEvent, AddSessionEvent, AddUiEvent, AddTraderEvent, AddConnectorEvent, ConfigEvent
 from mocobot.application.trader import Trader
-from mocobot.application.connector import Connector, UserEvent, TickerEvent, ExchangeEvent
+from mocobot.application.connector import UserEvent, TickerEvent, ExchangeEvent
 from typing import List, Dict, Callable
 from configparser import SectionProxy
 
@@ -18,7 +17,10 @@ class Session(Module):
         self.uis: List[Ui] = []
         self.traders: List[Trader] = []
         self.events: Dict[str, Callable] = {
-            AddModuleEvent.name: self._add_module_event,
+            AddUiEvent.name: self._add_ui_event,
+            AddTraderEvent.name: self._add_trader_event,
+            AddConnectorEvent.name: self._add_connector_event,
+            AddSessionEvent.name: self.emit,
             ConfigEvent.name: self.emit,
             AddOrderEvent.name: self._add_order_event,
             CancelOrderEvent.name: self._cancel_order_event,
@@ -27,18 +29,17 @@ class Session(Module):
             UserEvent.name: self._user_event
         }
 
-    def _add_module_event(self, event: AddModuleEvent):
-        if event.ui_name:
-            self.add_ui(self.injector.inject("ui", event.ui_name))
-        if event.trader_name:
-            self.add_trader(self.injector.inject("trader", event.trader_name))
-        if event.connector_name and event.connector_username and event.connector_password:
-            for trader in self.traders:
-                trader.add_connector(self.injector.inject("connector", event.connector_name,
-                                                          username=event.connector_username,
-                                                          password=event.connector_password))
-        if event.session_name:
-            self.emit(event)
+    def _add_ui_event(self, event: AddUiEvent):
+        self.add_ui(self.injector.inject("ui", event.ui_name))
+
+    def _add_trader_event(self, event: AddTraderEvent):
+        self.add_trader(self.injector.inject("trader", event.trader_name))
+
+    def _add_connector_event(self, event: AddConnectorEvent):
+        for trader in self.traders:
+            trader.add_connector(self.injector.inject(
+                "connector", event.connector_name, username=event.connector_username, password=event.connector_password)
+            )
 
     def _add_order_event(self, event: AddOrderEvent):
         self.order.add(event.order, event.mode)
