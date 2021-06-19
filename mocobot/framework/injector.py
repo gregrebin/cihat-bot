@@ -1,79 +1,80 @@
 from __future__ import annotations
 from configparser import ConfigParser, SectionProxy
+from typing import Type
 
 
 class Injector:
 
+    modules = {}
+
     """
     Example:
 
-    app = {
-        "test_app": {
-            "type": Application,
-            "args": {},
-            "submodules": [
-                {"module": "session",
-                 "name": "test_session",
-                 "add": "add_session"}
-            ]
+    modules = {
+        
+        Application: {
+            "test_app": {
+                "type": Application,
+                "args": {},
+                "submodules": [
+                    {"category": Session,
+                     "name": "test_session"}
+                ]
+            }
+        },
+        
+        Session: {
+            "test_session": {
+                "type": Session,
+                "args": {},
+                "submodules": [
+                    {"category": Trader,
+                     "name": "test_trader"},
+                    {"category": Ui,
+                     "name": "test_ui"}
+                ]
+            }
+        },
+        
+        Ui: {
+            "test_ui": {
+                "type": TestUi,
+                "args": {},
+                "submodules": []
+            }
+        },
+        
+        Trader: {
+            "test_trader": {
+                "type": TestTrader,
+                "args": {},
+                "submodules": [
+                    {"category": Connector,
+                     "name": "test_connector"}
+                ]
+            }
+        },
+        
+        Connector: {
+            "test_connector": {
+                "type": TestConnector,
+                "args": {"username": "username", "password": "password"},
+                "submodules": []
+            }
         }
     }
-
-    session = {
-        "test_session": {
-            "type": Session,
-            "args": {},
-            "submodules": [
-                {"module": "trader",
-                 "name": "test_trader",
-                 "add": "add_trader"},
-                {"module": "ui",
-                 "name": "test_ui",
-                 "add": "add_ui"}
-            ]
-        }
-    }
-
-    trader = {
-        "test_trader": {
-            "type": TestTrader,
-            "args": {},
-            "submodules": [
-                {"module": "connector",
-                 "name": "test_connector",
-                 "add": "add_connector"}
-            ]
-        }
-    }
-
-    connector = {
-        "test_connector": {
-            "type": TestConnector,
-            "args": {"username": "username", "password": "password"},
-            "submodules": []
-        }
-    }
-
-    ui = {
-        "test_ui": {
-            "type": TestUi,
-            "args": {},
-            "submodules": []
-        }
-    }
-
     """
 
     def __init__(self, config: ConfigParser):
         self.config = config
 
-    def inject(self, module: str, name: str, **arguments):
-        entry = self.__getattribute__(module)[name]
+    def inject(self, category: Type, name: str, **arguments):
+        entry = self.modules[category][name]
         arguments = arguments if arguments else entry["args"]
-        instance = entry["type"](self.get_config(name), name, **arguments)
+        instance = entry["type"](self.get_config(name), category, name, **arguments)
         for submodule in entry["submodules"]:
-            sub_instance = self.inject(submodule["module"], submodule["name"])
-            instance.__getattribute__(submodule["add"])(sub_instance)
+            sub_instance = self.inject(submodule["category"], submodule["name"])
+            instance.add_submodule(sub_instance)
         instance.injector = self
         instance.init()
         return instance

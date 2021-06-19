@@ -12,7 +12,7 @@ from typing import Dict, List, Tuple, Any
 
 class BinanceConnector(Connector):
 
-    log_name = __name__
+    name = __name__
 
     BINANCE_ORDER_STATUS_NEW = "NEW"
     BINANCE_ORDER_STATUS_P_FILLED = "PARTIALLY_FILLED"

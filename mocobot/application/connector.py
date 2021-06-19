@@ -5,15 +5,15 @@ from dataclasses import dataclass, field
 from configparser import SectionProxy
 from typing import Tuple
 from abc import abstractmethod
-from typing import Dict, Callable
+from typing import Dict, Callable, Type
 
 
 class Connector(Module):
     ORDER_STATUS_FILLED = "FILLED"
     ORDER_STATUS_CANCELED = "CANCELED"
 
-    def __init__(self, config: SectionProxy, log_name: str, username: str, password: str):
-        super().__init__(config, log_name)
+    def __init__(self, config: SectionProxy,  category: Type, name: str, username: str, password: str):
+        super().__init__(config, category, name)
         self.username = username
         self.password = password
         self.events: Dict[str, Callable] = {}

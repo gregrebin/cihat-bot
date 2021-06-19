@@ -4,13 +4,13 @@ from mocobot.application.order import Order, Mode
 from configparser import SectionProxy
 from dataclasses import dataclass, field
 from abc import abstractmethod
-from typing import Dict, Callable
+from typing import Dict, Callable, Type
 
 
 class Ui(Module):
 
-    def __init__(self, config: SectionProxy, log_name: str):
-        super().__init__(config, log_name)
+    def __init__(self, config: SectionProxy, category: Type, name: str):
+        super().__init__(config, category, name)
         self.events: Dict[str, Callable] = {}
 
     @abstractmethod

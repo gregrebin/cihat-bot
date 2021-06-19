@@ -43,7 +43,7 @@ me@gregrebin.com """
 
 class Telegram(Ui):
 
-    log_name = __name__
+    name = __name__
 
     def __init__(self, config: SectionProxy, parser: Parser):
         super().__init__(config, parser)

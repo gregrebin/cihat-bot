@@ -23,7 +23,7 @@ from configparser import SectionProxy
 
 class RealTrader(Trader):
 
-    log_name = __name__
+    name = __name__
 
     def __init__(self, config: SectionProxy, connector: Connector, timer: Timer) -> None:
         super().__init__(config, connector, timer)

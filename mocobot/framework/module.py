@@ -3,11 +3,14 @@ from mocobot.framework.logger import Logger
 from mocobot.framework.events import Event, EventEmitter, EventListener
 from mocobot.framework.scheduler import Scheduler
 from mocobot.framework.injector import Injector
-from typing import List, Dict, Callable
+from typing import List, Dict, Callable, Type, TypeVar
 from configparser import SectionProxy
 from abc import ABC
 import logging
 import asyncio
+
+
+SubModuleType = TypeVar("SubModuleType")
 
 
 class Module(ABC):
@@ -39,12 +42,13 @@ class Module(ABC):
         termination logic
     """
 
-    def __init__(self, config: SectionProxy, log_name: str) -> None:
+    def __init__(self, config: SectionProxy, category: Type, name: str) -> None:
         super().__init__()
-        self.log_name = log_name
+        self.category = category if isinstance(self, category) else type(self)
+        self.name = name
         self.loop = asyncio.get_event_loop()
         self.config: SectionProxy = config
-        self.logger: Logger = Logger(self.log_name, logging.INFO)
+        self.logger: Logger = Logger(self.name, logging.INFO)
         self.emitter: EventEmitter = EventEmitter()
         self.listener: EventListener = EventListener()
         self.scheduler: Scheduler = Scheduler()
@@ -62,10 +66,16 @@ class Module(ABC):
         return self
 
     def add_submodule(self, submodule: Module) -> None:
-        self.log(f"""add_submodule {submodule.log_name}""")
+        self.log(f"""add_submodule {submodule.name}""")
         submodule.emitter.add_listener(self.listener)
         self.scheduler.schedule(submodule.run())
         self.submodules.append(submodule)
+
+    def get_category(self, category: Type[SubModuleType]) -> List[SubModuleType]:
+        return [submodule for submodule in self.submodules if submodule.category is category]
+
+    def get_name(self, category: Type[SubModuleType], name: str) -> List[SubModuleType]:
+        return [submodule for submodule in self.submodules if submodule.category == category and submodule.name == name]
 
     async def run(self) -> None:
         self.pre_run()

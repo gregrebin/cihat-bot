@@ -7,7 +7,7 @@ import time
 
 class Timer(Module):
 
-    log_name = __name__
+    name = __name__
 
     def __init__(self, interval: float) -> None:
         super().__init__({})
