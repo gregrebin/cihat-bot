@@ -22,21 +22,21 @@ class Ui(Module):
 class AddSessionEvent(Event):
     """ Fires app.add_session """
     session_name: str = ""
-    name: str = field(init=False, default="AddSessionEvent")
+    n: str = field(init=False, default="AddSessionEvent")
 
 
 @dataclass
 class AddUiEvent(Event):
     """ Fires session.add_ui """
     ui_name: str = ""
-    name: str = field(init=False, default="AddUiEvent")
+    n: str = field(init=False, default="AddUiEvent")
 
 
 @dataclass
 class AddTraderEvent(Event):
     """ Fires session.add_trader """
     trader_name: str = ""
-    name: str = field(init=False, default="AddTraderEvent")
+    n: str = field(init=False, default="AddTraderEvent")
 
 
 @dataclass
@@ -45,13 +45,13 @@ class AddConnectorEvent(Event):
     connector_name: str = ""
     connector_username: str = ""
     connector_password: str = ""
-    name: str = field(init=False, default="AddConnectorEvent")
+    n: str = field(init=False, default="AddConnectorEvent")
 
 
 @dataclass
 class ConfigEvent(Event):
     """ Fires app.config """
-    name: str = field(init=False, default="ConfigEvent")
+    n: str = field(init=False, default="ConfigEvent")
 
 
 @dataclass
@@ -59,11 +59,11 @@ class AddOrderEvent(Event):
     """ Fires trader.add """
     order: Order
     mode: Mode
-    name: str = field(init=False, default="AddOrderEvent")
+    n: str = field(init=False, default="AddOrderEvent")
 
 
 @dataclass
 class CancelOrderEvent(Event):
     """ Fires trader.cancel """
     uid: str
-    name: str = field(init=False, default="CancelOrderEvent")
+    n: str = field(init=False, default="CancelOrderEvent")

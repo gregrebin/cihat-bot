@@ -10,8 +10,8 @@ class Application(Module):
     def __init__(self, config: SectionProxy, category: Type, name: str) -> None:
         super().__init__(config, category, name)
         self.events: Dict[str, Callable] = {
-            AddSessionEvent.name: self._add_session_event,
-            ConfigEvent.name: self._config_event
+            AddSessionEvent.n: self._add_session_event,
+            ConfigEvent.n: self._config_event
         }
 
     def _add_session_event(self, event: AddSessionEvent):

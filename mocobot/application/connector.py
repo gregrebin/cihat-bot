@@ -1,6 +1,7 @@
 from mocobot.framework.module import Module
 from mocobot.framework.events import Event
 from mocobot.application.order import Single, Status
+from mocobot.application.market import Trade, Interval, Candle
 from dataclasses import dataclass, field
 from configparser import SectionProxy
 from typing import Tuple
@@ -38,15 +39,22 @@ class Connector(Module):
 
 
 @dataclass
-class ExchangeEvent(Event):
+class TradeEvent(Event):
     """ Fires trader.exchange_update """
-    name: str = field(init=False, default="ExchangeEvent")
+    name: str
+    symbol: str
+    trade: Trade
+    n: str = field(init=False, default="ExchangeEvent")
 
 
 @dataclass
-class TickerEvent(Event):
+class CandleEvent(Event):
     """ Fires trader.ticker_update """
-    name: str = field(init=False, default="TickerEvent")
+    name: str
+    symbol: str
+    interval: Interval
+    candle: Candle
+    n: str = field(init=False, default="TickerEvent")
 
 
 @dataclass
@@ -54,4 +62,4 @@ class UserEvent(Event):
     """ Fires ui.trades_update """
     uid: str
     status: Status
-    name: str = field(init=False, default="UserEvent")
+    n: str = field(init=False, default="UserEvent")

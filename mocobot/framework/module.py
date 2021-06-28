@@ -91,7 +91,7 @@ class Module(ABC):
 
     def on_event(self, event: Event) -> None:
         self.log(f"""on_event: {event}""")
-        self.events.get(event.name, lambda e: None)(event)
+        self.events.get(event.n, lambda e: None)(event)
 
     def on_stop(self) -> None:
         self.log("on_stop")

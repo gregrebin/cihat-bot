@@ -1,9 +1,10 @@
 from __future__ import annotations
 from mocobot.framework.module import Module
-from mocobot.application.order import Order, Empty
+from mocobot.application.order import Order, Empty, Status
+from mocobot.application.market import Market
 from mocobot.application.ui import Ui, AddOrderEvent, CancelOrderEvent, AddSessionEvent, AddUiEvent, AddTraderEvent, AddConnectorEvent, ConfigEvent
 from mocobot.application.trader import Trader
-from mocobot.application.connector import Connector, UserEvent, TickerEvent, ExchangeEvent
+from mocobot.application.connector import Connector, UserEvent, CandleEvent, TradeEvent
 from typing import List, Dict, Callable, Type
 from configparser import SectionProxy
 
@@ -13,19 +14,18 @@ class Session(Module):
     def __init__(self, config: SectionProxy, category: Type, name: str) -> None:
         super().__init__(config, category, name)
         self.order: Order = Empty()
-        # self.uis: List[Ui] = []
-        # self.traders: List[Trader] = []
+        self.market: Market = Market()
         self.events: Dict[str, Callable] = {
-            AddUiEvent.name: self._add_ui_event,
-            AddTraderEvent.name: self._add_trader_event,
-            AddConnectorEvent.name: self._add_connector_event,
-            AddSessionEvent.name: self.emit,
-            ConfigEvent.name: self.emit,
-            AddOrderEvent.name: self._add_order_event,
-            CancelOrderEvent.name: self._cancel_order_event,
-            ExchangeEvent.name: self._exchange_event,
-            TickerEvent.name: self._ticker_event,
-            UserEvent.name: self._user_event
+            AddUiEvent.n: self._add_ui_event,
+            AddTraderEvent.n: self._add_trader_event,
+            AddConnectorEvent.n: self._add_connector_event,
+            AddSessionEvent.n: self.emit,
+            ConfigEvent.n: self.emit,
+            AddOrderEvent.n: self._add_order_event,
+            CancelOrderEvent.n: self._cancel_order_event,
+            TradeEvent.n: self._trade_event,
+            CandleEvent.n: self._candle_event,
+            UserEvent.n: self._user_event
         }
 
     def _add_ui_event(self, event: AddUiEvent):
@@ -36,31 +36,32 @@ class Session(Module):
 
     def _add_connector_event(self, event: AddConnectorEvent):
         for trader in self.get_category(Trader):
-            trader.add_connector(self.injector.inject(
+            trader.add_submodule(self.injector.inject(
                 Connector, event.connector_name, username=event.connector_username, password=event.connector_password)
             )
 
     def _add_order_event(self, event: AddOrderEvent):
-        self.order.add(event.order, event.mode)
+        self.order = self.order.add(event.order, event.mode)
         for trader in self.get_category(Trader):
-            trader.add_order(self.order)
+            trader.add_order(self.order, self.market)
 
     def _cancel_order_event(self, event: CancelOrderEvent):
+        self.order = self.order.update(event.uid, Status.CANCELLED)
         for trader in self.get_category(Trader):
-            trader.cancel_order(self.order)
+            trader.cancel_order(self.order, self.market)
 
-    def _exchange_event(self, event: ExchangeEvent):
-        # update market
+    def _trade_event(self, event: TradeEvent):
+        self.market = self.market.trade(event.name, event.symbol, event.trade)
         for trader in self.get_category(Trader):
-            trader.exchange_update()  # pass market
+            trader.new_trade(self.order, self.market)
 
-    def _ticker_event(self, event: TickerEvent):
-        # update market
+    def _candle_event(self, event: CandleEvent):
+        self.market = self.market.candle(event.name, event.symbol, event.interval, event.candle)
         for trader in self.get_category(Trader):
-            trader.ticker_update()  # pass market
+            trader.new_candle(self.order, self.market)
 
     def _user_event(self, event: UserEvent):
-        self.order.update(event.uid, event.status)
+        self.order = self.order.update(event.uid, event.status)
         for ui in self.get_category(Ui):
             ui.trades_update(self.order)
 
