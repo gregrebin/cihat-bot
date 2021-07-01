@@ -4,14 +4,21 @@ from asyncio import sleep
 
 
 class TestUi(Ui):
-    name = __name__
+
+    def pre_run(self) -> None:
+        pass
 
     async def on_run(self) -> None:
-        await super().on_run()
         await sleep(10)
         self.emit(AddConnectorEvent(
             connector_name="test_connector", connector_username="test_username", connector_password="test_password")
         )
+
+    def on_stop(self) -> None:
+        pass
+
+    def post_run(self) -> None:
+        pass
 
     def trades_update(self, order: Order):
         pass

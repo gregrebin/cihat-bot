@@ -13,10 +13,13 @@ class Trader(Module):
 
     def __init__(self, config: SectionProxy, category: Type, name: str):
         super().__init__(config, category, name)
-        self.events: Dict[str, Callable] = {
-            TradeEvent.n: self.emit,
-            CandleEvent.n: self.emit,
-            UserEvent.n: self.emit
+
+    @property
+    def events(self) -> Dict[Type, Callable]:
+        return {
+            TradeEvent: self.emit,
+            CandleEvent: self.emit,
+            UserEvent: self.emit
         }
 
     @abstractmethod

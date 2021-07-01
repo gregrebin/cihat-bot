@@ -4,7 +4,18 @@ from mocobot.application.market import Market
 
 
 class TestTrader(Trader):
-    name = __name__
+
+    def pre_run(self) -> None:
+        pass
+
+    async def on_run(self) -> None:
+        pass
+
+    def on_stop(self) -> None:
+        pass
+
+    def post_run(self) -> None:
+        pass
 
     def add_order(self, order: Order, market: Market) -> None:
         pass

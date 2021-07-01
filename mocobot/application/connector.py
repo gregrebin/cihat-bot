@@ -17,7 +17,10 @@ class Connector(Module):
         super().__init__(config, category, name)
         self.username = username
         self.password = password
-        self.events: Dict[str, Callable] = {}
+
+    @property
+    def events(self) -> Dict[Type, Callable]:
+        return {}
 
     @abstractmethod
     def submit(self, execution_order: Single) -> Tuple[int, float]:
@@ -44,7 +47,6 @@ class TradeEvent(Event):
     name: str
     symbol: str
     trade: Trade
-    n: str = field(init=False, default="ExchangeEvent")
 
 
 @dataclass
@@ -54,7 +56,6 @@ class CandleEvent(Event):
     symbol: str
     interval: Interval
     candle: Candle
-    n: str = field(init=False, default="TickerEvent")
 
 
 @dataclass
@@ -62,4 +63,3 @@ class UserEvent(Event):
     """ Fires ui.trades_update """
     uid: str
     status: Status
-    n: str = field(init=False, default="UserEvent")

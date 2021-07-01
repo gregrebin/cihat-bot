@@ -5,7 +5,7 @@ from mocobot.framework.scheduler import Scheduler
 from mocobot.framework.injector import Injector
 from typing import List, Dict, Callable, Type, TypeVar
 from configparser import SectionProxy
-from abc import ABC
+from abc import ABC, abstractmethod
 import logging
 import asyncio
 
@@ -55,18 +55,15 @@ class Module(ABC):
         self.injector = Injector({})
         self.submodules: List[Module] = []
         self.is_running: bool = False
-        self.events: Dict[str, Callable] = {}
 
     def init(self) -> Module:
         async def listen() -> None:
             await self.listener.listen(self.on_event)
-        self.log(f"""init""")
         self.scheduler.schedule(listen())
         self.scheduler.schedule(self.on_run())
         return self
 
     def add_submodule(self, submodule: Module) -> None:
-        self.log(f"""add_submodule {submodule.name}""")
         submodule.emitter.add_listener(self.listener)
         self.scheduler.schedule(submodule.run())
         self.submodules.append(submodule)
@@ -78,29 +75,40 @@ class Module(ABC):
         return [submodule for submodule in self.submodules if submodule.category == category and submodule.name == name]
 
     async def run(self) -> None:
+        self.log("Start")
         self.pre_run()
         self.is_running = True
+        self.log("Running")
         await self.scheduler.run()
+        self.log("Stop")
         self.post_run()
+        self.log("Finished")
 
+    @abstractmethod
     def pre_run(self) -> None:
-        self.log("pre_run")
+        pass
 
+    @abstractmethod
     async def on_run(self) -> None:
-        self.log("on_run")
+        pass
 
     def on_event(self, event: Event) -> None:
-        self.log(f"""on_event: {event}""")
-        self.events.get(event.n, lambda e: None)(event)
+        self.events.get(event.__class__, lambda e: None)(event)
 
+    @property
+    @abstractmethod
+    def events(self) -> Dict[Type, Callable]:
+        pass
+
+    @abstractmethod
     def on_stop(self) -> None:
-        self.log("on_stop")
+        pass
 
+    @abstractmethod
     def post_run(self) -> None:
-        self.log("post_run")
+        pass
 
     def emit(self, event: Event, thread_safe: bool = True) -> None:
-        self.log(f"""emit: {event}""")
         if thread_safe:
             self.loop.call_soon_threadsafe(lambda: self.emitter.emit(event))
         else:

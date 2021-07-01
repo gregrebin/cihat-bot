@@ -1,7 +1,8 @@
-from mocobot.runtime import Runtime
+from mocobot.framework.runtime import Runtime
 from mocobot.application.injector import Injector
+from mocobot.application.application import Application
 
 
 if __name__ == '__main__':
-    Runtime(Injector, "mocobot.local.cfg").run("test_app")
+    Runtime(Injector, "mocobot.local.cfg").run(Application, "test_app")
 

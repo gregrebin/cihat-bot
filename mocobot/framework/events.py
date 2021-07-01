@@ -6,12 +6,12 @@ from dataclasses import dataclass, field
 
 @dataclass
 class Event:
-    n: str = field(init=False, default="Event")
+    pass
 
 
 @dataclass
 class StopEvent(Event):
-    n: str = field(init=False, default="StopEvent")
+    pass
 
 
 class EventListener:
@@ -24,7 +24,7 @@ class EventListener:
         while not stop:
             event = await self.queue.get()
             on_event(event)
-            stop = event.n == StopEvent.n
+            stop = event.__class__ == StopEvent
 
     async def stop(self):
         await self.queue.put(StopEvent())

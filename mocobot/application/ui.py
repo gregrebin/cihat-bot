@@ -11,7 +11,10 @@ class Ui(Module):
 
     def __init__(self, config: SectionProxy, category: Type, name: str):
         super().__init__(config, category, name)
-        self.events: Dict[str, Callable] = {}
+
+    @property
+    def events(self) -> Dict[Type, Callable]:
+        return {}
 
     @abstractmethod
     def trades_update(self, order: Order):
@@ -22,21 +25,18 @@ class Ui(Module):
 class AddSessionEvent(Event):
     """ Fires app.add_session """
     session_name: str = ""
-    n: str = field(init=False, default="AddSessionEvent")
 
 
 @dataclass
 class AddUiEvent(Event):
     """ Fires session.add_ui """
     ui_name: str = ""
-    n: str = field(init=False, default="AddUiEvent")
 
 
 @dataclass
 class AddTraderEvent(Event):
     """ Fires session.add_trader """
     trader_name: str = ""
-    n: str = field(init=False, default="AddTraderEvent")
 
 
 @dataclass
@@ -45,13 +45,12 @@ class AddConnectorEvent(Event):
     connector_name: str = ""
     connector_username: str = ""
     connector_password: str = ""
-    n: str = field(init=False, default="AddConnectorEvent")
 
 
 @dataclass
 class ConfigEvent(Event):
     """ Fires app.config """
-    n: str = field(init=False, default="ConfigEvent")
+    pass
 
 
 @dataclass
@@ -59,11 +58,9 @@ class AddOrderEvent(Event):
     """ Fires trader.add """
     order: Order
     mode: Mode
-    n: str = field(init=False, default="AddOrderEvent")
 
 
 @dataclass
 class CancelOrderEvent(Event):
     """ Fires trader.cancel """
     uid: str
-    n: str = field(init=False, default="CancelOrderEvent")

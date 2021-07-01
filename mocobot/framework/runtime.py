@@ -1,5 +1,4 @@
-from mocobot.application.injector import Injector
-from mocobot.application.application import Application
+from mocobot.framework.injector import Injector
 from configparser import ConfigParser
 from signal import SIGINT, SIGTERM
 from typing import Type, Callable
@@ -19,13 +18,13 @@ class Runtime:
         self.config_path = config_path
 
     @async_run
-    async def run(self, app_name: str):
+    async def run(self, app_type: Type, app_name: str):
 
         configparser = ConfigParser()
         configparser.read(self.config_path)
 
         injector = self.injector_class(configparser)
-        application = injector.inject(Application, app_name)
+        application = injector.inject(app_type, app_name)
 
         loop = asyncio.get_event_loop()
         loop.add_signal_handler(SIGINT, lambda: asyncio.create_task(application.stop()))
