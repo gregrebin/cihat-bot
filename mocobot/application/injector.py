@@ -6,7 +6,7 @@ from mocobot.application.trader import Trader
 from mocobot.application.connector import Connector
 from mocobot.traders.test import TestTrader
 from mocobot.connectors.test import TestConnector
-from mocobot.uis.test import TestUi
+from mocobot.uis.socket import SocketUi
 
 
 class Injector(ModuleInjector):
@@ -39,7 +39,7 @@ class Injector(ModuleInjector):
 
         Ui: {
             "test_ui": {
-                "type": TestUi,
+                "type": SocketUi,
                 "args": {},
                 "submodules": []
             }

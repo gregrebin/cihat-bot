@@ -224,3 +224,12 @@ class OrderParser(Parser):
     def base(self, p):
         return p.DECIMAL
 
+
+def parse(order: str) -> Order:
+    lexer = OrderLexer()
+    parser = OrderParser()
+    tokens = lexer.tokenize(order)
+    result = parser.parse(tokens)
+    return result
+
+

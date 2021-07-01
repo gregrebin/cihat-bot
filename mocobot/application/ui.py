@@ -17,7 +17,7 @@ class Ui(Module):
         return {}
 
     @abstractmethod
-    def trades_update(self, order: Order):
+    def update(self, order: Order):
         pass
 
 

@@ -57,12 +57,16 @@ class Session(Module):
         self.order = self.order.add(event.order, event.mode)
         for trader in self.get_category(Trader):
             trader.add_order(self.order, self.market)
+        for ui in self.get_category(Ui):
+            ui.update(self.order)
 
     def _cancel_order_event(self, event: CancelOrderEvent):
         self.log(f"""Cancelling order: {event.uid}""")
         self.order = self.order.update(event.uid, Status.CANCELLED)
         for trader in self.get_category(Trader):
             trader.cancel_order(self.order, self.market)
+        for ui in self.get_category(Ui):
+            ui.update(self.order)
 
     def _trade_event(self, event: TradeEvent):
         self.log(f"""New trade: {event.trade}""")
@@ -80,7 +84,7 @@ class Session(Module):
         self.log(f"""New user event: {event.uid} {event.status}""")
         self.order = self.order.update(event.uid, event.status)
         for ui in self.get_category(Ui):
-            ui.trades_update(self.order)
+            ui.update(self.order)
 
     def on_stop(self) -> None:
         pass
