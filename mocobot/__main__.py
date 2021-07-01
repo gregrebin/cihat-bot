@@ -4,5 +4,5 @@ from mocobot.application.application import Application
 
 
 if __name__ == '__main__':
-    Runtime(Injector, "mocobot.local.cfg").run(Application, "test_app")
+    Runtime(Injector, "mocobot.local.cfg").run(Application, "default_app")
 
