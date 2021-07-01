@@ -13,28 +13,32 @@ def new_uid():
 
 
 class Status(Enum):
-    NEW = auto()
-    SUBMITTED = auto()
-    CANCELLED = auto()
-    FILLED = auto()
-    REJECTED = auto()
+    NEW = "new"
+    SUBMITTED = "submitted"
+    CANCELLED = "cancelled"
+    FILLED = "filled"
+    REJECTED = "rejected"
 
 
 class Command(Enum):
-    BUY = auto()
-    SELL = auto()
+    BUY = "buy"
+    SELL = "sell"
 
 
 class Mode(Enum):
-    PARALLEL = auto()
-    SEQUENT = auto()
+    PARALLEL = "parallel"
+    SEQUENT = "sequent"
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class Order(ABC):
 
     status: Status = Status.NEW
     uid: str = field(default_factory=new_uid)
+
+    @staticmethod
+    def parse(order: str):
+        return OrderParser().parse(OrderLexer().tokenize(order))
 
     @abstractmethod
     def add(self, order: Order, mode: Mode) -> Order:
@@ -55,9 +59,18 @@ class Order(ABC):
     def _add_term(self, mode: Mode) -> Tuple[Order, ...]:
         return self,
 
+    def __repr__(self):
+        return self._repr_()
 
-@dataclass(frozen=True)
+    @abstractmethod
+    def _repr_(self, depth=0):
+        pass
+
+
+@dataclass(frozen=True, repr=False)
 class Empty(Order):
+
+    value: str = field(init=False, default="empty")
 
     def add(self, order: Order, mode: Mode) -> Order:
         return order
@@ -68,8 +81,11 @@ class Empty(Order):
     def update(self, uid: str, status: Status) -> Order:
         return self
 
+    def _repr_(self, depth=0):
+        return Empty.value
 
-@dataclass(frozen=True)
+
+@dataclass(frozen=True, repr=False)
 class Single(Order):
 
     # TODO: implement multiple prices, think better about conditions
@@ -97,11 +113,11 @@ class Single(Order):
         else:
             return self
 
-    def __repr__(self):
-        return f"""{self.command} {self.quote} {self.symbol} in {self.exchange} at {self.price} ({self.status} / {self.uid})"""
+    def _repr_(self, depth=0):
+        return f"""{self.command.value} {self.quote} {self.symbol} in {self.exchange} at {self.price} ({self.status.value} / {self.uid})"""
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class Multiple(Order):
 
     mode: Mode = Mode.PARALLEL
@@ -134,8 +150,10 @@ class Multiple(Order):
             orders = tuple(order.update(uid, status) for order in self.orders)
             return replace(self, orders=orders)
 
-    def __repr__(self):
-        return f"""[{self.mode} {", ".join(str(order) for order in self.orders)}]"""
+    def _repr_(self, depth=1):
+        tab = "\t" * depth
+        orders = ",\n".join(tab + order._repr_(depth=depth+1) for order in self.orders)
+        return f"""[{self.mode.value}\n{orders}]"""
 
 
 # Parser formal grammar:
@@ -157,20 +175,29 @@ class Multiple(Order):
 # noinspection PyUnresolvedReferences,PyUnboundLocalVariable,PyPep8Naming,PyRedeclaration,PyMethodMayBeStatic
 class OrderLexer(Lexer):
 
-    tokens = {COMMAND, MODE, IN, AT, FOR, COMMA, LBRACKET, RBRACKET, DECIMAL, STRING}
+    tokens = {EMPTY, COMMAND, MODE, IN, AT, FOR, COMMA, LBRACKET, RBRACKET, DECIMAL, STRING}
 
-    ignore = r" \t"
+    ignore = " \t\n\r"
 
-    COMMAND = r"(buy|sell)"
-    MODE = r"(parallel|sequent)"
-    IN = r"in"
-    AT = r"at"
-    FOR = r"for"
+    EMPTY = Empty.value
+    COMMAND = f"({Command.BUY.value}|{Command.SELL.value})"
+    MODE = f"({Mode.PARALLEL.value}|{Mode.SEQUENT.value})"
+    IN = "in"
+    AT = "at"
+    FOR = "for"
     COMMA = ","
-    LBRACKET = r"\["
-    RBRACKET = r"\]"
-    DECIMAL = r"\d+\.?\d*"
-    STRING = r"\w+"
+    LBRACKET = "\["
+    RBRACKET = "\]"
+    DECIMAL = "\d+\.?\d*"
+    STRING = "\w+"
+
+    def COMMAND(self, t):
+        t.value = Command(t.value)
+        return t
+
+    def MODE(self, t):
+        t.value = Mode(t.value)
+        return t
 
     def DECIMAL(self, t):
         t.value = float(t.value)
@@ -182,11 +209,15 @@ class OrderParser(Parser):
 
     tokens = OrderLexer.tokens
 
-    @_('single')
+    @_("EMPTY")
+    def order(self, p):
+        return Empty()
+
+    @_("single")
     def order(self, p):
         return p.single
 
-    @_('multiple')
+    @_("multiple")
     def order(self, p):
         return p.multiple
 
@@ -202,40 +233,33 @@ class OrderParser(Parser):
     def orders(self, p):
         return p.order,
 
-    @_('COMMAND quote symbol IN exchange AT price')
+    @_("COMMAND quote symbol IN exchange AT price")
     def single(self, p):
         return Single(command=p.COMMAND, quote=p.quote, symbol=p.symbol, exchange=p.exchange, price=p.price)
 
-    @_('COMMAND symbol IN exchange AT price FOR base')
+    @_("COMMAND symbol IN exchange AT price FOR base")
     def single(self, p):
         return Single(command=p.COMMAND, symbol=p.symbol, exchange=p.exchange, price=p.price, base=p.base)
 
-    @_('DECIMAL')
+    @_("DECIMAL")
     def quote(self, p):
         return p.DECIMAL
 
-    @_('STRING')
+    @_("STRING")
     def symbol(self, p):
         return p.STRING
 
-    @_('STRING')
+    @_("STRING")
     def exchange(self, p):
         return p.STRING
 
-    @_('DECIMAL')
+    @_("DECIMAL")
     def price(self, p):
         return p.DECIMAL
 
-    @_('DECIMAL')
+    @_("DECIMAL")
     def base(self, p):
         return p.DECIMAL
 
-
-def parse(order: str) -> Order:
-    lexer = OrderLexer()
-    parser = OrderParser()
-    tokens = lexer.tokenize(order)
-    result = parser.parse(tokens)
-    return result
 
 

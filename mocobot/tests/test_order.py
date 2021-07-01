@@ -1,4 +1,4 @@
-from mocobot.application.order import Empty, Status, OrderLexer, OrderParser
+from mocobot.application.order import Order, Empty, Status, OrderLexer, OrderParser, Mode, Command
 import unittest
 
 
@@ -20,14 +20,14 @@ class TestOrder(unittest.TestCase):
             print(f"""{token.type}: {token.value} with type {type(token.value)}""")
 
     def test_parser(self):
+        data = "empty"
         data = "buy 5 BTCUSDT in Binance at 20000"
         data = "buy BTCUSDT in Binance at 20000 for 1000"
+        data = "[parallel buy 5 BTCUSDT in Binance at 20000, buy 5 BTCUSDT in Binance at 20000]"
         data = "[parallel buy 5 BTCUSDT in Binance at 20000, [sequent buy 5 BTCUSDT in Binance at 30000, buy ETHUSDT in Coinbase at 2000 for 1000], buy 5 BTCUSDT in Binance at 20000]"
+        data = "[parallel buy 5 BTCUSDT in Binance at 20000, buy 5 BTCUSDT in Binance at 20000, [sequent buy 5 BTCUSDT in Binance at 30000, buy ETHUSDT in Coinbase at 2000 for 1000]]"
         data = "[parallel buy 5 BTCUSDT in Binance at 20000, [sequent [parallel buy 5 BTCUSDT in Binance at 30000, buy ETHUSDT in Coinbase at 2000 for 1000], buy ETHUSDT in Coinbase at 2000 for 1000], buy 5 BTCUSDT in Binance at 20000]"
-        lexer = OrderLexer()
-        parser = OrderParser()
-        tokens = lexer.tokenize(data)
-        result = parser.parse(tokens)
+        result = Order.parse(data)
         print(result)
 
 

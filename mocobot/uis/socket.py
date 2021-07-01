@@ -1,4 +1,4 @@
-from mocobot.application.order import Order, Mode, parse
+from mocobot.application.order import Order, Mode
 from mocobot.application.ui import Ui, AddTraderEvent, AddConnectorEvent, AddOrderEvent, CancelOrderEvent
 from asyncio import sleep, start_server, create_task
 from configparser import SectionProxy
@@ -37,9 +37,9 @@ class SocketUi(Ui):
             else:
                 self.emit(AddConnectorEvent(connector[0], connector[1], connector[2]))
         elif command == "parallel":
-            self.emit(AddOrderEvent(parse(content), Mode.PARALLEL))
+            self.emit(AddOrderEvent(Order.parse(content), Mode.PARALLEL))
         elif command == "sequent":
-            self.emit(AddOrderEvent(parse(content), Mode.SEQUENT))
+            self.emit(AddOrderEvent(Order.parse(content), Mode.SEQUENT))
         elif command == "cancel":
             self.emit(CancelOrderEvent(content))
         elif command == "show":
