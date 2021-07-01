@@ -36,8 +36,10 @@ class SocketUi(Ui):
                 writer.write("Syntax should be\n connector: name username password".encode())
             else:
                 self.emit(AddConnectorEvent(connector[0], connector[1], connector[2]))
-        elif command == "new":
+        elif command == "parallel":
             self.emit(AddOrderEvent(parse(content), Mode.PARALLEL))
+        elif command == "sequent":
+            self.emit(AddOrderEvent(parse(content), Mode.SEQUENT))
         elif command == "cancel":
             self.emit(CancelOrderEvent(content))
         elif command == "show":

@@ -97,6 +97,9 @@ class Single(Order):
         else:
             return self
 
+    def __repr__(self):
+        return f"""{self.command} {self.quote} {self.symbol} in {self.exchange} at {self.price} ({self.status} / {self.uid})"""
+
 
 @dataclass(frozen=True)
 class Multiple(Order):
@@ -130,6 +133,9 @@ class Multiple(Order):
         else:
             orders = tuple(order.update(uid, status) for order in self.orders)
             return replace(self, orders=orders)
+
+    def __repr__(self):
+        return f"""[{self.mode} {", ".join(str(order) for order in self.orders)}]"""
 
 
 # Parser formal grammar:
