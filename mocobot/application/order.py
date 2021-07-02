@@ -35,6 +35,7 @@ class Order(ABC):
 
     status: Status = Status.NEW
     uid: str = field(default_factory=new_uid)
+    eid: str = ""
 
     @staticmethod
     def parse(order: str):
@@ -49,7 +50,7 @@ class Order(ABC):
         pass
 
     @abstractmethod
-    def update(self, uid: str, status: Status) -> Order:
+    def update(self, uid: str, status: Status = None, eid: str = None) -> Order:
         pass
 
     def _add(self, order: Order, mode: Mode) -> Order:
@@ -78,7 +79,7 @@ class Empty(Order):
     def get(self, pending: bool = True) -> List[Order]:
         return []
 
-    def update(self, uid: str, status: Status) -> Order:
+    def update(self, uid: str, status: Status = None, eid: str = None) -> Order:
         return self
 
     def _repr_(self, depth=0):
@@ -90,7 +91,6 @@ class Single(Order):
 
     # TODO: implement multiple prices, think better about conditions
 
-    eid: str = ""
     exchange: str = ""
     command: Command = Command.BUY
     symbol: str = ""
@@ -98,6 +98,14 @@ class Single(Order):
     base: float = 0
     price: float = 0
     conditions: Dict[str, float] = field(default_factory=dict)
+
+    def __post_init__(self):
+        if not self.price:
+            return
+        if self.quote <= 0:
+            object.__setattr__(self, "quote", self.base / self.price)
+        else:
+            object.__setattr__(self, "base", self.quote * self.price)
 
     def add(self, order: Order, mode: Mode) -> Order:
         return super()._add(order, mode)
@@ -107,14 +115,16 @@ class Single(Order):
             return []
         return [self]
 
-    def update(self, uid: str, status: Status) -> Order:
+    def update(self, uid: str, status: Status = None, eid: str = None) -> Order:
         if self.uid == uid:
-            return replace(self, status=status)
+            status = status if status else self.status
+            eid = eid if eid else self.eid
+            return replace(self, status=status, eid=eid)
         else:
             return self
 
     def _repr_(self, depth=0):
-        return f"""{self.command.value} {self.quote} {self.symbol} in {self.exchange} at {self.price} ({self.status.value} / {self.uid})"""
+        return f"""{self.command.value} {self.quote} {self.symbol} in {self.exchange} at {self.price} for {self.base} ({self.status.value}-{self.uid}-{self.eid})"""
 
 
 @dataclass(frozen=True, repr=False)
@@ -143,11 +153,13 @@ class Multiple(Order):
                 break
         return result
 
-    def update(self, uid: str, status: Status) -> Order:
+    def update(self, uid: str, status: Status = None, eid: str = None) -> Order:
         if self.uid == uid:
-            return replace(self, status=status)
+            status = status if status else self.status
+            eid = eid if eid else self.eid
+            return replace(self, status=status, eid=eid)
         else:
-            orders = tuple(order.update(uid, status) for order in self.orders)
+            orders = tuple(order.update(uid, status, eid) for order in self.orders)
             return replace(self, orders=orders)
 
     def _repr_(self, depth=1):

@@ -23,11 +23,11 @@ class Connector(Module):
         return {}
 
     @abstractmethod
-    def submit(self, execution_order: Single) -> Tuple[int, float]:
+    def submit(self, execution_order: Single) -> str:
         pass
 
     @abstractmethod
-    def cancel(self, execution_order: Single) -> None:
+    def cancel(self, execution_order: Single) -> str:
         pass
 
 
