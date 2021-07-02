@@ -4,3 +4,4 @@ sly
 pandas
 pandas_ta
 ta
+bidict

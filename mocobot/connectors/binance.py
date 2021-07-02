@@ -1,15 +1,17 @@
-from mocobot.application.connector import Connector
+from mocobot.application.connector import Connector, TradeEvent, CandleEvent, UserEvent
 from mocobot.application.order import Single, Command
-from mocobot.application.market import Interval, TimeFrame
+from mocobot.application.market import Interval, TimeFrame, Trade, Candle
 from binance import Client, ThreadedWebsocketManager
 from binance.enums import *
+from bidict import bidict
 from typing import Tuple, Type
 from configparser import SectionProxy
 
 
 class BinanceConnector(Connector):
 
-    intervals = {
+    EXCHANGE = "binance"
+    INTERVALS = bidict({
         Interval(1, TimeFrame.MINUTE): KLINE_INTERVAL_1MINUTE,
         Interval(3, TimeFrame.MINUTE): KLINE_INTERVAL_3MINUTE,
         Interval(5, TimeFrame.MINUTE): KLINE_INTERVAL_5MINUTE,
@@ -25,7 +27,7 @@ class BinanceConnector(Connector):
         Interval(3, TimeFrame.DAY): KLINE_INTERVAL_3DAY,
         Interval(1, TimeFrame.WEEK): KLINE_INTERVAL_1WEEK,
         Interval(1, TimeFrame.MONTH): KLINE_INTERVAL_1MONTH
-    }
+    })
 
     def __init__(self, config: SectionProxy, category: Type, name: str, username: str, password: str):
         super().__init__(config, category, name, username, password)
@@ -34,11 +36,15 @@ class BinanceConnector(Connector):
 
     def pre_run(self) -> None:
         self.socket_manager.start()
-        print("binance socket started")
 
     async def on_run(self) -> None:
-        # self.start_trades("BTCBUSD")
+        self.socket_manager.start_user_socket()
         self.start_candles("BTCUSDT", Interval(1, TimeFrame.MINUTE))
+
+    def _user_handler(self, msg: dict):
+        print(msg)
+        # event = UserEvent()
+        # self.emit(event)
 
     def on_stop(self) -> None:
         pass
@@ -46,14 +52,37 @@ class BinanceConnector(Connector):
     def post_run(self) -> None:
         self.socket_manager.stop()
         self.socket_manager.join()
-        print("binance sockets stopped")
 
-    def start_trades(self, symbol: str):
-        self.socket_manager.start_aggtrade_socket(lambda msg: print(msg), symbol)
+    def start_trades(self, symbol: str) -> None:
+        self.socket_manager.start_aggtrade_socket(self._trade_handler, symbol)
 
-    def start_candles(self, symbol: str, interval: Interval):
-        if interval in BinanceConnector.intervals:
-            self.socket_manager.start_kline_socket(lambda msg: print(msg), symbol, BinanceConnector.intervals[interval])
+    def _trade_handler(self, msg: dict) -> None:
+        symbol = msg["s"]
+        price = msg["p"]
+        quantity = msg["q"]
+        trade = Trade(price=price, quantity=quantity)
+        event = TradeEvent(name=self.EXCHANGE, symbol=symbol, trade=trade)
+        self.emit(event)
+
+    def start_candles(self, symbol: str, interval: Interval) -> None:
+        if interval not in self.INTERVALS: return
+        self.socket_manager.start_kline_socket(self._candle_handler, symbol, BinanceConnector.INTERVALS[interval])
+
+    def _candle_handler(self, msg: dict) -> None:
+        closed = msg["k"]["x"]
+        msg_interval = msg["k"]["i"]
+        if not closed or msg_interval not in self.INTERVALS.inverse: return
+        symbol = msg["s"]
+        interval = self.INTERVALS.inverse[msg["k"]["i"]]
+        time = msg["k"]["t"]
+        open = msg["k"]["o"]
+        close = msg["k"]["c"]
+        high = msg["k"]["h"]
+        low = msg["k"]["l"]
+        volume = msg["k"]["v"]
+        candle = Candle(time=time, open=open, close=close, high=high, low=low, volume=volume)
+        event = CandleEvent(name=self.EXCHANGE, symbol=symbol, interval=interval, candle=candle)
+        self.emit(event)
 
     def submit(self, execution_order: Single) -> str:
         params = {"symbol": execution_order.symbol, "newClientOrderId": execution_order.uid,
