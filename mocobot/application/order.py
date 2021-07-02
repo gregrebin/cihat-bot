@@ -50,7 +50,11 @@ class Order(ABC):
         pass
 
     @abstractmethod
-    def update(self, uid: str, status: Status = None, eid: str = None) -> Order:
+    def set_eid(self, uid: str, eid: str) -> Order:
+        pass
+
+    @abstractmethod
+    def update_status(self, uid: str = None, eid: str = None, status: Status = None) -> Order:
         pass
 
     def _add(self, order: Order, mode: Mode) -> Order:
@@ -79,7 +83,10 @@ class Empty(Order):
     def get(self, pending: bool = True) -> List[Order]:
         return []
 
-    def update(self, uid: str, status: Status = None, eid: str = None) -> Order:
+    def set_eid(self, uid: str, eid: str) -> Order:
+        return self
+
+    def update_status(self, uid: str = None, eid: str = None, status: Status = None) -> Order:
         return self
 
     def _repr_(self, depth=0):
@@ -89,9 +96,10 @@ class Empty(Order):
 @dataclass(frozen=True, repr=False)
 class Single(Order):
 
+    exchange: str = ""
+
     # TODO: implement multiple prices, think better about conditions
 
-    exchange: str = ""
     command: Command = Command.BUY
     symbol: str = ""
     quote: float = 0
@@ -115,11 +123,16 @@ class Single(Order):
             return []
         return [self]
 
-    def update(self, uid: str, status: Status = None, eid: str = None) -> Order:
+    def set_eid(self, uid: str, eid: str) -> Order:
         if self.uid == uid:
+            return replace(self, eid=eid)
+        else:
+            return self
+
+    def update_status(self, uid: str = None, eid: str = None, status: Status = None) -> Order:
+        if (uid and self.uid == uid) or (eid and self.eid == eid):
             status = status if status else self.status
-            eid = eid if eid else self.eid
-            return replace(self, status=status, eid=eid)
+            return replace(self, status=status)
         else:
             return self
 
@@ -153,13 +166,19 @@ class Multiple(Order):
                 break
         return result
 
-    def update(self, uid: str, status: Status = None, eid: str = None) -> Order:
+    def set_eid(self, uid: str, eid: str) -> Order:
         if self.uid == uid:
-            status = status if status else self.status
-            eid = eid if eid else self.eid
-            return replace(self, status=status, eid=eid)
+            return replace(self, eid=eid)
         else:
-            orders = tuple(order.update(uid, status, eid) for order in self.orders)
+            orders = tuple(order.set_eid(uid=uid, eid=eid) for order in self.orders)
+            return replace(self, orders=orders)
+
+    def update_status(self, uid: str = None, eid: str = None, status: Status = None) -> Order:
+        if (uid and self.uid == uid) or (eid and self.eid == eid):
+            status = status if status else self.status
+            return replace(self, status=status)
+        else:
+            orders = tuple(order.update_status(uid=uid, eid=eid, status=status) for order in self.orders)
             return replace(self, orders=orders)
 
     def _repr_(self, depth=1):

@@ -1,5 +1,5 @@
 from mocobot.application.connector import Connector, TradeEvent, CandleEvent, UserEvent
-from mocobot.application.order import Single, Command
+from mocobot.application.order import Single, Command, Status
 from mocobot.application.market import Interval, TimeFrame, Trade, Candle
 from binance import Client, ThreadedWebsocketManager
 from binance.enums import *
@@ -26,8 +26,16 @@ class BinanceConnector(Connector):
         Interval(1, TimeFrame.DAY): KLINE_INTERVAL_1DAY,
         Interval(3, TimeFrame.DAY): KLINE_INTERVAL_3DAY,
         Interval(1, TimeFrame.WEEK): KLINE_INTERVAL_1WEEK,
-        Interval(1, TimeFrame.MONTH): KLINE_INTERVAL_1MONTH
+        Interval(1, TimeFrame.MONTH): KLINE_INTERVAL_1MONTH,
     })
+    STATUS = {
+        ORDER_STATUS_NEW: Status.SUBMITTED,
+        ORDER_STATUS_PARTIALLY_FILLED: Status.SUBMITTED,
+        ORDER_STATUS_FILLED: Status.FILLED,
+        ORDER_STATUS_CANCELED: Status.CANCELLED,
+        ORDER_STATUS_REJECTED: Status.REJECTED,
+        ORDER_STATUS_EXPIRED: Status.REJECTED,
+    }
 
     def __init__(self, config: SectionProxy, category: Type, name: str, username: str, password: str):
         super().__init__(config, category, name, username, password)
@@ -42,9 +50,15 @@ class BinanceConnector(Connector):
         self.start_candles("BTCUSDT", Interval(1, TimeFrame.MINUTE))
 
     def _user_handler(self, msg: dict):
-        print(msg)
-        # event = UserEvent()
-        # self.emit(event)
+        event_type = msg["e"]
+        if not event_type == "executionReport": return
+        msg_status = msg["X"]
+        if msg_status not in self.STATUS: return
+        status = self.STATUS[msg_status]
+        uid = msg["c"]
+        eid = msg["i"]
+        event = UserEvent(uid=uid, eid=eid, status=status)
+        self.emit(event)
 
     def on_stop(self) -> None:
         pass

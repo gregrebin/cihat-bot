@@ -70,4 +70,5 @@ class CandleEvent(Event):
 class UserEvent(Event):
     """ Fires ui.trades_update """
     uid: str
+    eid: str
     status: Status
