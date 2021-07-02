@@ -23,6 +23,14 @@ class Connector(Module):
         return {}
 
     @abstractmethod
+    def start_trades(self, symbol: str) -> None:
+        pass
+
+    @abstractmethod
+    def start_candles(self, symbol: str, interval: Interval) -> None:
+        pass
+
+    @abstractmethod
     def submit(self, execution_order: Single) -> str:
         pass
 

@@ -18,13 +18,13 @@ class Runtime:
         self.config_path = config_path
 
     @async_run
-    async def run(self, app_type: Type, app_name: str):
+    async def run(self, app_type: Type, app_name: str, **arguments):
 
         configparser = ConfigParser()
         configparser.read(self.config_path)
 
         injector = self.injector_class(configparser)
-        application = injector.inject(app_type, app_name)
+        application = injector.inject(app_type, app_name, **arguments)
 
         loop = asyncio.get_event_loop()
         loop.add_signal_handler(SIGINT, lambda: asyncio.create_task(application.stop()))

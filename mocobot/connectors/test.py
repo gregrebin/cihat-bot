@@ -22,8 +22,14 @@ class TestConnector(Connector):
     def post_run(self) -> None:
         pass
 
-    def submit(self, execution_order: Single) -> Tuple[int, float]:
+    def start_trades(self, symbol: str) -> None:
         pass
 
-    def cancel(self, execution_order: Single) -> None:
+    def start_candles(self, symbol: str, interval: Interval) -> None:
+        pass
+
+    def submit(self, execution_order: Single) -> str:
+        pass
+
+    def cancel(self, execution_order: Single) -> str:
         pass
