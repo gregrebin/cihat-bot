@@ -1,6 +1,7 @@
 from mocobot.framework.module import Module
 from mocobot.framework.events import Event
 from mocobot.application.order import Order, Mode
+from mocobot.application.market import Market
 from configparser import SectionProxy
 from dataclasses import dataclass, field
 from abc import abstractmethod
@@ -17,7 +18,7 @@ class Ui(Module):
         return {}
 
     @abstractmethod
-    def update(self, order: Order):
+    def update(self, order: Order, market: Market):
         pass
 
 

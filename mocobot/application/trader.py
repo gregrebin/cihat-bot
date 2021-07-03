@@ -4,7 +4,11 @@ from mocobot.application.market import Market
 from mocobot.application.connector import Connector, TradeEvent, CandleEvent, UserEvent
 from configparser import SectionProxy
 from abc import abstractmethod
-from typing import Dict, Callable, Type
+from typing import Dict, Callable, Type, Tuple
+from collections import namedtuple
+
+
+Submit = namedtuple("Submit", "uid eid")
 
 
 class Trader(Module):
@@ -23,17 +27,6 @@ class Trader(Module):
         }
 
     @abstractmethod
-    def add_order(self, order: Order, market: Market) -> None:
+    def update(self, order: Order, market: Market) -> Tuple[Submit, ...]:
         pass
 
-    @abstractmethod
-    def cancel_order(self, order: Order, market: Market) -> None:
-        pass
-
-    @abstractmethod
-    def new_trade(self, order: Order, market: Market) -> None:
-        pass
-
-    @abstractmethod
-    def new_candle(self, order: Order, market: Market) -> None:
-        pass

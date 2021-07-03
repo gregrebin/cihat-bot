@@ -55,36 +55,35 @@ class Session(Module):
     def _add_order_event(self, event: AddOrderEvent):
         self.log(f"""Adding new order: {event.order}""")
         self.order = self.order.add(event.order, event.mode)
-        for trader in self.get_category(Trader):
-            trader.add_order(self.order, self.market)
-        for ui in self.get_category(Ui):
-            ui.update(self.order)
+        self._update()
 
     def _cancel_order_event(self, event: CancelOrderEvent):
         self.log(f"""Cancelling order: {event.uid}""")
         self.order = self.order.update_status(event.uid, Status.CANCELLED)
-        for trader in self.get_category(Trader):
-            trader.cancel_order(self.order, self.market)
-        for ui in self.get_category(Ui):
-            ui.update(self.order)
+        self._update()
 
     def _trade_event(self, event: TradeEvent):
         self.log(f"""New trade: {event.trade}""")
         self.market = self.market.trade(event.name, event.symbol, event.trade)
-        for trader in self.get_category(Trader):
-            trader.new_trade(self.order, self.market)
+        self._update()
 
     def _candle_event(self, event: CandleEvent):
         self.log(f"""New candle: {event.candle}""")
         self.market = self.market.candle(event.name, event.symbol, event.interval, event.candle)
-        for trader in self.get_category(Trader):
-            trader.new_candle(self.order, self.market)
+        self._update()
 
     def _user_event(self, event: UserEvent):
         self.log(f"""New user event: {event.uid} {event.status}""")
         self.order = self.order.update_status(uid=event.uid, eid=event.eid, status=event.status)
+        self._update()
+
+    def _update(self):
+        for trader in self.get_category(Trader):
+            submits = trader.update(self.order, self.market)
+            for submit in submits:
+                self.order = self.order.set_eid(submit.uid, submit.eid)
         for ui in self.get_category(Ui):
-            ui.update(self.order)
+            ui.update(self.order, self.market)
 
     def on_stop(self) -> None:
         pass

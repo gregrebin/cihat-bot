@@ -1,6 +1,6 @@
 from __future__ import annotations
 from threading import Lock
-from typing import List, Callable, Dict, Tuple
+from typing import List, Callable, Dict, Tuple, Generator
 from uuid import uuid4, UUID
 from enum import Enum, auto
 from dataclasses import dataclass, field, replace
@@ -33,9 +33,9 @@ class Mode(Enum):
 @dataclass(frozen=True, repr=False)
 class Order(ABC):
 
-    status: Status = Status.NEW
-    uid: str = field(default_factory=new_uid)
-    eid: str = ""
+    # status: Status = Status.NEW
+    # uid: str = field(default_factory=new_uid)
+    # eid: str = ""
 
     @staticmethod
     def parse(order: str):
@@ -46,7 +46,11 @@ class Order(ABC):
         pass
 
     @abstractmethod
-    def get(self, pending: bool = True) -> List[Order]:
+    def cancel(self, uid: str) -> Order:
+        pass
+
+    @abstractmethod
+    def get(self, pending: bool = True) -> Generator[Single, bool, None]:
         pass
 
     @abstractmethod
@@ -80,8 +84,12 @@ class Empty(Order):
     def add(self, order: Order, mode: Mode) -> Order:
         return order
 
-    def get(self, pending: bool = True) -> List[Order]:
-        return []
+    def cancel(self, uid: str) -> Order:
+        return self
+
+    def get(self, pending: bool = True) -> Generator[Single, bool, None]:
+        return
+        yield
 
     def set_eid(self, uid: str, eid: str) -> Order:
         return self
@@ -96,11 +104,13 @@ class Empty(Order):
 @dataclass(frozen=True, repr=False)
 class Single(Order):
 
-    exchange: str = ""
-
-    # TODO: implement multiple prices, think better about conditions
+    status: Status = Status.NEW
+    to_cancel: bool = False
+    uid: str = field(default_factory=new_uid)
+    eid: str = ""
 
     command: Command = Command.BUY
+    exchange: str = ""
     symbol: str = ""
     quote: float = 0
     base: float = 0
@@ -118,10 +128,17 @@ class Single(Order):
     def add(self, order: Order, mode: Mode) -> Order:
         return super()._add(order, mode)
 
-    def get(self, pending: bool = True) -> List[Order]:
-        if pending and self.status is not Status.NEW:
-            return []
-        return [self]
+    def cancel(self, uid: str) -> Order:
+        if self.uid == uid and self.status is Status.NEW:
+            return replace(self, status=Status.CANCELLED)
+        elif self.uid == uid and self.status is Status.SUBMITTED:
+            return replace(self, to_cancel=True)
+        return self
+
+    def get(self, pending: bool = True) -> Generator[Single, bool, None]:
+        if pending and self.status not in (Status.NEW, Status.SUBMITTED):
+            return
+        yield self
 
     def set_eid(self, uid: str, eid: str) -> Order:
         if self.uid == uid:
@@ -155,31 +172,26 @@ class Multiple(Order):
         else:
             return self,
 
-    def get(self, pending: bool = True) -> List[Order]:
-        if pending and self.status is not Status.NEW:
-            return []
-        result = []
+    def cancel(self, uid: str) -> Order:
+        orders = tuple(order.cancel(uid) for order in self.orders)
+        return replace(self, orders=orders)
+
+    def get(self, pending: bool = True) -> Generator[Single, bool, None]:
         for order in self.orders:
-            orders = order.get(pending)
-            result += orders
-            if self.mode is Mode.SEQUENT and pending and orders:
+            empty = True
+            for result in order.get(pending=pending):
+                empty = False
+                yield result
+            if pending and self.mode is Mode.SEQUENT and not empty:
                 break
-        return result
 
     def set_eid(self, uid: str, eid: str) -> Order:
-        if self.uid == uid:
-            return replace(self, eid=eid)
-        else:
-            orders = tuple(order.set_eid(uid=uid, eid=eid) for order in self.orders)
-            return replace(self, orders=orders)
+        orders = tuple(order.set_eid(uid=uid, eid=eid) for order in self.orders)
+        return replace(self, orders=orders)
 
     def update_status(self, uid: str = None, eid: str = None, status: Status = None) -> Order:
-        if (uid and self.uid == uid) or (eid and self.eid == eid):
-            status = status if status else self.status
-            return replace(self, status=status)
-        else:
-            orders = tuple(order.update_status(uid=uid, eid=eid, status=status) for order in self.orders)
-            return replace(self, orders=orders)
+        orders = tuple(order.update_status(uid=uid, eid=eid, status=status) for order in self.orders)
+        return replace(self, orders=orders)
 
     def _repr_(self, depth=1):
         tab = "\t" * depth

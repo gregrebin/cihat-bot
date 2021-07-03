@@ -1,21 +1,11 @@
+from typing import Tuple
+
 from mocobot.application.market import Market
 from mocobot.application.order import Order
-from mocobot.application.trader import Trader
+from mocobot.application.trader import Trader, Submit
 
 
 class RealTrader(Trader):
-
-    def add_order(self, order: Order, market: Market) -> None:
-        pass
-
-    def cancel_order(self, order: Order, market: Market) -> None:
-        pass
-
-    def new_trade(self, order: Order, market: Market) -> None:
-        pass
-
-    def new_candle(self, order: Order, market: Market) -> None:
-        pass
 
     def pre_run(self) -> None:
         pass
@@ -27,4 +17,7 @@ class RealTrader(Trader):
         pass
 
     def post_run(self) -> None:
+        pass
+
+    def update(self, order: Order, market: Market) -> Tuple[Submit, ...]:
         pass
