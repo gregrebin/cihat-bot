@@ -33,10 +33,6 @@ class Mode(Enum):
 @dataclass(frozen=True, repr=False)
 class Order(ABC):
 
-    # status: Status = Status.NEW
-    # uid: str = field(default_factory=new_uid)
-    # eid: str = ""
-
     @staticmethod
     def parse(order: str):
         return OrderParser().parse(OrderLexer().tokenize(order))
@@ -130,7 +126,8 @@ class Single(Order):
 
     def cancel(self, uid: str) -> Order:
         if self.uid == uid and self.status is Status.NEW:
-            return replace(self, status=Status.CANCELLED)
+            order = replace(self, status=Status.CANCELLED)
+            return order
         elif self.uid == uid and self.status is Status.SUBMITTED:
             return replace(self, to_cancel=True)
         return self
@@ -154,7 +151,7 @@ class Single(Order):
             return self
 
     def _repr_(self, depth=0):
-        return f"""{self.command.value} {self.quote} {self.symbol} in {self.exchange} at {self.price} for {self.base} ({self.status.value}-{self.uid}-{self.eid})"""
+        return f"""{self.command.value} {self.quote} {self.symbol} in {self.exchange} at {self.price} for {self.base} ({self.status.value if not self.to_cancel else "to_cancel"}-{self.uid}-{self.eid})"""
 
 
 @dataclass(frozen=True, repr=False)

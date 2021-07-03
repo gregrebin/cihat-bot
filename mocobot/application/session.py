@@ -59,7 +59,7 @@ class Session(Module):
 
     def _cancel_order_event(self, event: CancelOrderEvent):
         self.log(f"""Cancelling order: {event.uid}""")
-        self.order = self.order.update_status(event.uid, Status.CANCELLED)
+        self.order = self.order.cancel(event.uid)
         self._update()
 
     def _trade_event(self, event: TradeEvent):
