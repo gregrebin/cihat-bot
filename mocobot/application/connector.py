@@ -22,6 +22,11 @@ class Connector(Module):
     def events(self) -> Dict[Type, Callable]:
         return {}
 
+    @property
+    @abstractmethod
+    def exchange(self) -> str:
+        pass
+
     @abstractmethod
     def start_trades(self, symbol: str) -> None:
         pass

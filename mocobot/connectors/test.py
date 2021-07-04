@@ -8,13 +8,17 @@ from typing import Tuple
 
 class TestConnector(Connector):
 
+    @property
+    def exchange(self) -> str:
+        return "test"
+
     def pre_run(self) -> None:
         pass
 
     async def on_run(self) -> None:
         while self.is_running:
             await sleep(3)
-            self.emit(CandleEvent(name="Binance", symbol="BTCUSDT", interval=Interval(), candle=Candle()))
+            self.emit(CandleEvent(name="test", symbol="BTCUSDT", interval=Interval(), candle=Candle()))
 
     def on_stop(self) -> None:
         pass

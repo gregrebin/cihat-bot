@@ -11,6 +11,7 @@ from configparser import SectionProxy
 class BinanceConnector(Connector):
 
     EXCHANGE = "binance"
+
     INTERVALS = bidict({
         Interval(1, TimeFrame.MINUTE): KLINE_INTERVAL_1MINUTE,
         Interval(3, TimeFrame.MINUTE): KLINE_INTERVAL_3MINUTE,
@@ -42,11 +43,15 @@ class BinanceConnector(Connector):
         self.client: Client = Client(username, password)
         self.socket_manager: ThreadedWebsocketManager = ThreadedWebsocketManager(username, password)
 
+    @property
+    def exchange(self) -> str:
+        return self.EXCHANGE
+
     def pre_run(self) -> None:
         self.socket_manager.start()
 
     async def on_run(self) -> None:
-        self.socket_manager.start_user_socket()
+        self.socket_manager.start_user_socket(self._user_handler)
         self.start_candles("BTCUSDT", Interval(1, TimeFrame.MINUTE))
 
     def _user_handler(self, msg: dict):
