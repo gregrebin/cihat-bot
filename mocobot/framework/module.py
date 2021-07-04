@@ -6,6 +6,7 @@ from mocobot.framework.injector import Injector
 from typing import List, Dict, Callable, Type, TypeVar
 from configparser import SectionProxy
 from abc import ABC, abstractmethod
+import functools
 import logging
 import asyncio
 
@@ -71,8 +72,14 @@ class Module(ABC):
     def get_category(self, category: Type[SubModuleType]) -> List[SubModuleType]:
         return [submodule for submodule in self.submodules if submodule.category is category]
 
-    def get_name(self, category: Type[SubModuleType], name: str) -> List[SubModuleType]:
-        return [submodule for submodule in self.submodules if submodule.category == category and submodule.name == name]
+    def get_submodule(self, category: Type[SubModuleType], **attributes) -> List[SubModuleType]:
+        return [submodule
+                for submodule
+                in self.submodules
+                if submodule.category is category
+                and functools.reduce(lambda b1, b2: b1 and b2,
+                                     (submodule.__getattribute__(k) == v for k, v in attributes.items()),
+                                     True)]
 
     async def run(self) -> None:
         self.log("Start")

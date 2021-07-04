@@ -47,7 +47,7 @@ class Session(Module):
 
     def _add_connector_event(self, event: AddConnectorEvent):
         self.log(f"""Adding new connector: {event.connector_name}""")
-        for trader in self.get_category(Trader):
+        for trader in self.get_submodule(Trader, name=event.trader_name):
             trader.add_submodule(self.injector.inject(
                 Connector, event.connector_name, username=event.connector_username, password=event.connector_password)
             )
@@ -78,11 +78,11 @@ class Session(Module):
         self._update()
 
     def _update(self):
-        for trader in self.get_category(Trader):
+        for trader in self.get_submodule(Trader):
             submits = trader.update(self.order, self.market)
             for submit in submits:
                 self.order = self.order.set_eid(submit.uid, submit.eid)
-        for ui in self.get_category(Ui):
+        for ui in self.get_submodule(Ui):
             ui.update(self.order, self.market)
 
     def on_stop(self) -> None:

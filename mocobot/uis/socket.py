@@ -1,4 +1,5 @@
 from mocobot.application.order import Order, Mode
+from mocobot.application.market import Market
 from mocobot.application.ui import Ui, AddTraderEvent, AddConnectorEvent, AddOrderEvent, CancelOrderEvent
 from asyncio import sleep, start_server, create_task
 from configparser import SectionProxy
@@ -12,6 +13,7 @@ class SocketUi(Ui):
         self.server = None
         self.task = None
         self.order = None
+        self.market = None
 
     def pre_run(self) -> None:
         pass
@@ -26,22 +28,27 @@ class SocketUi(Ui):
         message = data.decode().rstrip()
 
         command, _, content = str(message).partition(": ")
-        self.log(f"""Command: {command}, content: {content}""")
+        self.log(f"""Command: {command}; content: {content}""")
 
         if command == "trader":
             self.emit(AddTraderEvent(content))
+
         elif command == "connector":
             connector = content.split()
             if len(connector) != 3:
-                writer.write("Syntax should be\n connector: name username password".encode())
+                writer.write("Syntax should be\n connector: trader_name connector_name username password".encode())
             else:
-                self.emit(AddConnectorEvent(connector[0], connector[1], connector[2]))
+                self.emit(AddConnectorEvent(connector[0], connector[1], connector[2], connector[3]))
+
         elif command == "parallel":
             self.emit(AddOrderEvent(Order.parse(content), Mode.PARALLEL))
+
         elif command == "sequent":
             self.emit(AddOrderEvent(Order.parse(content), Mode.SEQUENT))
+
         elif command == "cancel":
             self.emit(CancelOrderEvent(content))
+
         elif command == "show":
             writer.write(str(self.order).encode())
 
@@ -55,7 +62,8 @@ class SocketUi(Ui):
     def post_run(self) -> None:
         pass
 
-    def update(self, order: Order):
+    def update(self, order: Order, market: Market):
         self.order = order
+        self.market = market
 
 

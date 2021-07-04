@@ -43,6 +43,7 @@ class AddTraderEvent(Event):
 @dataclass
 class AddConnectorEvent(Event):
     """ Fires trader.add_connector """
+    trader_name: str = ""
     connector_name: str = ""
     connector_username: str = ""
     connector_password: str = ""
