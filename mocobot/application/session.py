@@ -79,8 +79,7 @@ class Session(Module):
 
     def _update(self):
         for trader in self.get_submodule(Trader):
-            submits = trader.update(self.order, self.market)
-            for submit in submits:
+            for submit in trader.update(self.order, self.market):
                 self.order = self.order.set_eid(submit.uid, submit.eid)
         for ui in self.get_submodule(Ui):
             ui.update(self.order, self.market)

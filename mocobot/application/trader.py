@@ -4,7 +4,7 @@ from mocobot.application.market import Market
 from mocobot.application.connector import Connector, TradeEvent, CandleEvent, UserEvent
 from configparser import SectionProxy
 from abc import abstractmethod
-from typing import Dict, Callable, Type, Tuple
+from typing import Dict, Callable, Type, Tuple, Generator
 from collections import namedtuple
 
 
@@ -27,6 +27,6 @@ class Trader(Module):
         }
 
     @abstractmethod
-    def update(self, order: Order, market: Market) -> Tuple[Submit, ...]:
+    def update(self, order: Order, market: Market) -> Generator[Submit, None, None]:
         pass
 

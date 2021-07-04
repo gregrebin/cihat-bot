@@ -111,6 +111,8 @@ class Single(Order):
     quote: float = 0
     base: float = 0
     price: float = 0
+
+    time: int = None
     conditions: Dict[str, float] = field(default_factory=dict)
 
     def __post_init__(self):
