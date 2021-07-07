@@ -21,17 +21,17 @@ class Market:
 
     charts: Tuple[Chart, ...] = field(default_factory=tuple)
 
-    def candle(self, exchange: str, symbol: str, interval: Interval, candle: Candle) -> Market:
+    def add_candle(self, exchange: str, symbol: str, interval: Interval, candle: Candle) -> Market:
         charts = self.charts
         chart = Chart(exchange=exchange, symbol=symbol, interval=interval)
         if chart not in charts:
-            chart.candle(candle=candle)
+            chart = chart.add_candle(candle=candle)
             charts += (chart,)
         else:
-            charts = update_tuple(charts, chart, lambda c: c.candle(candle=candle))
+            charts = update_tuple(charts, chart, lambda c: c.add_candle(candle=candle))
         return replace(self, charts=charts)
 
-    def indicator(self, exchange: str, symbol: str, interval: Interval, indicator: Indicator) -> float:
+    def get_indicator(self, exchange: str, symbol: str, interval: Interval, indicator: Indicator) -> float:
         pass
 
 
@@ -43,13 +43,13 @@ class Chart:
     interval: Interval
     candles: DataFrame = field(default_factory=DataFrame, compare=False)
 
-    def candle(self, candle: Candle) -> Chart:
+    def add_candle(self, candle: Candle) -> Chart:
         data = {"open": candle.open, "high": candle.high, "low": candle.low, "close": candle.close, "volume": candle.volume}
-        index = to_datetime([candle.time])
-        candles = self.candles.append(DataFrame(columns=data, index=index))
+        index = to_datetime([candle.time], unit="s", origin="unix")
+        candles = self.candles.append(DataFrame(data=data, index=index))
         return replace(self, candles=candles)
 
-    def indicator(self, indicator: Indicator) -> float:
+    def get_indicator(self, indicator: Indicator) -> float:
         pass
 
 
@@ -63,7 +63,7 @@ class Interval:
 @dataclass(frozen=True)
 class Candle:
 
-    time: float = 0
+    time: int = 0
     open: float = 0
     close: float = 0
     high: float = 0
