@@ -2,7 +2,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field, replace, InitVar
 from enum import Enum, auto
 from typing import Tuple, Dict, Iterable, Any, Callable, TypeVar
-from pandas import DataFrame, DatetimeIndex
+from pandas import DataFrame, DatetimeIndex, to_datetime
 from collections import namedtuple
 import pandas_ta as ta
 
@@ -43,8 +43,11 @@ class Chart:
     interval: Interval
     candles: DataFrame = field(default_factory=DataFrame, compare=False)
 
-    def candle(self, candle: Candle) -> Candle:
-        pass
+    def candle(self, candle: Candle) -> Chart:
+        data = {"open": candle.open, "high": candle.high, "low": candle.low, "close": candle.close, "volume": candle.volume}
+        index = to_datetime([candle.time])
+        candles = self.candles.append(DataFrame(columns=data, index=index))
+        return replace(self, candles=candles)
 
     def indicator(self, indicator: Indicator) -> float:
         pass
