@@ -17,7 +17,8 @@ class TestMarket(unittest.TestCase):
         self.market = self.market.add_candle("binance", "BTCBUSD", Interval(1, TimeFrame.HOUR), candle1)
         self.market = self.market.add_candle("binance", "BTCBUSD", Interval(1, TimeFrame.HOUR), candle2)
         self.market = self.market.add_candle("binance", "BTCBUSD", Interval(1, TimeFrame.HOUR), candle3)
-        print(self.market.charts[0].candles)
+        self.market = self.market.add_candle("binance", "BTCUSDT", Interval(1, TimeFrame.HOUR), candle1)
+        print(self.market["binance", "BTCBUSD", Interval(1, TimeFrame.HOUR)])
 
     # def test_empty(self):
     #     self.assertEqual(len(self.market.exchanges), 0)

@@ -34,6 +34,12 @@ class Market:
     def get_indicator(self, exchange: str, symbol: str, interval: Interval, indicator: Indicator) -> float:
         pass
 
+    def __getitem__(self, item) -> DataFrame:
+        exchange, symbol, interval = item
+        for chart in self.charts:
+            if chart.exchange == exchange and chart.symbol == symbol and chart.interval == interval:
+                return chart.candles
+
 
 @dataclass(frozen=True)
 class Chart:
