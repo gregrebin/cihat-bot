@@ -1,5 +1,8 @@
 from mocobot.application.market import Market, Interval, Candle, TimeFrame
-from mocobot.application.indicator import Indicator
+from mocobot.application.indicator import Indicator, MOMENTUM, TREND, VOLATILITY, VOLUME, OTHERS
+from dataclasses import replace
+import inspect
+import ta.volume
 import unittest
 
 
@@ -16,6 +19,16 @@ class TestMarket(unittest.TestCase):
         self.market = self.market.add_candle("binance", "BTCBUSD", Interval(1, TimeFrame.HOUR), candle2)
         self.market = self.market.add_candle("binance", "BTCBUSD", Interval(1, TimeFrame.HOUR), candle3)
         self.market = self.market.add_candle("binance", "BTCUSDT", Interval(1, TimeFrame.HOUR), candle1)
-        close = self.market["binance", "BTCBUSD", Interval(1, TimeFrame.HOUR)]["close"]
-        sma = Indicator(name="sma", args={"length": 2}, min=0, max=100)
-        print(sma(close))
+        # close = self.market["binance", "BTCBUSD", Interval(1, TimeFrame.HOUR)]["close"]
+        # sma = Indicator(name="sma", settings={"length": 2}, min=0, max=100)
+        # print(sma(close=close))
+
+        # for i in range(50):
+        #     candle3 = replace(candle3, time=candle3.time + 3600)
+        #     self.market = self.market.add_candle("binance", "BTCBUSD", Interval(1, TimeFrame.HOUR), candle3)
+        # # print(self.market["binance", "BTCBUSD", Interval(1, TimeFrame.HOUR)])
+        # macd = Indicator(name="macd", settings={"fast": 8, "slow": 21}, min=0, max=100, line="histogram")
+        # close = self.market["binance", "BTCBUSD", Interval(1, TimeFrame.HOUR)]["close"]
+        # print(macd(close=close))
+
+        print(MOMENTUM)
