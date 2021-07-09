@@ -1,5 +1,5 @@
 import typing
-
+import re
 from mocobot.application.order import Order, Empty, Status, OrderLexer, OrderParser, Mode, Command, Multiple
 import unittest
 
@@ -16,7 +16,7 @@ class TestOrder(unittest.TestCase):
 
     def test_lexer(self):
         data = "buy 0.5 BTCUSDT, 1 ETH in Binance at 55000"
-        data = "[parallel buy 5 BTCUSDT in Binance at 30000, buy ETHUSDT in Coinbase at 2000 for 1000]"
+        data = "[parallel buy 5 BTCUSDT in Binance at 30000; buy ETHUSDT in Coinbase at 2000 for 1000]"
         lexer = OrderLexer()
         for token in lexer.tokenize(data):
             print(f"""{token.type}: {token.value} with type {type(token.value)}""")
@@ -25,10 +25,10 @@ class TestOrder(unittest.TestCase):
         data = "empty"
         data = "buy 5 BTCUSDT in Binance at 20000"
         data = "buy BTCUSDT in Binance at 20000 for 1000"
-        data = "[parallel buy 5 BTCUSDT in Binance at 20000, buy 5 BTCUSDT in Binance at 20000]"
-        data = "[parallel buy 5 BTCUSDT in Binance at 20000, [sequent buy 5 BTCUSDT in Binance at 30000, buy ETHUSDT in Coinbase at 2000 for 1000], buy 5 BTCUSDT in Binance at 20000]"
-        data = "[parallel buy 5 BTCUSDT in Binance at 20000, buy 5 BTCUSDT in Binance at 20000, [sequent buy 5 BTCUSDT in Binance at 30000, buy ETHUSDT in Coinbase at 2000 for 1000]]"
-        data = "[parallel buy 5 BTCUSDT in Binance at 20000, [sequent [parallel buy 5 BTCUSDT in Binance at 30000, buy ETHUSDT in Coinbase at 2000 for 1000], buy ETHUSDT in Coinbase at 2000 for 1000], buy 5 BTCUSDT in Binance at 20000]"
+        data = "[parallel buy 5 BTCUSDT in Binance at 20000; buy 5 BTCUSDT in Binance at 20000]"
+        data = "[parallel buy 5 BTCUSDT in Binance at 20000; [sequent buy 5 BTCUSDT in Binance at 30000; buy ETHUSDT in Coinbase at 2000 for 1000]; buy 5 BTCUSDT in Binance at 20000]"
+        data = "[parallel buy 5 BTCUSDT in Binance at 20000; buy 5 BTCUSDT in Binance at 20000; [sequent buy 5 BTCUSDT in Binance at 30000; buy ETHUSDT in Coinbase at 2000 for 1000]]"
+        data = "[parallel buy 5 BTCUSDT in Binance at 20000; [sequent [parallel buy 5 BTCUSDT in Binance at 30000; buy ETHUSDT in Coinbase at 2000 for 1000]; buy ETHUSDT in Coinbase at 2000 for 1000]; buy 5 BTCUSDT in Binance at 20000]"
         result = Order.parse(data)
         print(result)
 
@@ -38,7 +38,7 @@ class TestOrder(unittest.TestCase):
         self.order = self.order.add(Order.parse("buy 5 BTCUSDT in Binance at 20000"), Mode.PARALLEL)
         self.order = self.order.add(Order.parse("buy 10 BTCUSDT in Binance at 30000"), Mode.PARALLEL)
         self.order = self.order.add(Order.parse("buy 3 BTCUSDT in Binance at 40000"), Mode.PARALLEL)
-        self.order = self.order.add(Order.parse("[parallel buy 5 BTCUSDT in Binance at 20000, buy 5 BTCUSDT in Binance at 20000]"), Mode.SEQUENT)
+        self.order = self.order.add(Order.parse("[parallel buy 5 BTCUSDT in Binance at 20000; buy 5 BTCUSDT in Binance at 20000]"), Mode.SEQUENT)
 
         o1 = self.order.orders[0].orders[0].uid
         o2 = self.order.orders[0].orders[1].uid

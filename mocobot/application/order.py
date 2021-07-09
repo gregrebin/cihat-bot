@@ -1,5 +1,4 @@
 from __future__ import annotations
-from threading import Lock
 from typing import List, Callable, Dict, Tuple, Generator
 from uuid import uuid4, UUID
 from enum import Enum, auto
@@ -202,22 +201,30 @@ class Multiple(Order):
 # ---------------
 # order ::= <empty> | <single> | <multiple>
 #   empty ::= ""
-#   single ::= <command> <quote> <symbol> in <exchange> at <price> | <command> <symbol> in <exchange> at <price> for <base>  (ex. buy 5 BTCUSDT in Binance at 20000 / buy BTCUSDT in Binance at 20000 for 1000)
+#   single ::= <command> <quote> <symbol> in <exchange> at <price> <conditions> | <command> <symbol> in <exchange> at <price> for <base> <conditions>  (ex. buy 5 BTCUSDT in Binance at 20000 / buy BTCUSDT in Binance at 20000 for 1000 / buy 5 BTCUSDT in Binance at 20000 if price = 20000:23000 and macd(fast=8, slow=21) histogram = 1)
 #       command ::= buy | sell
 #       quote ::= <decimal>
 #       symbol ::= <string>
 #       exchange ::= <string>
 #       price ::= <decimal>
 #       base ::= <string>
-#   multiple ::= [<mode> <orders>] (ex. [parallel buy 5 BTCUSDT in Binance at 30000, buy ETHUSDT in Coinbase at 2000 for 1000])
+#       conditions ::=  | if <indicators>
+#           <indicators> ::= <indicator> | <indicator> and <indicators>
+#               <indicator> ::= <name> = <value> | <name> ( <settings> ) = <value> | <name> ( <settings> ) <line> = <value>
+#                   <name> ::= <string>
+#                   <value> ::= <decimal> | <decimal> : <decimal>
+#                   <settings> ::= <setting> | <setting> , <settings>
+#                       <setting> ::= <string> = <decimal>
+#                   <line> ::= <string>
+#   multiple ::= [<mode> <orders>] (ex. [parallel buy 5 BTCUSDT in Binance at 30000; buy ETHUSDT in Coinbase at 2000 for 1000])
 #       mode ::= parallel | sequent
-#       orders ::= <order> | <order>, <orders>
+#       orders ::= <order> | <order> ; <orders>
 
 
 # noinspection PyUnresolvedReferences,PyUnboundLocalVariable,PyPep8Naming,PyRedeclaration,PyMethodMayBeStatic
 class OrderLexer(Lexer):
 
-    tokens = {EMPTY, COMMAND, MODE, IN, AT, FOR, COMMA, LBRACKET, RBRACKET, DECIMAL, STRING}
+    tokens = {EMPTY, COMMAND, MODE, IN, AT, FOR, SEMICOLON, LBRACKET, RBRACKET, LPAR, RPAR, EQUAL, DECIMAL, STRING}
 
     ignore = " \t\n\r"
 
@@ -227,9 +234,12 @@ class OrderLexer(Lexer):
     IN = "in"
     AT = "at"
     FOR = "for"
-    COMMA = ","
+    SEMICOLON = ";"
     LBRACKET = "\["
     RBRACKET = "\]"
+    LPAR = "\("
+    RPAR = "\)"
+    EQUAL = "="
     DECIMAL = "\d+\.?\d*"
     STRING = "\w+"
 
@@ -267,7 +277,7 @@ class OrderParser(Parser):
     def multiple(self, p):
         return Multiple(mode=p.MODE, orders=p.orders)
 
-    @_("order COMMA orders")
+    @_("order SEMICOLON orders")
     def orders(self, p):
         return (p.order,) + p.orders
 
