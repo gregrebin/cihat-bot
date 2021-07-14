@@ -94,6 +94,11 @@ class Indicator:
         else:
             return False
 
+    def __repr__(self):
+        settings = f"({','.join(f'{key}:{value}' for key, value in self.settings.items())})" if self.settings else ""
+        value = f"{self.min}:{self.max}" if self.max > self.min else f"{self.min}"
+        return f"{self.name}{settings}{self.line} = {value}"
+
 
 class IndicatorError(ValueError):
     pass

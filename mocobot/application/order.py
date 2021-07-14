@@ -1,5 +1,6 @@
 from __future__ import annotations
-from typing import List, Callable, Dict, Tuple, Generator
+from mocobot.application.indicator import Indicator
+from typing import List, Callable, Dict, Tuple, Generator, Set
 from uuid import uuid4, UUID
 from enum import Enum, auto
 from dataclasses import dataclass, field, replace
@@ -111,8 +112,7 @@ class Single(Order):
     base: float = 0
     price: float = 0
 
-    time: int = None
-    conditions: Dict[str, float] = field(default_factory=dict)
+    indicators: Tuple[Indicator, ...] = field(default_factory=tuple)
 
     def __post_init__(self):
         if not self.price:
@@ -152,7 +152,9 @@ class Single(Order):
             return self
 
     def _repr_(self, depth=0):
-        return f"""{self.command.value} {self.quote} {self.symbol} in {self.exchange} at {self.price} for {self.base} ({self.status.value if not self.to_cancel else "to_cancel"}-{self.uid}-{self.eid})"""
+        return f"{self.command.value} {self.quote} {self.symbol} in {self.exchange} at {self.price} for {self.base}" \
+               f"{' if ' + ' and '.join(indicator.__repr__() for indicator in self.indicators) if self.indicators else ''}" \
+               f" <{self.status.value if not self.to_cancel else 'to_cancel'}-{self.uid}-{self.eid}>"
 
 
 @dataclass(frozen=True, repr=False)
@@ -194,14 +196,14 @@ class Multiple(Order):
     def _repr_(self, depth=1):
         tab = "\t" * depth
         orders = ",\n".join(tab + order._repr_(depth=depth+1) for order in self.orders)
-        return f"""[{self.mode.value}\n{orders}]"""
+        return f"[{self.mode.value}\n{orders}]"
 
 
 # Parser formal grammar:
 # ---------------
 # order ::= <empty> | <single> | <multiple>
 #   empty ::= ""
-#   single ::= <command> <quote> <symbol> in <exchange> at <price> <conditions> | <command> <symbol> in <exchange> at <price> for <base> <conditions>  (ex. buy 5 BTCUSDT in Binance at 20000 / buy BTCUSDT in Binance at 20000 for 1000 / buy 5 BTCUSDT in Binance at 20000 if price = 20000:23000 and macd(fast=8, slow=21) histogram = 1)
+#   single ::= <command> <quote> <symbol> in <exchange> at <price> <conditions> | <command> <symbol> in <exchange> at <price> for <base> <conditions>  (ex. buy 5 BTCUSDT in Binance at 20000 | buy BTCUSDT in Binance at 20000 for 1000 | buy 5 BTCUSDT in Binance at 20000 if price = 20000:23000 and macd(fast:8, slow:1) histogram = 1)
 #       command ::= buy | sell
 #       quote ::= <decimal>
 #       symbol ::= <string>
@@ -212,9 +214,9 @@ class Multiple(Order):
 #           <indicators> ::= <indicator> | <indicator> and <indicators>
 #               <indicator> ::= <name> = <value> | <name> ( <settings> ) = <value> | <name> ( <settings> ) <line> = <value>
 #                   <name> ::= <string>
-#                   <value> ::= <decimal> | <decimal> : <decimal>
+#                   <value> ::= <decimal> | <decimal> - <decimal>
 #                   <settings> ::= <setting> | <setting> , <settings>
-#                       <setting> ::= <string> = <decimal>
+#                       <setting> ::= <string> : <decimal>
 #                   <line> ::= <string>
 #   multiple ::= [<mode> <orders>] (ex. [parallel buy 5 BTCUSDT in Binance at 30000; buy ETHUSDT in Coinbase at 2000 for 1000])
 #       mode ::= parallel | sequent
@@ -224,7 +226,7 @@ class Multiple(Order):
 # noinspection PyUnresolvedReferences,PyUnboundLocalVariable,PyPep8Naming,PyRedeclaration,PyMethodMayBeStatic
 class OrderLexer(Lexer):
 
-    tokens = {EMPTY, COMMAND, MODE, IN, AT, FOR, SEMICOLON, LBRACKET, RBRACKET, LPAR, RPAR, EQUAL, DECIMAL, STRING}
+    tokens = {EMPTY, COMMAND, MODE, IN, AT, FOR, IF, AND, SEMICOLON, LBRACKET, RBRACKET, LPAR, RPAR, EQUAL, COMMA, COLON, DECIMAL, STRING}
 
     ignore = " \t\n\r"
 
@@ -234,12 +236,16 @@ class OrderLexer(Lexer):
     IN = "in"
     AT = "at"
     FOR = "for"
+    IF = "if"
+    AND = "and"
     SEMICOLON = ";"
     LBRACKET = "\["
     RBRACKET = "\]"
     LPAR = "\("
     RPAR = "\)"
     EQUAL = "="
+    COMMA = ","
+    COLON = ":"
     DECIMAL = "\d+\.?\d*"
     STRING = "\w+"
 
@@ -273,6 +279,8 @@ class OrderParser(Parser):
     def order(self, p):
         return p.multiple
 
+    #  Multiple
+
     @_("LBRACKET MODE orders RBRACKET")
     def multiple(self, p):
         return Multiple(mode=p.MODE, orders=p.orders)
@@ -285,13 +293,15 @@ class OrderParser(Parser):
     def orders(self, p):
         return p.order,
 
-    @_("COMMAND quote symbol IN exchange AT price")
-    def single(self, p):
-        return Single(command=p.COMMAND, quote=p.quote, symbol=p.symbol, exchange=p.exchange, price=p.price)
+    #  Single
 
-    @_("COMMAND symbol IN exchange AT price FOR base")
+    @_("COMMAND quote symbol IN exchange AT price conditions")
     def single(self, p):
-        return Single(command=p.COMMAND, symbol=p.symbol, exchange=p.exchange, price=p.price, base=p.base)
+        return Single(command=p.COMMAND, quote=p.quote, symbol=p.symbol, exchange=p.exchange, price=p.price, indicators=p.conditions)
+
+    @_("COMMAND symbol IN exchange AT price FOR base conditions")
+    def single(self, p):
+        return Single(command=p.COMMAND, symbol=p.symbol, exchange=p.exchange, price=p.price, base=p.base, indicators=p.conditions)
 
     @_("DECIMAL")
     def quote(self, p):
@@ -312,6 +322,71 @@ class OrderParser(Parser):
     @_("DECIMAL")
     def base(self, p):
         return p.DECIMAL
+
+    #  Conditions
+
+    @_("")
+    def conditions(self, p):
+        return ()
+
+    @_("IF indicators")
+    def conditions(self, p):
+        return p.indicators
+
+    @_("indicator AND indicators")
+    def indicators(self, p):
+        return (p.indicator,) + p.indicators
+
+    @_("indicator")
+    def indicators(self, p):
+        return p.indicator,
+
+    @_("name EQUAL value")
+    def indicator(self, p):
+        value = p.value
+        return Indicator(name=p.name, min=value[0], max=value[1], settings={})
+
+    @_("name LPAR settings RPAR EQUAL value")
+    def indicator(self, p):
+        value = p.value
+        settings = dict(p.settings)
+        return Indicator(name=p.name, min=value[0], max=value[1], settings=settings)
+
+    @_("name LPAR settings RPAR line EQUAL value")
+    def indicator(self, p):
+        value = p.value
+        settings = dict(p.settings)
+        return Indicator(name=p.name, min=value[0], max=value[1], settings=settings, line=p.line)
+
+    @_("STRING")
+    def name(self, p):
+        return p.STRING
+
+    @_("DECIMAL", "DECIMAL COLON DECIMAL")
+    def value(self, p):
+        if len(p) == 1:
+            return p.DECIMAL, p.DECIMAL
+        else:
+            return p.DECIMAL0, p.DECIMAL1
+
+    @_("setting COMMA settings")
+    def settings(self, p):
+        return (p.setting,) + p.settings
+
+    @_("setting")
+    def settings(self, p):
+        return p.setting,
+
+    @_("STRING COLON DECIMAL")
+    def setting(self, p):
+        return p.STRING, p.DECIMAL
+
+    @_("STRING")
+    def line(self, p):
+        return p.STRING
+
+
+
 
 
 

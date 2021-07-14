@@ -29,6 +29,7 @@ class TestOrder(unittest.TestCase):
         data = "[parallel buy 5 BTCUSDT in Binance at 20000; [sequent buy 5 BTCUSDT in Binance at 30000; buy ETHUSDT in Coinbase at 2000 for 1000]; buy 5 BTCUSDT in Binance at 20000]"
         data = "[parallel buy 5 BTCUSDT in Binance at 20000; buy 5 BTCUSDT in Binance at 20000; [sequent buy 5 BTCUSDT in Binance at 30000; buy ETHUSDT in Coinbase at 2000 for 1000]]"
         data = "[parallel buy 5 BTCUSDT in Binance at 20000; [sequent [parallel buy 5 BTCUSDT in Binance at 30000; buy ETHUSDT in Coinbase at 2000 for 1000]; buy ETHUSDT in Coinbase at 2000 for 1000]; buy 5 BTCUSDT in Binance at 20000]"
+        data = "buy 5 BTCUSDT in Binance at 20000 if macd(fast:8, slow:1) histogram = 1:2 and sma = 5"
         result = Order.parse(data)
         print(result)
 
