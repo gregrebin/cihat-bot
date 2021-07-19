@@ -6,7 +6,10 @@ from inspect import signature
 import pandas_ta as ta
 
 
+# List of pandas_ta indicators
 INDICATORS = DataFrame().ta.indicators(as_list=True)
+
+# Column names of the result of pandas_ta indicators
 LINES = {
     "brba": ("ar", "br"),
     "dm": ("+dm", "-dm"),
@@ -47,12 +50,21 @@ LINES = {
     "aobv": ("obv", "min", "max", "fast", "slow", "long", "short"),
     "kvo": ("kvo", "signal"),
 }
+
+# Parameter names of pandas_ta functions and relative columns in market dataframe
 DATA_NAMES = {
     "_open": OHLCV.OPEN.value,
     "high": OHLCV.CLOSE.value,
     "low": OHLCV.LOW.value,
     "close": OHLCV.CLOSE.value,
     "volume": OHLCV.VOLUME.value,
+}
+
+# Custom indicators, lambda must accept one ore more pandas series named as one of DATA_NAMES,
+# other optional parameters, and return a series or a dataframe
+CUSTOM = {
+    "price": lambda close: close,
+    "volume": lambda volume: volume,
 }
 
 
@@ -67,7 +79,7 @@ class Indicator:
     interval: Interval = field(default_factory=Interval)
 
     def __post_init__(self):
-        if self.name not in INDICATORS:
+        if self.name not in INDICATORS and self.name not in CUSTOM:
             raise IndicatorError(f"Invalid indicator name - {self.name}")
         if not self.min <= self.max:
             raise IndicatorError(f"Min should be less than or equal to max - min={self.min} max={self.max} in {self.name}")
@@ -77,7 +89,7 @@ class Indicator:
 
     @property
     def _function(self) -> Callable:
-        return object.__getattribute__(ta, self.name)
+        return object.__getattribute__(ta, self.name) if self.name in INDICATORS else CUSTOM[self.name]
 
     @property
     def _data(self) -> Tuple[str]:
@@ -95,9 +107,9 @@ class Indicator:
             data[data_name] = dataframe[DATA_NAMES[data_name]]
         result = self._function(**data, **self.settings)
         if isinstance(result, Series):
-            return self.min < result.iloc[-1] < self.max
+            return self.min <= result.iloc[-1] <= self.max
         elif isinstance(result, DataFrame) and self.name in LINES and self.line in LINES[self.name]:
-            return self.min < result.iloc[-1, LINES[self.name].index(self.line)] < self.max
+            return self.min <= result.iloc[-1, LINES[self.name].index(self.line)] <= self.max
         else:
             return False
 
