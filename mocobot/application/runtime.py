@@ -7,4 +7,4 @@ from typing import List
 class Runtime(FrameworkRuntime):
 
     def run(self, args: List[str]):
-        self._run(Injector, Application, "test_app")
+        self._run(Injector, Application, "test_app", config_path="../cihatbot.local.cfg")

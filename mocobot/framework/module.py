@@ -2,7 +2,7 @@ from __future__ import annotations
 from mocobot.framework.logger import Logger
 from mocobot.framework.events import Event, EventEmitter, EventListener
 from mocobot.framework.scheduler import Scheduler
-from mocobot.framework.injector import Injector
+from mocobot.framework.injector import Injector, InjectorException
 from typing import List, Dict, Callable, Type, TypeVar
 from configparser import SectionProxy
 from abc import ABC, abstractmethod
@@ -62,7 +62,11 @@ class Module(ABC):
             await self.listener.listen(self.on_event)
         self.scheduler.schedule(listen())
         self.scheduler.schedule(self.on_run())
+        self.post_init()
         return self
+
+    def post_init(self) -> None:
+        pass
 
     def add_submodule(self, submodule: Module) -> None:
         submodule.emitter.add_listener(self.listener)
@@ -121,9 +125,9 @@ class Module(ABC):
         else:
             self.emitter.emit(event)
 
-    def log(self, message: str) -> None:
+    def log(self, message: str, level: int = logging.INFO) -> None:
         self.logger.log(
-            logging.INFO, f"""{message} : {asyncio.current_task().get_name()} / {len(asyncio.all_tasks())}"""
+            level, f"""{message} : {asyncio.current_task().get_name()} / {len(asyncio.all_tasks())}"""
         )
 
     async def stop(self):

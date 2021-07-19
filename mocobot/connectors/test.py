@@ -16,9 +16,10 @@ class TestConnector(Connector):
         pass
 
     async def on_run(self) -> None:
-        while self.is_running:
-            await sleep(3)
-            self.emit(CandleEvent(name="test", symbol="BTCUSDT", interval=Interval(), candle=Candle()))
+        self.log(f"Running with user {self.username} and password {self.password}")
+        # while self.is_running:
+        #     await sleep(3)
+        #     self.emit(CandleEvent(name="test", symbol="BTCUSDT", interval=Interval(3), candle=Candle()))
 
     def on_stop(self) -> None:
         pass
@@ -26,11 +27,8 @@ class TestConnector(Connector):
     def post_run(self) -> None:
         pass
 
-    def start_trades(self, symbol: str) -> None:
-        pass
-
     def start_candles(self, symbol: str, interval: Interval) -> None:
-        pass
+        self.log(f"Start candles for {symbol} {interval}")
 
     def submit(self, execution_order: Single) -> str:
         pass

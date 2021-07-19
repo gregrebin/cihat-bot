@@ -38,10 +38,15 @@ class BinanceConnector(Connector):
         ORDER_STATUS_EXPIRED: Status.REJECTED,
     }
 
-    def __init__(self, config: SectionProxy, category: Type, name: str, username: str, password: str):
-        super().__init__(config, category, name, username, password)
-        self.client: Client = Client(username, password)
-        self.socket_manager: ThreadedWebsocketManager = ThreadedWebsocketManager(username, password)
+    # def __init__(self, config: SectionProxy, category: Type, name: str, username: str, password: str):
+    #     super().__init__(config, category, name, username, password)
+    #     self.client: Client = Client(username, password)
+    #     self.socket_manager: ThreadedWebsocketManager = ThreadedWebsocketManager(username, password)
+    #     self.open_sockets: Set[Tuple[str, Interval]] = set()
+
+    def post_init(self) -> None:
+        self.client: Client = Client(self.username, self.password)
+        self.socket_manager: ThreadedWebsocketManager = ThreadedWebsocketManager(self.username, self.password)
         self.open_sockets: Set[Tuple[str, Interval]] = set()
 
     @property
@@ -53,7 +58,7 @@ class BinanceConnector(Connector):
 
     async def on_run(self) -> None:
         self.socket_manager.start_user_socket(self._user_handler)
-        self.start_candles("BTCUSDT", Interval(1, TimeFrame.MINUTE))
+        # self.start_candles("BTCUSDT", Interval(1, TimeFrame.MINUTE))
 
     def _user_handler(self, msg: dict):
         event_type = msg["e"]
@@ -74,6 +79,7 @@ class BinanceConnector(Connector):
         self.socket_manager.join()
 
     def start_candles(self, symbol: str, interval: Interval) -> None:
+        self.log(f"Start socket for {symbol} {interval}")
         if interval not in self.INTERVALS or (symbol, interval) in self.open_sockets: return
         self.socket_manager.start_kline_socket(self._candle_handler, symbol, BinanceConnector.INTERVALS[interval])
         self.open_sockets.add((symbol, interval))
@@ -83,13 +89,13 @@ class BinanceConnector(Connector):
         msg_interval = msg["k"]["i"]
         if not closed or msg_interval not in self.INTERVALS.inverse: return
         symbol = msg["s"]
-        interval = self.INTERVALS.inverse[msg["k"]["i"]]
-        time = msg["k"]["t"]
-        open = msg["k"]["o"]
-        close = msg["k"]["c"]
-        high = msg["k"]["h"]
-        low = msg["k"]["l"]
-        volume = msg["k"]["v"]
+        interval = self.INTERVALS.inverse[msg_interval]
+        time = int(int(msg["k"]["t"])/1000)
+        open = float(msg["k"]["o"])
+        close = float(msg["k"]["c"])
+        high = float(msg["k"]["h"])
+        low = float(msg["k"]["l"])
+        volume = float(msg["k"]["v"])
         candle = Candle(time=time, open=open, close=close, high=high, low=low, volume=volume)
         event = CandleEvent(name=self.EXCHANGE, symbol=symbol, interval=interval, candle=candle)
         self.emit(event)

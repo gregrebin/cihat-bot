@@ -71,6 +71,11 @@ class Injector(FrameworkInjector):
                 "type": TestConnector,
                 "args": {"username": "username", "password": "password"},
                 "submodules": []
+            },
+            "test_connector_no_args": {
+                "type": TestConnector,
+                "args": {},
+                "submodules": []
             }
         }
     }

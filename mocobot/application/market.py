@@ -43,6 +43,7 @@ class Market:
         for chart in self.charts:
             if chart.exchange == exchange and chart.symbol == symbol and chart.interval == interval:
                 return chart.candles
+        return DataFrame()
 
 
 @dataclass(frozen=True)
@@ -66,6 +67,9 @@ class Interval:
 
     quantity: int = 1
     time_frame: TimeFrame = TimeFrame.MINUTE
+
+    def __repr__(self):
+        return f"{self.quantity}{self.time_frame.value}"
 
 
 @dataclass(frozen=True)
