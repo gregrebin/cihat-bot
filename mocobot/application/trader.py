@@ -71,7 +71,7 @@ class Trader(Module):
 
     def _submit_order(self, order: Single):
         for indicator in order.indicators:
-            if not indicator.check(self.market[order.exchange, order.symbol, Interval()]):
+            if not indicator.check(self.market[order.exchange, order.symbol, indicator.interval]):
                 return
         for connector in self.get_submodule(Connector, exchange=order.exchange):
             eid = connector.submit(order)

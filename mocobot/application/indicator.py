@@ -1,6 +1,6 @@
-from mocobot.application.market import Market, OHLCV
+from mocobot.application.market import Interval, OHLCV
 from pandas import DataFrame, Series
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict, Callable, Tuple
 from inspect import signature
 import pandas_ta as ta
@@ -60,10 +60,11 @@ DATA_NAMES = {
 class Indicator:
 
     name: str
-    settings: Dict[str, int]
     min: int
     max: int
     line: str = ""
+    settings: Dict[str, int] = field(default_factory=dict)
+    interval: Interval = field(default_factory=Interval)
 
     def __post_init__(self):
         if self.name not in INDICATORS:
