@@ -1,6 +1,6 @@
 from mocobot.application.order import Order, Mode
 from mocobot.application.market import Market
-from mocobot.application.ui import Ui, AddTraderEvent, AddConnectorEvent, AddOrderEvent, CancelOrderEvent
+from mocobot.application.ui import Ui, AddConnectorEvent, AddOrderEvent, CancelOrderEvent
 from asyncio import sleep, start_server, create_task
 from configparser import SectionProxy
 from typing import Type
@@ -30,15 +30,12 @@ class SocketUi(Ui):
         command, _, content = str(message).partition(": ")
         self.log(f"""Command: {command}; content: {content}""")
 
-        if command == "trader":
-            self.emit(AddTraderEvent(content))
-
-        elif command == "connector":
+        if command == "connector":
             connector = content.split()
             if len(connector) != 3:
-                writer.write("Syntax should be\n connector: trader_name connector_name username password".encode())
+                writer.write("Syntax should be\n connector: connector_name username password".encode())
             else:
-                self.emit(AddConnectorEvent(connector[0], connector[1], connector[2], connector[3]))
+                self.emit(AddConnectorEvent(connector[0], connector[1], connector[2]))
 
         elif command == "parallel":
             self.emit(AddOrderEvent(Order.parse(content), Mode.PARALLEL))

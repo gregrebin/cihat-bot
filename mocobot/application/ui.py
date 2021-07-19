@@ -23,9 +23,9 @@ class Ui(Module):
 
 
 @dataclass
-class AddSessionEvent(Event):
+class AddTraderEvent(Event):
     """ Fires app.add_session """
-    session_name: str = ""
+    trader_name: str = ""
 
 
 @dataclass
@@ -35,15 +35,8 @@ class AddUiEvent(Event):
 
 
 @dataclass
-class AddTraderEvent(Event):
-    """ Fires session.add_trader """
-    trader_name: str = ""
-
-
-@dataclass
 class AddConnectorEvent(Event):
     """ Fires trader.add_connector """
-    trader_name: str = ""
     connector_name: str = ""
     connector_username: str = ""
     connector_password: str = ""

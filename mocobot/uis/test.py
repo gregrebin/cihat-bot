@@ -12,8 +12,7 @@ class TestUi(Ui):
     async def on_run(self) -> None:
         await sleep(10)
         self.emit(AddConnectorEvent(
-            trader_name="test_trader", connector_name="test_connector",
-            connector_username="test_username", connector_password="test_password")
+            connector_name="test_connector", connector_username="test_username", connector_password="test_password")
         )
 
     def on_stop(self) -> None:
