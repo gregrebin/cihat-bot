@@ -1,9 +1,9 @@
+from mocobot.application.market import Market, OHLCV
 from pandas import DataFrame, Series
 from dataclasses import dataclass
 from typing import Dict, Callable, Tuple
 from inspect import signature
 import pandas_ta as ta
-import re
 
 
 INDICATORS = DataFrame().ta.indicators(as_list=True)
@@ -47,6 +47,13 @@ LINES = {
     "aobv": ("obv", "min", "max", "fast", "slow", "long", "short"),
     "kvo": ("kvo", "signal"),
 }
+DATA_NAMES = {
+    "_open": OHLCV.OPEN.value,
+    "high": OHLCV.CLOSE.value,
+    "low": OHLCV.LOW.value,
+    "close": OHLCV.CLOSE.value,
+    "volume": OHLCV.VOLUME.value,
+}
 
 
 @dataclass(frozen=True)
@@ -81,12 +88,11 @@ class Indicator:
         return tuple(param.name for param in signature(self._function).parameters.values()
                      if param.kind == param.POSITIONAL_OR_KEYWORD and not param.default == param.empty)
 
-    def __call__(self, **data) -> bool:
-        for data_entry in self._data:
-            if data_entry not in data:
-                raise IndicatorError(f"Missing data entry - {data_entry} in {self.name}")
+    def check(self, dataframe: DataFrame) -> bool:
+        data = {}
+        for data_name in self._data:
+            data[data_name] = dataframe[DATA_NAMES[data_name]]
         result = self._function(**data, **self.settings)
-        print(result)
         if isinstance(result, Series):
             return self.min < result.iloc[-1] < self.max
         elif isinstance(result, DataFrame) and self.name in LINES and self.line in LINES[self.name]:

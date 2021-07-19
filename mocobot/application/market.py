@@ -7,11 +7,20 @@ from pandas import DataFrame, to_datetime
 
 class TimeFrame(Enum):
 
-    MINUTE = auto()
-    HOUR = auto()
-    DAY = auto()
-    WEEK = auto()
-    MONTH = auto()
+    MINUTE = "min"
+    HOUR = "hour"
+    DAY = "day"
+    WEEK = "week"
+    MONTH = "month"
+
+
+class OHLCV(Enum):
+
+    OPEN = "open"
+    HIGH = "high"
+    LOW = "low"
+    CLOSE = "close"
+    VOLUME = "volume"
 
 
 @dataclass(frozen=True)
@@ -45,7 +54,8 @@ class Chart:
     candles: DataFrame = field(default_factory=DataFrame, compare=False)
 
     def add_candle(self, candle: Candle) -> Chart:
-        data = {"open": candle.open, "high": candle.high, "low": candle.low, "close": candle.close, "volume": candle.volume}
+        data = {OHLCV.OPEN.value: candle.open, OHLCV.HIGH.value: candle.high, OHLCV.LOW.value: candle.low,
+                OHLCV.CLOSE.value: candle.close, OHLCV.VOLUME.value: candle.volume}
         index = to_datetime([candle.time], unit="s", origin="unix")
         candles = self.candles.append(DataFrame(data=data, index=index))
         return replace(self, candles=candles)

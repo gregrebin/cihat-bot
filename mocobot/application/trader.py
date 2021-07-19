@@ -1,7 +1,7 @@
 from __future__ import annotations
 from mocobot.framework.module import Module
-from mocobot.application.order import Order, Empty, Status
-from mocobot.application.market import Market
+from mocobot.application.order import Order, Empty, Status, Single
+from mocobot.application.market import Market, Interval
 from mocobot.application.ui import Ui, AddOrderEvent, CancelOrderEvent, AddTraderEvent, AddUiEvent, AddConnectorEvent, ConfigEvent
 from mocobot.application.connector import Connector, UserEvent, CandleEvent
 from typing import List, Dict, Callable, Type
@@ -65,12 +65,17 @@ class Trader(Module):
 
     def _update(self):
         for order in self.order.get():
-            # TODO: check conditions
-            for connector in self.get_submodule(Connector, exchange=order.exchange):
-                eid = connector.submit(order)
-                self.order.set_eid(order.uid, eid)
+            self._submit_order(order)
         for ui in self.get_submodule(Ui):
             ui.update(self.order, self.market)
+
+    def _submit_order(self, order: Single):
+        for indicator in order.indicators:
+            if not indicator.check(self.market[order.exchange, order.symbol, Interval()]):
+                return
+        for connector in self.get_submodule(Connector, exchange=order.exchange):
+            eid = connector.submit(order)
+            self.order.set_eid(order.uid, eid)
 
     def on_stop(self) -> None:
         pass

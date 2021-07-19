@@ -1,4 +1,4 @@
-from mocobot.framework.injector import Injector as ModuleInjector
+from mocobot.framework.injector import Injector as FrameworkInjector
 from mocobot.application.application import Application
 from mocobot.application.ui import Ui
 from mocobot.application.trader import Trader
@@ -9,7 +9,7 @@ from mocobot.uis.socket import SocketUi
 from mocobot.uis.test import TestUi
 
 
-class Injector(ModuleInjector):
+class Injector(FrameworkInjector):
 
     modules = {
 
