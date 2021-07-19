@@ -20,5 +20,6 @@ class TestTrader(Trader):
         pass
 
     def update(self, order: Order, market: Market) -> Generator[Submit, None, None]:
-        pass
+        return
+        yield
 

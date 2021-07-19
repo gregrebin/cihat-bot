@@ -1,7 +1,7 @@
 from mocobot.framework.module import Module
 from mocobot.application.order import Order
 from mocobot.application.market import Market
-from mocobot.application.connector import Connector, TradeEvent, CandleEvent, UserEvent
+from mocobot.application.connector import Connector, CandleEvent, UserEvent
 from configparser import SectionProxy
 from abc import abstractmethod
 from typing import Dict, Callable, Type, Tuple, Generator
@@ -21,7 +21,6 @@ class Trader(Module):
     @property
     def events(self) -> Dict[Type, Callable]:
         return {
-            TradeEvent: self.emit,
             CandleEvent: self.emit,
             UserEvent: self.emit
         }

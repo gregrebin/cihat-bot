@@ -1,6 +1,6 @@
-from mocobot.application.connector import Connector, TradeEvent, CandleEvent, UserEvent
+from mocobot.application.connector import Connector, CandleEvent, UserEvent
 from mocobot.application.order import Single, Command, Status
-from mocobot.application.market import Interval, TimeFrame, Trade, Candle
+from mocobot.application.market import Interval, TimeFrame, Candle
 from binance import Client, ThreadedWebsocketManager
 from binance.enums import *
 from bidict import bidict
@@ -71,17 +71,6 @@ class BinanceConnector(Connector):
     def post_run(self) -> None:
         self.socket_manager.stop()
         self.socket_manager.join()
-
-    def start_trades(self, symbol: str) -> None:
-        self.socket_manager.start_aggtrade_socket(self._trade_handler, symbol)
-
-    def _trade_handler(self, msg: dict) -> None:
-        symbol = msg["s"]
-        price = msg["p"]
-        quantity = msg["q"]
-        trade = Trade(price=price, quantity=quantity)
-        event = TradeEvent(name=self.EXCHANGE, symbol=symbol, trade=trade)
-        self.emit(event)
 
     def start_candles(self, symbol: str, interval: Interval) -> None:
         if interval not in self.INTERVALS: return

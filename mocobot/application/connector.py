@@ -1,7 +1,7 @@
 from mocobot.framework.module import Module
 from mocobot.framework.events import Event
 from mocobot.application.order import Single, Status
-from mocobot.application.market import Trade, Interval, Candle
+from mocobot.application.market import Interval, Candle
 from dataclasses import dataclass, field
 from configparser import SectionProxy
 from typing import Tuple
@@ -28,10 +28,6 @@ class Connector(Module):
         pass
 
     @abstractmethod
-    def start_trades(self, symbol: str) -> None:
-        pass
-
-    @abstractmethod
     def start_candles(self, symbol: str, interval: Interval) -> None:
         pass
 
@@ -52,14 +48,6 @@ class Connector(Module):
 #
 # class FailedException(ConnectorException):
 #     pass
-
-
-@dataclass
-class TradeEvent(Event):
-    """ Fires trader.exchange_update """
-    name: str
-    symbol: str
-    trade: Trade
 
 
 @dataclass

@@ -4,7 +4,7 @@ from mocobot.application.order import Order, Empty, Status
 from mocobot.application.market import Market
 from mocobot.application.ui import Ui, AddOrderEvent, CancelOrderEvent, AddSessionEvent, AddUiEvent, AddTraderEvent, AddConnectorEvent, ConfigEvent
 from mocobot.application.trader import Trader
-from mocobot.application.connector import Connector, UserEvent, CandleEvent, TradeEvent
+from mocobot.application.connector import Connector, UserEvent, CandleEvent
 from typing import List, Dict, Callable, Type
 from configparser import SectionProxy
 
@@ -32,7 +32,6 @@ class Session(Module):
             ConfigEvent: self.emit,
             AddOrderEvent: self._add_order_event,
             CancelOrderEvent: self._cancel_order_event,
-            TradeEvent: self._trade_event,
             CandleEvent: self._candle_event,
             UserEvent: self._user_event
         }
@@ -62,14 +61,9 @@ class Session(Module):
         self.order = self.order.cancel(event.uid)
         self._update()
 
-    def _trade_event(self, event: TradeEvent):
-        self.log(f"""New trade: {event.trade}""")
-        self.market = self.market.trade(event.name, event.symbol, event.trade)
-        self._update()
-
     def _candle_event(self, event: CandleEvent):
         self.log(f"""New candle: {event.candle}""")
-        self.market = self.market.candle(event.name, event.symbol, event.interval, event.candle)
+        self.market = self.market.add_candle(event.name, event.symbol, event.interval, event.candle)
         self._update()
 
     def _user_event(self, event: UserEvent):

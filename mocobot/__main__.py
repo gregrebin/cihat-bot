@@ -1,8 +1,7 @@
-from mocobot.framework.runtime import Runtime
-from mocobot.application.injector import Injector
-from mocobot.application.application import Application
+from mocobot.application.runtime import Runtime
+import sys
 
 
 if __name__ == '__main__':
-    Runtime(Injector, "mocobot.local.cfg").run(Application, "default_app")
+    Runtime().run(sys.argv)
 
