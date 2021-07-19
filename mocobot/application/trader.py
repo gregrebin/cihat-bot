@@ -46,6 +46,7 @@ class Trader(Module):
     def _add_order_event(self, event: AddOrderEvent):
         self.log(f"""Adding new order: {event.order}""")
         self.order = self.order.add(event.order, event.mode)
+        self._start_candles(event.order)
         self._update()
 
     def _cancel_order_event(self, event: CancelOrderEvent):
@@ -73,9 +74,18 @@ class Trader(Module):
         for indicator in order.indicators:
             if not indicator.check(self.market[order.exchange, order.symbol, indicator.interval]):
                 return
-        for connector in self.get_submodule(Connector, exchange=order.exchange):
+        for connector in self._get_connectors(order):
             eid = connector.submit(order)
             self.order.set_eid(order.uid, eid)
+
+    def _get_connectors(self, order: Single) -> List[Connector]:
+        return self.get_submodule(Connector, exchange=order.exchange)
+
+    def _start_candles(self, order: Order):
+        for order in order.get(pending=False):
+            for indicator in order.indicators:
+                for connector in self._get_connectors(order):
+                    connector.start_candles(order.symbol, indicator.interval)
 
     def on_stop(self) -> None:
         pass

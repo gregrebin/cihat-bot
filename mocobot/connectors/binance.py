@@ -4,7 +4,7 @@ from mocobot.application.market import Interval, TimeFrame, Candle
 from binance import Client, ThreadedWebsocketManager
 from binance.enums import *
 from bidict import bidict
-from typing import Tuple, Type
+from typing import Tuple, Type, Set
 from configparser import SectionProxy
 
 
@@ -42,6 +42,7 @@ class BinanceConnector(Connector):
         super().__init__(config, category, name, username, password)
         self.client: Client = Client(username, password)
         self.socket_manager: ThreadedWebsocketManager = ThreadedWebsocketManager(username, password)
+        self.open_sockets: Set[Tuple[str, Interval]] = set()
 
     @property
     def exchange(self) -> str:
@@ -73,8 +74,9 @@ class BinanceConnector(Connector):
         self.socket_manager.join()
 
     def start_candles(self, symbol: str, interval: Interval) -> None:
-        if interval not in self.INTERVALS: return
+        if interval not in self.INTERVALS or (symbol, interval) in self.open_sockets: return
         self.socket_manager.start_kline_socket(self._candle_handler, symbol, BinanceConnector.INTERVALS[interval])
+        self.open_sockets.add((symbol, interval))
 
     def _candle_handler(self, msg: dict) -> None:
         closed = msg["k"]["x"]
