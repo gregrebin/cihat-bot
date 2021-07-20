@@ -7,6 +7,7 @@ class Logger:
 
         self.logger: logging.Logger = logging.getLogger(name)
         self.logger.setLevel(level)
+        self.logger.propagate = False
 
         if self.logger.handlers:
             return

@@ -38,27 +38,18 @@ class BinanceConnector(Connector):
         ORDER_STATUS_EXPIRED: Status.REJECTED,
     }
 
-    # def __init__(self, config: SectionProxy, category: Type, name: str, username: str, password: str):
-    #     super().__init__(config, category, name, username, password)
-    #     self.client: Client = Client(username, password)
-    #     self.socket_manager: ThreadedWebsocketManager = ThreadedWebsocketManager(username, password)
-    #     self.open_sockets: Set[Tuple[str, Interval]] = set()
-
     def post_init(self) -> None:
         self.client: Client = Client(self.username, self.password)
         self.socket_manager: ThreadedWebsocketManager = ThreadedWebsocketManager(self.username, self.password)
         self.open_sockets: Set[Tuple[str, Interval]] = set()
+        self.socket_manager.start()
 
     @property
     def exchange(self) -> str:
         return self.EXCHANGE
 
     def pre_run(self) -> None:
-        self.socket_manager.start()
-
-    async def on_run(self) -> None:
         self.socket_manager.start_user_socket(self._user_handler)
-        # self.start_candles("BTCUSDT", Interval(1, TimeFrame.MINUTE))
 
     def _user_handler(self, msg: dict):
         event_type = msg["e"]
@@ -70,6 +61,9 @@ class BinanceConnector(Connector):
         eid = msg["i"]
         event = UserEvent(uid=uid, eid=eid, status=status)
         self.emit(event)
+
+    async def on_run(self) -> None:
+        pass
 
     def on_stop(self) -> None:
         pass
@@ -100,26 +94,28 @@ class BinanceConnector(Connector):
         event = CandleEvent(name=self.EXCHANGE, symbol=symbol, interval=interval, candle=candle)
         self.emit(event)
 
-    def submit(self, execution_order: Single) -> str:
-        params = {"symbol": execution_order.symbol, "newClientOrderId": execution_order.uid,
-                  "side": SIDE_BUY if execution_order.command is Command.BUY else SIDE_SELL}
+    def submit(self, order: Single) -> str:
+        self.log(f"Submit order {order}")
+        params = {"symbol": order.symbol, "newClientOrderId": order.uid,
+                  "side": SIDE_BUY if order.command is Command.BUY else SIDE_SELL}
 
-        if execution_order.price > 0:
+        if order.price > 0:
             params["type"] = ORDER_TYPE_LIMIT
-            params["quantity"] = round(execution_order.quote, 6)
-            params["price"] = execution_order.price
+            params["quantity"] = round(order.quote, 6)
+            params["price"] = order.price
             params["timeInForce"] = TIME_IN_FORCE_GTC
         else:
             params["type"] = ORDER_TYPE_MARKET
-            if execution_order.quote:
-                params["quantity"] = execution_order.quote
-            elif execution_order.base:
-                params["quoteOrderQty"] = execution_order.base
+            if order.quote:
+                params["quantity"] = order.quote
+            elif order.base:
+                params["quoteOrderQty"] = order.base
 
         response = self.client.create_order(**params)
         return str(response["orderId"])
 
-    def cancel(self, execution_order: Single) -> str:
-        params = {"symbol": execution_order.symbol, "orderId": int(execution_order.eid), "origClientOrderId": execution_order.uid}
+    def cancel(self, order: Single) -> str:
+        self.log(f"Cancel order {order}")
+        params = {"symbol": order.symbol, "orderId": int(order.eid), "origClientOrderId": order.uid}
         response = self.client.cancel_order(**params)
         return response["clientOrderId"]

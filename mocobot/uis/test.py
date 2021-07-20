@@ -11,6 +11,7 @@ class TestUi(Ui):
         pass
 
     async def on_run(self) -> None:
+        pass
 
         # await sleep(10)
         # self.emit(AddConnectorEvent(
