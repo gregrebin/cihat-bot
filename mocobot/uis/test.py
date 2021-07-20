@@ -11,7 +11,6 @@ class TestUi(Ui):
         pass
 
     async def on_run(self) -> None:
-        pass
 
         # await sleep(10)
         # self.emit(AddConnectorEvent(
@@ -21,16 +20,24 @@ class TestUi(Ui):
         # await sleep(2)
         # self.emit(AddConnectorEvent(connector_name="binance_connector"))
 
-        await sleep(2)
+        # await sleep(2)
+        # self.emit(AddOrderEvent(
+        #     order=Single(exchange="binance", symbol="BTCBUSD", quote=10, price=20, indicators=(
+        #         Indicator(name="price", min=10, max=10),
+        #     )),
+        #     mode=Mode.PARALLEL
+        # ))
+
+        # await sleep(2)
+        # self.emit(AddConnectorEvent(connector_name="binance_connector"))
+
+        await sleep(5)
         self.emit(AddOrderEvent(
-            order=Single(exchange="binance", symbol="BTCBUSD", quote=10, price=20, indicators=(
-                Indicator(name="price", min=10, max=10),
+            order=Single(exchange="test", symbol="BTCUSDT", quote=10, price=20, indicators=(
+                Indicator(name="price_change", min=5, max=10),
             )),
             mode=Mode.PARALLEL
         ))
-
-        await sleep(2)
-        self.emit(AddConnectorEvent(connector_name="binance_connector"))
 
     def on_stop(self) -> None:
         pass

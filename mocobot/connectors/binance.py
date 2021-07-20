@@ -91,7 +91,7 @@ class BinanceConnector(Connector):
         low = float(msg["k"]["l"])
         volume = float(msg["k"]["v"])
         candle = Candle(time=time, open=open, close=close, high=high, low=low, volume=volume)
-        event = CandleEvent(name=self.EXCHANGE, symbol=symbol, interval=interval, candle=candle)
+        event = CandleEvent(exchange=self.EXCHANGE, symbol=symbol, interval=interval, candle=candle)
         self.emit(event)
 
     def submit(self, order: Single) -> str:

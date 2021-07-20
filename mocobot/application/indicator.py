@@ -1,5 +1,5 @@
 from mocobot.application.market import Interval, OHLCV
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, Timestamp
 from dataclasses import dataclass, field
 from typing import Dict, Callable, Tuple
 from inspect import signature
@@ -65,11 +65,16 @@ DATA_NAMES = {
 CUSTOM = {
     "price": lambda close: close,
     "volume": lambda volume: volume,
+    "price_change": lambda close: close.apply(lambda x: x - close.iloc[0]),
+    "volume_change": lambda volume: volume.apply(lambda x: x - volume.iloc[0]),
 }
 
 
 # Names of indicators that depends on the start point and expect a cropped Dataframe
-START_RELATIVE = {}
+START_RELATIVE = {
+    "price_change",
+    "volume_change",
+}
 
 
 @dataclass(frozen=True)
@@ -105,8 +110,9 @@ class Indicator:
         return tuple(param.name for param in signature(self._function).parameters.values()
                      if param.kind == param.POSITIONAL_OR_KEYWORD and not param.default == param.empty)
 
-    def check(self, dataframe: DataFrame, start) -> bool:
+    def check(self, dataframe: DataFrame, start: Timestamp = None) -> bool:
         data = {}
+        start = start if start else dataframe.index[0]
         if self.name in START_RELATIVE:
             dataframe = dataframe.loc[start:]
         for data_name in self._data:

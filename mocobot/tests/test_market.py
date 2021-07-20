@@ -19,6 +19,7 @@ class TestMarket(unittest.TestCase):
         self.market = self.market.add_candle("binance", "BTCUSDT", Interval(1, TimeFrame.HOUR), candle1)
 
         df = self.market["binance", "BTCBUSD", Interval(1, TimeFrame.HOUR)]
+
         sma = Indicator(name="sma", settings={"length": 2}, min=0, max=100)
         self.assertTrue(sma.check(df))
 
@@ -27,6 +28,7 @@ class TestMarket(unittest.TestCase):
             self.market = self.market.add_candle("binance", "BTCBUSD", Interval(1, TimeFrame.HOUR), candle3)
 
         df = self.market["binance", "BTCBUSD", Interval(1, TimeFrame.HOUR)]
+
         macd = Indicator(name="macd", settings={"fast": 8, "slow": 21}, min=-1, max=100, line="macd")
         self.assertTrue(macd.check(df))
 
@@ -36,3 +38,15 @@ class TestMarket(unittest.TestCase):
         price = Indicator(name="price", min=20, max=90)
         self.assertFalse(price.check(df))
 
+        start = df.index[0]
+
+        change = Indicator(name="price_change", min=2, max=2)
+        self.assertTrue(change.check(df, start))
+
+        start = df.index[1]
+
+        change = Indicator(name="price_change", min=2, max=2)
+        self.assertFalse(change.check(df, start))
+
+        change = Indicator(name="price_change", min=-3, max=-3)
+        self.assertTrue(change.check(df, start))

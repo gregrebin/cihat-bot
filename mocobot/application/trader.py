@@ -69,8 +69,8 @@ class Trader(Module):
         self._update()
 
     def _candle_event(self, event: CandleEvent):
-        self.log(f"""New candle: {event.name} {event.symbol} {event.interval} {event.candle}""")
-        self.market = self.market.add_candle(event.name, event.symbol, event.interval, event.candle)
+        self.log(f"""New candle: {event.exchange} {event.symbol} {event.interval} {event.candle}""")
+        self.market = self.market.add_candle(event.exchange, event.symbol, event.interval, event.candle)
         self._update()
 
     def _user_event(self, event: UserEvent):
@@ -87,11 +87,12 @@ class Trader(Module):
     def _submit_order(self, order: Single):
         for indicator in order.indicators:
             dataframe = self.market[order.exchange, order.symbol, indicator.interval]
-            start = self.market_start.setdefault((order.uid, indicator.interval), dataframe.iloc[-1].index)
-            if dataframe.empty or not indicator.check(dataframe, start): return
+            if dataframe.empty: return
+            start = self.market_start.setdefault((order.uid, indicator.interval), dataframe.index[-1])
+            if not indicator.check(dataframe, start): return
         for connector in self._get_connectors(order):
             eid = connector.submit(order)
-            self.order.set_eid(order.uid, eid)
+            self.order = self.order.set_eid(order.uid, eid)
 
     def _start_candles_on_connector(self, connector: Connector):
         for single in self.order.get(pending=False):

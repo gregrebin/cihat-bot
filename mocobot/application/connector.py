@@ -55,7 +55,7 @@ class ConnectorException(Exception):
 @dataclass
 class CandleEvent(Event):
     """ Fires trader.ticker_update """
-    name: str
+    exchange: str
     symbol: str
     interval: Interval
     candle: Candle
