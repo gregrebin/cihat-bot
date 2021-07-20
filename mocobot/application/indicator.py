@@ -68,6 +68,10 @@ CUSTOM = {
 }
 
 
+# Names of indicators that depends on the start point and expect a cropped Dataframe
+START_RELATIVE = {}
+
+
 @dataclass(frozen=True)
 class Indicator:
 
@@ -101,8 +105,10 @@ class Indicator:
         return tuple(param.name for param in signature(self._function).parameters.values()
                      if param.kind == param.POSITIONAL_OR_KEYWORD and not param.default == param.empty)
 
-    def check(self, dataframe: DataFrame) -> bool:
+    def check(self, dataframe: DataFrame, start) -> bool:
         data = {}
+        if self.name in START_RELATIVE:
+            dataframe = dataframe.loc[start:]
         for data_name in self._data:
             data[data_name] = dataframe[DATA_NAMES[data_name]]
         result = self._function(**data, **self.settings)

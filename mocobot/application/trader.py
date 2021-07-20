@@ -4,7 +4,8 @@ from mocobot.application.order import Order, Empty, Status, Single
 from mocobot.application.market import Market, Interval
 from mocobot.application.ui import Ui, AddOrderEvent, CancelOrderEvent, AddTraderEvent, AddUiEvent, AddConnectorEvent, ConfigEvent
 from mocobot.application.connector import Connector, UserEvent, CandleEvent
-from typing import List, Dict, Callable, Type
+from pandas import DatetimeIndex
+from typing import List, Dict, Callable, Type, Tuple, Any
 from configparser import SectionProxy
 import logging
 
@@ -15,6 +16,7 @@ class Trader(Module):
         super().__init__(config, category, name)
         self.order: Order = Empty()
         self.market: Market = Market()
+        self.market_start: Dict[Tuple[str, Interval], Any] = {}
 
     def pre_run(self) -> None:
         pass
@@ -85,7 +87,8 @@ class Trader(Module):
     def _submit_order(self, order: Single):
         for indicator in order.indicators:
             dataframe = self.market[order.exchange, order.symbol, indicator.interval]
-            if dataframe.empty or not indicator.check(dataframe): return
+            start = self.market_start.setdefault((order.uid, indicator.interval), dataframe.iloc[-1].index)
+            if dataframe.empty or not indicator.check(dataframe, start): return
         for connector in self._get_connectors(order):
             eid = connector.submit(order)
             self.order.set_eid(order.uid, eid)
