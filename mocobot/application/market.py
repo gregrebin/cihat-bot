@@ -7,11 +7,11 @@ from pandas import DataFrame, to_datetime
 
 class TimeFrame(Enum):
 
-    MINUTE = "min"
-    HOUR = "hour"
-    DAY = "day"
-    WEEK = "week"
-    MONTH = "month"
+    MINUTE = "m"
+    HOUR = "h"
+    DAY = "d"
+    WEEK = "w"
+    MONTH = "M"
 
 
 class OHLCV(Enum):

@@ -40,8 +40,8 @@ class BinanceConnector(Connector):
 
     def post_init(self) -> None:
         self.client: Client = Client(self.username, self.password)
-        self.socket_manager: ThreadedWebsocketManager = ThreadedWebsocketManager(self.username, self.password)
         self.open_sockets: Set[Tuple[str, Interval]] = set()
+        self.socket_manager: ThreadedWebsocketManager = ThreadedWebsocketManager(self.username, self.password)
         self.socket_manager.start()
 
     @property

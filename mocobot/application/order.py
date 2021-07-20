@@ -1,5 +1,6 @@
 from __future__ import annotations
-from mocobot.application.indicator import Indicator
+from mocobot.application.indicator import Indicator, Interval
+from mocobot.application.market import TimeFrame
 from typing import List, Callable, Dict, Tuple, Generator, Set
 from uuid import uuid4, UUID
 from enum import Enum, auto
@@ -203,7 +204,7 @@ class Multiple(Order):
 # ---------------
 # order ::= <empty> | <single> | <multiple>
 #   empty ::= ""
-#   single ::= <command> <quote> <symbol> in <exchange> at <price> <conditions> | <command> <symbol> in <exchange> at <price> for <base> <conditions>  (ex. buy 5 BTCUSDT in Binance at 20000 | buy BTCUSDT in Binance at 20000 for 1000 | buy 5 BTCUSDT in Binance at 20000 if price = 20000:23000 and macd(fast:8, slow:1) histogram = 1)
+#   single ::= <command> <quote> <symbol> in <exchange> at <price> <conditions> | <command> <symbol> in <exchange> at <price> for <base> <conditions>  (ex. buy 5 BTCUSDT in Binance at 20000 | buy BTCUSDT in Binance at 20000 for 1000 | buy 5 BTCUSDT in Binance at 20000 if price=20000/23000 and macd@1d(fast:8,slow:1)histogram=1)
 #       command ::= buy | sell
 #       quote ::= <decimal>
 #       symbol ::= <string>
@@ -212,9 +213,10 @@ class Multiple(Order):
 #       base ::= <string>
 #       conditions ::=  | if <indicators>
 #           <indicators> ::= <indicator> | <indicator> and <indicators>
-#               <indicator> ::= <name> = <value> | <name> ( <settings> ) = <value> | <name> ( <settings> ) <line> = <value>
+#               <indicator> ::= <name> <interval> = <value> | <name> <interval> ( <settings> ) = <value> | <name> <interval> ( <settings> ) <line> = <value>
 #                   <name> ::= <string>
-#                   <value> ::= <decimal> | <decimal> - <decimal>
+#                   <interval> ::= @ <decimal> <timeframe> | ""
+#                   <value> ::= <decimal> | <decimal> / <decimal>
 #                   <settings> ::= <setting> | <setting> , <settings>
 #                       <setting> ::= <string> : <decimal>
 #                   <line> ::= <string>
@@ -226,7 +228,7 @@ class Multiple(Order):
 # noinspection PyUnresolvedReferences,PyUnboundLocalVariable,PyPep8Naming,PyRedeclaration,PyMethodMayBeStatic
 class OrderLexer(Lexer):
 
-    tokens = {EMPTY, COMMAND, MODE, IN, AT, FOR, IF, AND, SEMICOLON, LBRACKET, RBRACKET, LPAR, RPAR, EQUAL, COMMA, COLON, DECIMAL, STRING}
+    tokens = {EMPTY, COMMAND, MODE, IN, AT, FOR, IF, AND, SEMICOLON, LBRACKET, RBRACKET, LPAR, RPAR, EQUAL, COMMA, COLON, SLASH, INTERVAL, DECIMAL, STRING}
 
     ignore = " \t\n\r"
 
@@ -246,6 +248,8 @@ class OrderLexer(Lexer):
     EQUAL = "="
     COMMA = ","
     COLON = ":"
+    SLASH = "/"
+    INTERVAL = "@\d+[mhdwM]"
     DECIMAL = "\d+\.?\d*"
     STRING = "\w+"
 
@@ -255,6 +259,10 @@ class OrderLexer(Lexer):
 
     def MODE(self, t):
         t.value = Mode(t.value)
+        return t
+
+    def INTERVAL(self, t):
+        t.value = Interval(quantity=int(t.value[1:-1]), time_frame=TimeFrame(t.value[-1]))
         return t
 
     def DECIMAL(self, t):
@@ -341,28 +349,35 @@ class OrderParser(Parser):
     def indicators(self, p):
         return p.indicator,
 
-    @_("name EQUAL value")
+    @_("name interval EQUAL value")
     def indicator(self, p):
         value = p.value
-        return Indicator(name=p.name, min=value[0], max=value[1], settings={})
+        return Indicator(name=p.name, interval=p.interval, min=value[0], max=value[1], settings={})
 
-    @_("name LPAR settings RPAR EQUAL value")
+    @_("name interval LPAR settings RPAR EQUAL value")
     def indicator(self, p):
         value = p.value
         settings = dict(p.settings)
-        return Indicator(name=p.name, min=value[0], max=value[1], settings=settings)
+        return Indicator(name=p.name, interval=p.interval, min=value[0], max=value[1], settings=settings)
 
-    @_("name LPAR settings RPAR line EQUAL value")
+    @_("name interval LPAR settings RPAR line EQUAL value")
     def indicator(self, p):
         value = p.value
         settings = dict(p.settings)
-        return Indicator(name=p.name, min=value[0], max=value[1], settings=settings, line=p.line)
+        return Indicator(name=p.name, interval=p.interval, min=value[0], max=value[1], settings=settings, line=p.line)
 
     @_("STRING")
     def name(self, p):
         return p.STRING
 
-    @_("DECIMAL", "DECIMAL COLON DECIMAL")
+    @_("INTERVAL", "")
+    def interval(self, p):
+        if len(p) == 1:
+            return p.INTERVAL
+        else:
+            return Interval()
+
+    @_("DECIMAL", "DECIMAL SLASH DECIMAL")
     def value(self, p):
         if len(p) == 1:
             return p.DECIMAL, p.DECIMAL
