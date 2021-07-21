@@ -54,7 +54,14 @@ class MxcConnector(Connector):
             return Recipe(eid=order.eid, status=Status.REJECTED)
 
     def cancel(self, order: Single) -> Recipe:
-        pass
+        original_params = {"order_ids": order.eid, "client_order_ids": order.uid}
+        params = self._params("DELETE", "/open/api/v2/order/cancel", original_params=original_params)
+        response = requests.delete("https://www.mxc.com/open/api/v2/order/cancel", params=params).json()
+        print(response)
+        if response["code"] == 200:
+            return Recipe(eid=order.eid, status=Status.CANCELLED)
+        else:
+            return Recipe(eid=order.eid, status=Status.REJECTED)
 
     def _params(self, method, path, original_params=None):
         params = {'api_key': self.username, 'req_time': int(time.time())}
