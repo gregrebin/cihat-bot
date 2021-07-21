@@ -42,7 +42,7 @@ class Injector(FrameworkInjector):
                 "type": Trader,
                 "args": {},
                 "submodules": [
-                    {"category": Connector, "name": "test_connector"},
+                    # {"category": Connector, "name": "test_connector"},
                     {"category": Ui, "name": "test_ui"}
                 ]
             }

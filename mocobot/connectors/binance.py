@@ -1,10 +1,10 @@
-from mocobot.application.connector import Connector, CandleEvent, UserEvent, Recipe
+from mocobot.application.connector import Connector, CandleEvent, UserEvent, Recipe, Module
 from mocobot.application.order import Single, Command, Status
 from mocobot.application.market import Interval, TimeFrame, Candle
 from binance import Client, ThreadedWebsocketManager
 from binance.enums import *
 from bidict import bidict
-from typing import Tuple, Type, Set
+from typing import Tuple, Type, Set, Dict, Callable
 
 
 class BinanceConnector(Connector):
@@ -41,13 +41,13 @@ class BinanceConnector(Connector):
         self.client: Client = Client(self.username, self.password)
         self.open_sockets: Set[Tuple[str, Interval]] = set()
         self.socket_manager: ThreadedWebsocketManager = ThreadedWebsocketManager(self.username, self.password)
-        self.socket_manager.start()
 
     @property
     def exchange(self) -> str:
         return self.EXCHANGE
 
     def pre_run(self) -> None:
+        self.socket_manager.start()
         self.socket_manager.start_user_socket(self._user_handler)
 
     def _user_handler(self, msg: dict):
@@ -71,13 +71,14 @@ class BinanceConnector(Connector):
         self.socket_manager.stop()
         self.socket_manager.join()
 
-    def start_candles(self, symbol: str, interval: Interval) -> None:
+    async def start_socket(self, symbol: str, interval: Interval):
         self.log(f"Start socket for {symbol} {interval}")
         if interval not in self.INTERVALS or (symbol, interval) in self.open_sockets: return
         self.socket_manager.start_kline_socket(self._candle_handler, symbol, BinanceConnector.INTERVALS[interval])
         self.open_sockets.add((symbol, interval))
 
     def _candle_handler(self, msg: dict) -> None:
+        self.log("Candle")
         closed = msg["k"]["x"]
         msg_interval = msg["k"]["i"]
         if not closed or msg_interval not in self.INTERVALS.inverse: return

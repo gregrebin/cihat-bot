@@ -8,8 +8,7 @@ from typing import Type
 
 class SocketUi(Ui):
 
-    def __init__(self, config: SectionProxy, category: Type, name: str):
-        super().__init__(config, category, name)
+    def post_init(self) -> None:
         self.server = None
         self.task = None
         self.order = None

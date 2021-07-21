@@ -30,8 +30,11 @@ class Connector(Module):
     def exchange(self) -> str:
         pass
 
-    @abstractmethod
     def start_candles(self, symbol: str, interval: Interval) -> None:
+        self.scheduler.schedule(self.start_socket(symbol, interval))
+
+    @abstractmethod
+    def start_socket(self, symbol: str, interval: Interval):
         pass
 
     @abstractmethod

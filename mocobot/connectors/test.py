@@ -17,11 +17,11 @@ class TestConnector(Connector):
 
     async def on_run(self) -> None:
         self.log(f"Running with user {self.username} and password {self.password}")
-        price = 0
-        while self.is_running:
-            await sleep(2)
-            self.emit(CandleEvent(exchange="test", symbol="BTCUSDT", interval=Interval(), candle=Candle(time=int(time()), close=price)))
-            price += 1
+        # price = 0
+        # while self.is_running:
+        #     await sleep(2)
+        #     self.emit(CandleEvent(exchange="test", symbol="BTCUSDT", interval=Interval(), candle=Candle(time=int(time()), close=price)))
+        #     price += 1
 
     def on_stop(self) -> None:
         pass
