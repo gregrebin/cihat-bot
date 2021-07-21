@@ -27,17 +27,17 @@ class Trader(Module):
     @property
     def events(self) -> Dict[Type, Callable]:
         return {
-            AddUiEvent: self._add_ui_event,
-            AddConnectorEvent: self._add_connector_event,
+            AddUiEvent: self.add_ui_event,
+            AddConnectorEvent: self.add_connector_event,
             AddTraderEvent: self.emit,
             ConfigEvent: self.emit,
-            AddOrderEvent: self._add_order_event,
-            CancelOrderEvent: self._cancel_order_event,
-            CandleEvent: self._candle_event,
-            UserEvent: self._user_event
+            AddOrderEvent: self.add_order_event,
+            CancelOrderEvent: self.cancel_order_event,
+            CandleEvent: self.candle_event,
+            UserEvent: self.user_event
         }
 
-    def _add_ui_event(self, event: AddUiEvent):
+    def add_ui_event(self, event: AddUiEvent):
         self.log(f"""Adding new ui: {event.ui_name}""")
         try:
             ui = self.injector.inject(Ui, event.ui_name)
@@ -46,7 +46,7 @@ class Trader(Module):
             return
         self.add_submodule(ui)
 
-    def _add_connector_event(self, event: AddConnectorEvent):
+    def add_connector_event(self, event: AddConnectorEvent):
         self.log(f"""Adding new connector: {event.connector_name}""")
         try:
             connector = self.injector.inject(
@@ -57,30 +57,45 @@ class Trader(Module):
         self.add_submodule(connector)
         self._start_candles_on_connector(connector)
 
-    def _add_order_event(self, event: AddOrderEvent):
+    def _start_candles_on_connector(self, connector: Connector):
+        for single in self.order.get(pending=False):
+            if single.exchange == connector.exchange:
+                for indicator in single.indicators:
+                    connector.start_candles(single.symbol, indicator.interval)
+
+    def add_order_event(self, event: AddOrderEvent):
         self.log(f"""Adding new order: {event.order}""")
         self.order = self.order.add(event.order, event.mode)
         self._start_candles_for_order(event.order)
         self._update()
 
-    def _cancel_order_event(self, event: CancelOrderEvent):
+    def _start_candles_for_order(self, order: Order):
+        for single in order.get(pending=False):
+            for connector in self._get_connectors(single):
+                for indicator in single.indicators:
+                    connector.start_candles(single.symbol, indicator.interval)
+
+    def cancel_order_event(self, event: CancelOrderEvent):
         self.log(f"""Cancelling order: {event.uid}""")
         self.order = self.order.cancel(event.uid)
         self._update()
 
-    def _candle_event(self, event: CandleEvent):
+    def candle_event(self, event: CandleEvent):
         self.log(f"""New candle: {event.exchange} {event.symbol} {event.interval} {event.candle}""")
         self.market = self.market.add_candle(event.exchange, event.symbol, event.interval, event.candle)
         self._update()
 
-    def _user_event(self, event: UserEvent):
+    def user_event(self, event: UserEvent):
         self.log(f"""New user event: {event.uid} {event.status}""")
         self.order = self.order.update_status(uid=event.uid, eid=event.eid, status=event.status)
         self._update()
 
     def _update(self):
         for order in self.order.get():
-            self._submit_order(order)
+            if order.status is Status.NEW:
+                self._submit_order(order)
+            elif order.status is Status.SUBMITTED and order.to_cancel:
+                self._cancel_order(order)
         for ui in self.get_submodule(Ui):
             ui.update(self.order, self.market)
 
@@ -94,17 +109,9 @@ class Trader(Module):
             eid = connector.submit(order)
             self.order = self.order.set_eid(order.uid, eid)
 
-    def _start_candles_on_connector(self, connector: Connector):
-        for single in self.order.get(pending=False):
-            if single.exchange == connector.exchange:
-                for indicator in single.indicators:
-                    connector.start_candles(single.symbol, indicator.interval)
-
-    def _start_candles_for_order(self, order: Order):
-        for single in order.get(pending=False):
-            for connector in self._get_connectors(single):
-                for indicator in single.indicators:
-                    connector.start_candles(single.symbol, indicator.interval)
+    def _cancel_order(self, order: Single):
+        for connector in self._get_connectors(order):
+            connector.cancel(order)
 
     def _get_connectors(self, order: Single) -> List[Connector]:
         return self.get_submodule(Connector, exchange=order.exchange)
