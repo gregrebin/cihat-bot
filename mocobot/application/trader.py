@@ -106,12 +106,14 @@ class Trader(Module):
             start = self.market_start.setdefault((order.uid, indicator.interval), dataframe.index[-1])
             if not indicator.check(dataframe, start): return
         for connector in self._get_connectors(order):
-            eid = connector.submit(order)
-            self.order = self.order.set_eid(order.uid, eid)
+            recipe = connector.submit(order)
+            self.order = self.order.set_eid(order.uid, recipe.eid)
+            self.order = self.order.update_status(order.uid, recipe.eid, recipe.status)
 
     def _cancel_order(self, order: Single):
         for connector in self._get_connectors(order):
-            connector.cancel(order)
+            recipe = connector.cancel(order)
+            self.order = self.order.update_status(order.uid, recipe.eid, recipe.status)
 
     def _get_connectors(self, order: Single) -> List[Connector]:
         return self.get_submodule(Connector, exchange=order.exchange)

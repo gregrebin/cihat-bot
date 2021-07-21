@@ -1,5 +1,4 @@
-from mocobot.application.connector import Connector
-from mocobot.application.connector import CandleEvent
+from mocobot.application.connector import Connector, CandleEvent, Recipe, Status
 from mocobot.application.order import Single
 from mocobot.application.market import Interval, Candle
 from asyncio import sleep
@@ -33,9 +32,9 @@ class TestConnector(Connector):
     def start_candles(self, symbol: str, interval: Interval) -> None:
         self.log(f"Start candles for {symbol} {interval}")
 
-    def submit(self, execution_order: Single) -> str:
-        self.log(f"Submit {execution_order}")
-        return "007"
+    def submit(self, order: Single) -> Recipe:
+        self.log(f"Submit {order}")
+        return Recipe(eid="007", status=Status.SUBMITTED)
 
-    def cancel(self, execution_order: Single) -> str:
-        pass
+    def cancel(self, order: Single) -> Recipe:
+        return Recipe(eid=order.eid, status=Status.CANCELLED)

@@ -1,11 +1,10 @@
-from mocobot.application.connector import Connector, CandleEvent, UserEvent
+from mocobot.application.connector import Connector, CandleEvent, UserEvent, Recipe
 from mocobot.application.order import Single, Command, Status
 from mocobot.application.market import Interval, TimeFrame, Candle
 from binance import Client, ThreadedWebsocketManager
 from binance.enums import *
 from bidict import bidict
 from typing import Tuple, Type, Set
-from configparser import SectionProxy
 
 
 class BinanceConnector(Connector):
@@ -94,7 +93,7 @@ class BinanceConnector(Connector):
         event = CandleEvent(exchange=self.EXCHANGE, symbol=symbol, interval=interval, candle=candle)
         self.emit(event)
 
-    def submit(self, order: Single) -> str:
+    def submit(self, order: Single) -> Recipe:
         self.log(f"Submit order {order}")
         params = {"symbol": order.symbol, "newClientOrderId": order.uid,
                   "side": SIDE_BUY if order.command is Command.BUY else SIDE_SELL}
@@ -112,10 +111,10 @@ class BinanceConnector(Connector):
                 params["quoteOrderQty"] = order.base
 
         response = self.client.create_order(**params)
-        return str(response["orderId"])
+        return Recipe(eid=str(response["orderId"]), status=BinanceConnector.STATUS[response["status"]])
 
-    def cancel(self, order: Single) -> str:
+    def cancel(self, order: Single) -> Recipe:
         self.log(f"Cancel order {order}")
         params = {"symbol": order.symbol, "orderId": int(order.eid), "origClientOrderId": order.uid}
         response = self.client.cancel_order(**params)
-        return response["clientOrderId"]
+        return Recipe(eid=str(response["orderId"]), status=BinanceConnector.STATUS[response["status"]])

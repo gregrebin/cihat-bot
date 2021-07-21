@@ -1,3 +1,4 @@
+from __future__ import annotations
 from mocobot.framework.module import Module
 from mocobot.framework.events import Event
 from mocobot.application.order import Single, Status
@@ -34,11 +35,11 @@ class Connector(Module):
         pass
 
     @abstractmethod
-    def submit(self, execution_order: Single) -> str:
+    def submit(self, order: Single) -> Recipe:
         pass
 
     @abstractmethod
-    def cancel(self, execution_order: Single) -> str:
+    def cancel(self, order: Single) -> Recipe:
         pass
 
 
@@ -46,6 +47,12 @@ class ConnectorException(Exception):
     def __init__(self, message: str):
         super().__init__(message)
         self.message = message
+
+
+@dataclass
+class Recipe:
+    eid: str
+    status: Status
 
 
 # class FailedException(ConnectorException):
