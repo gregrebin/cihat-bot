@@ -7,10 +7,15 @@ from enum import Enum, auto
 from dataclasses import dataclass, field, replace
 from abc import ABC, abstractmethod
 from sly import Lexer, Parser
+from time import time, gmtime
 
 
 def new_uid():
     return uuid4().hex
+
+
+def current_time():
+    return int(time())
 
 
 class Status(Enum):
@@ -113,6 +118,7 @@ class Single(Order):
     base: float = 0
     price: float = 0
 
+    time: int = field(default_factory=current_time)
     indicators: Tuple[Indicator, ...] = field(default_factory=tuple)
 
     def __post_init__(self):
@@ -153,7 +159,10 @@ class Single(Order):
             return self
 
     def _repr_(self, depth=0):
+        tm = gmtime(self.time)
+
         return f"{self.command.value} {self.quote} {self.symbol} in {self.exchange} at {self.price} for {self.base}" \
+               f" on {tm.tm_mday}.{tm.tm_mon}.{tm.tm_year} {tm.tm_hour}:{tm.tm_min}" \
                f"{' if ' + ' and '.join(indicator.__repr__() for indicator in self.indicators) if self.indicators else ''}" \
                f" <{self.status.value if not self.to_cancel else 'to_cancel'}-{self.uid}-{self.eid}>"
 

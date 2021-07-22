@@ -29,7 +29,7 @@ class TestConnector(Connector):
     def post_run(self) -> None:
         pass
 
-    def start_candles(self, symbol: str, interval: Interval) -> None:
+    async def start_socket(self, symbol: str, interval: Interval) -> None:
         self.log(f"Start candles for {symbol} {interval}")
 
     def submit(self, order: Single) -> Recipe:

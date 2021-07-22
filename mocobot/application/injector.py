@@ -5,6 +5,7 @@ from mocobot.application.trader import Trader
 from mocobot.application.connector import Connector
 from mocobot.connectors.test import TestConnector
 from mocobot.connectors.binance import BinanceConnector
+from mocobot.connectors.mxc import MxcConnector
 from mocobot.uis.socket import SocketUi
 from mocobot.uis.test import TestUi
 
@@ -42,7 +43,7 @@ class Injector(FrameworkInjector):
                 "type": Trader,
                 "args": {},
                 "submodules": [
-                    # {"category": Connector, "name": "test_connector"},
+                    {"category": Connector, "name": "test_connector"},
                     {"category": Ui, "name": "test_ui"}
                 ]
             }
@@ -64,6 +65,11 @@ class Injector(FrameworkInjector):
         Connector: {
             "binance_connector": {
                 "type": BinanceConnector,
+                "args": {},
+                "submodules": []
+            },
+            "mxc_connector": {
+                "type": MxcConnector,
                 "args": {},
                 "submodules": []
             },

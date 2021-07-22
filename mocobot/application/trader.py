@@ -1,10 +1,12 @@
 from __future__ import annotations
-from mocobot.framework.module import Module, InjectorException
+from mocobot.framework.module import Module, InjectorException, Event
 from mocobot.application.order import Order, Empty, Status, Single
 from mocobot.application.market import Market, Interval
 from mocobot.application.ui import Ui, AddOrderEvent, CancelOrderEvent, AddTraderEvent, AddUiEvent, AddConnectorEvent, ConfigEvent
 from mocobot.application.connector import Connector, UserEvent, CandleEvent
-from pandas import DatetimeIndex
+from asyncio import sleep
+from time import time
+from dataclasses import dataclass
 from typing import List, Dict, Callable, Type, Tuple, Any
 from configparser import SectionProxy
 import logging
@@ -17,6 +19,13 @@ class Trader(Module):
         self.order: Order = Empty()
         self.market: Market = Market()
         self.market_start: Dict[Tuple[str, Interval], Any] = {}
+        self.time: int = int(time())
+
+    def post_init(self) -> None:
+        self._add_timer()
+
+    def _add_timer(self) -> None:
+        self.add_submodule(Timer().init())
 
     def pre_run(self) -> None:
         pass
@@ -34,7 +43,8 @@ class Trader(Module):
             AddOrderEvent: self.add_order_event,
             CancelOrderEvent: self.cancel_order_event,
             CandleEvent: self.candle_event,
-            UserEvent: self.user_event
+            UserEvent: self.user_event,
+            TimerEvent: self.timer_event,
         }
 
     def add_ui_event(self, event: AddUiEvent):
@@ -67,6 +77,7 @@ class Trader(Module):
         self.log(f"""Adding new order: {event.order}""")
         self.order = self.order.add(event.order, event.mode)
         self._start_candles_for_order(event.order)
+        self.time = self._start_timer(event.order)
         self._update()
 
     def _start_candles_for_order(self, order: Order):
@@ -74,6 +85,16 @@ class Trader(Module):
             for connector in self._get_connectors(single):
                 for indicator in single.indicators:
                     connector.start_candles(single.symbol, indicator.interval)
+
+    def _start_timer(self, order: Order) -> int:
+        now = time()
+        for single in order.get(pending=False):
+            if single.time > now:
+                self._get_timer().set_timer(single.time)
+        return int(now)
+
+    def _get_timer(self) -> Timer:
+        return self.get_submodule(Timer)[0]
 
     def cancel_order_event(self, event: CancelOrderEvent):
         self.log(f"""Cancelling order: {event.uid}""")
@@ -90,6 +111,11 @@ class Trader(Module):
         self.order = self.order.update_status(uid=event.uid, eid=event.eid, status=event.status)
         self._update()
 
+    def timer_event(self, event: TimerEvent):
+        self.log(f"Timer: {event.time}")
+        self.time = event.time
+        self._update()
+
     def _update(self):
         for order in self.order.get():
             if order.status is Status.NEW:
@@ -100,6 +126,7 @@ class Trader(Module):
             ui.update(self.order, self.market)
 
     def _submit_order(self, order: Single):
+        if order.time > self.time: return
         for indicator in order.indicators:
             dataframe = self.market[order.exchange, order.symbol, indicator.interval]
             if dataframe.empty: return
@@ -124,3 +151,37 @@ class Trader(Module):
     def post_run(self) -> None:
         pass
 
+
+class Timer(Module):
+
+    def __init__(self):
+        super().__init__({}, Timer, "timer")
+
+    def pre_run(self) -> None:
+        pass
+
+    async def on_run(self) -> None:
+        pass
+
+    def set_timer(self, target: int) -> None:
+        async def timer():
+            now = time()
+            if target > now:
+                await sleep(target - now)
+            self.emit(TimerEvent(target))
+        self.scheduler.schedule(timer())
+
+    @property
+    def events(self) -> Dict[Type, Callable]:
+        return {}
+
+    def on_stop(self) -> None:
+        pass
+
+    def post_run(self) -> None:
+        pass
+
+
+@dataclass
+class TimerEvent(Event):
+    time: int
