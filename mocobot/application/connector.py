@@ -34,7 +34,7 @@ class Connector(Module):
         self.scheduler.schedule(self.start_socket(symbol, interval))
 
     @abstractmethod
-    def start_socket(self, symbol: str, interval: Interval):
+    async def start_socket(self, symbol: str, interval: Interval):
         pass
 
     @abstractmethod

@@ -1,6 +1,9 @@
-from mocobot.application.connector import Connector, Recipe
-from mocobot.application.market import Interval
+from mocobot.application.connector import Connector, Recipe, UserEvent, CandleEvent
+from mocobot.application.market import Interval, TimeFrame, Candle
 from mocobot.application.order import Single, Command, Status
+from socketio import Client
+from bidict import bidict
+from typing import Set, Tuple
 import requests
 import time
 import hmac
@@ -11,6 +14,15 @@ class MxcConnector(Connector):
 
     EXCHANGE = "mxc"
 
+    INTERVALS = bidict({
+        Interval(1, TimeFrame.MINUTE): "Min1",
+        Interval(5, TimeFrame.MINUTE): "Min5",
+        Interval(15, TimeFrame.MINUTE): "Min15",
+        Interval(30, TimeFrame.MINUTE): "Min30",
+        Interval(1, TimeFrame.HOUR): "Min60",
+        Interval(1, TimeFrame.DAY): "Day1",
+        Interval(1, TimeFrame.MONTH): "Month1",
+    })
     TRADE_TYPES = {
         Command.BUY: "BID",
         Command.SELL: "ASK",
@@ -18,12 +30,36 @@ class MxcConnector(Connector):
     ORDER_TYPE_LIMIT = "LIMIT_ORDER"
     ORDER_TYPE_MARKET = "MARKET_ORDER"
 
+    def post_init(self) -> None:
+        self.open_sockets: Set[Tuple[str, Interval]] = set()
+        self.sio = Client(request_timeout=60000, reconnection_delay=500)
+        self.sio.on("push.kline", self._kline_handler)
+        self.sio.on("push.personal.order", self._order_handler)
+
+    def _kline_handler(self, msg: dict):
+        data = msg["data"]
+        symbol = data["symbol"]
+        interval = self.INTERVALS.inverse[data["interval"]]
+        time = data["t"]
+        open = data["o"]
+        close = data["c"]
+        high = data["h"]
+        low = data["l"]
+        volume = data["v"]
+        candle = Candle(time=time, open=open, close=close, high=high, low=low, volume=volume)
+        event = CandleEvent(exchange=self.EXCHANGE, symbol=symbol, interval=interval, candle=candle)
+        self.emit(event)
+
+    def _order_handler(self, msg: dict):
+        print(msg)
+
     @property
     def exchange(self) -> str:
         return self.EXCHANGE
 
     def pre_run(self) -> None:
-        pass
+        self.sio.connect('wss://www.mxc.com', transports=['websocket', 'polling'])
+        # connect sub.personal websocket
 
     async def on_run(self) -> None:
         pass
@@ -32,10 +68,13 @@ class MxcConnector(Connector):
         pass
 
     def post_run(self) -> None:
-        pass
+        self.sio.disconnect()
 
-    def start_socket(self, symbol: str, interval: Interval):
-        pass
+    async def start_socket(self, symbol: str, interval: Interval):
+        self.log(f"Start socket for {symbol} {interval}")
+        if interval not in self.INTERVALS or (symbol, interval) in self.open_sockets: return
+        self.sio.emit('sub.kline', {"symbol": symbol, "interval": self.INTERVALS[interval]})
+        self.open_sockets.add((symbol, interval))
 
     def submit(self, order: Single) -> Recipe:
         params = self._params("POST", "/open/api/v2/order/place")
