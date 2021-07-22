@@ -23,6 +23,13 @@ class MxcConnector(Connector):
         Interval(1, TimeFrame.DAY): "Day1",
         Interval(1, TimeFrame.MONTH): "Month1",
     })
+    STATUS = {
+        1: Status.SUBMITTED,
+        2: Status.FILLED,
+        3: Status.SUBMITTED,
+        4: Status.CANCELLED,
+        5: Status.CANCELLED,
+    }
     TRADE_TYPES = {
         Command.BUY: "BID",
         Command.SELL: "ASK",
@@ -51,7 +58,12 @@ class MxcConnector(Connector):
         self.emit(event)
 
     def _order_handler(self, msg: dict):
-        print(msg)
+        data = msg["data"]
+        if data["status"] not in self.STATUS: return
+        status = self.STATUS[data["status"]]
+        eid = data["id"]
+        event = UserEvent(eid=eid, status=status, uid="")
+        self.emit(event)
 
     @property
     def exchange(self) -> str:
@@ -59,7 +71,7 @@ class MxcConnector(Connector):
 
     def pre_run(self) -> None:
         self.sio.connect('wss://www.mxc.com', transports=['websocket', 'polling'])
-        # connect sub.personal websocket
+        self.sio.emit('sub.personal', self._params_ws())
 
     async def on_run(self) -> None:
         pass
@@ -110,3 +122,9 @@ class MxcConnector(Connector):
         to_sign = '\n'.join([method, path, params_str])
         params.update({'sign': hmac.new(self.password.encode(), to_sign.encode(), hashlib.sha256).hexdigest()})
         return params
+
+    def _params_ws(self):
+        t = int(time.time())
+        data = f"api_key={self.username}&req_time={t}&api_secret={self.password}"
+        sign = hashlib.md5(data.encode("utf8")).hexdigest()
+        return {"api_key": self.username, "sign": sign, "req_time": t}
