@@ -72,18 +72,14 @@ class BinanceConnector(Connector):
         self.socket_manager.join()
 
     async def start_socket(self, symbol: str, interval: Interval):
-        self.log(f"Start socket for {symbol} {interval}")
         if interval not in self.INTERVALS or (symbol, interval) in self.open_sockets: return
         self.socket_manager.start_kline_socket(self._candle_handler, symbol, BinanceConnector.INTERVALS[interval])
         self.open_sockets.add((symbol, interval))
 
     def _candle_handler(self, msg: dict) -> None:
-        self.log("Candle")
-        closed = msg["k"]["x"]
-        msg_interval = msg["k"]["i"]
-        if not closed or msg_interval not in self.INTERVALS.inverse: return
+        if msg["k"]["i"] not in self.INTERVALS.inverse: return
         symbol = msg["s"]
-        interval = self.INTERVALS.inverse[msg_interval]
+        interval = self.INTERVALS.inverse[msg["k"]["i"]]
         time = int(int(msg["k"]["t"])/1000)
         open = float(msg["k"]["o"])
         close = float(msg["k"]["c"])
@@ -95,7 +91,6 @@ class BinanceConnector(Connector):
         self.emit(event)
 
     def submit(self, order: Single) -> Recipe:
-        self.log(f"Submit order {order}")
         params = {"symbol": order.symbol, "newClientOrderId": order.uid,
                   "side": SIDE_BUY if order.command is Command.BUY else SIDE_SELL}
 
@@ -115,7 +110,6 @@ class BinanceConnector(Connector):
         return Recipe(eid=str(response["orderId"]), status=BinanceConnector.STATUS[response["status"]])
 
     def cancel(self, order: Single) -> Recipe:
-        self.log(f"Cancel order {order}")
         params = {"symbol": order.symbol, "orderId": int(order.eid), "origClientOrderId": order.uid}
         response = self.client.cancel_order(**params)
         return Recipe(eid=str(response["orderId"]), status=BinanceConnector.STATUS[response["status"]])

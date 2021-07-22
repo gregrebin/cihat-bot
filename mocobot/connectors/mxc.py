@@ -83,7 +83,6 @@ class MxcConnector(Connector):
         self.sio.disconnect()
 
     async def start_socket(self, symbol: str, interval: Interval):
-        self.log(f"Start socket for {symbol} {interval}")
         if interval not in self.INTERVALS or (symbol, interval) in self.open_sockets: return
         self.sio.emit('sub.kline', {"symbol": symbol, "interval": self.INTERVALS[interval]})
         self.open_sockets.add((symbol, interval))

@@ -2,7 +2,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field, replace
 from enum import Enum, auto
 from typing import Tuple, Callable, TypeVar
-from pandas import DataFrame, to_datetime
+from pandas import DataFrame, Timestamp, to_datetime
 
 
 class TimeFrame(Enum):
@@ -57,8 +57,13 @@ class Chart:
     def add_candle(self, candle: Candle) -> Chart:
         data = {OHLCV.OPEN.value: candle.open, OHLCV.HIGH.value: candle.high, OHLCV.LOW.value: candle.low,
                 OHLCV.CLOSE.value: candle.close, OHLCV.VOLUME.value: candle.volume}
-        index = to_datetime([candle.time], unit="s", origin="unix")
-        candles = self.candles.append(DataFrame(data=data, index=index))
+        index = Timestamp(candle.time, unit="s")
+        if index in self.candles.index:
+            candles = self.candles.copy()
+            candles.loc[index] = data
+        else:
+            candles = self.candles.append(DataFrame(data=data, index=[index]))
+            candles.sort_index(inplace=True)
         return replace(self, candles=candles)
 
 
