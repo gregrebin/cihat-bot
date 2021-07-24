@@ -112,7 +112,7 @@ class Module(ABC):
         pass
 
     @abstractmethod
-    def on_stop(self) -> None:
+    async def on_stop(self) -> None:
         pass
 
     @abstractmethod
@@ -126,15 +126,13 @@ class Module(ABC):
             self.emitter.emit(event)
 
     def log(self, message: str, level: int = logging.INFO) -> None:
-        self.logger.log(
-            level, f"""{message} : {asyncio.current_task().get_name()} / {len(asyncio.all_tasks())}"""
-        )
+        self.logger.log(level, f"""{message}""")
 
     async def stop(self):
         for submodule in self.submodules:
             await submodule.stop()
         await self.listener.stop()
-        self.on_stop()
+        await self.on_stop()
         self.is_running = False
 
     @staticmethod

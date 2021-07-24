@@ -23,7 +23,7 @@ class TestConnector(Connector):
         #     self.emit(CandleEvent(exchange="test", symbol="BTCUSDT", interval=Interval(), candle=Candle(time=int(time()), close=price)))
         #     price += 1
 
-    def on_stop(self) -> None:
+    async def on_stop(self) -> None:
         pass
 
     def post_run(self) -> None:

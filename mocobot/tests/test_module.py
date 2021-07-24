@@ -19,7 +19,7 @@ class Root(Module):
     def events(self) -> Dict[Type, Callable]:
         return {}
 
-    def on_stop(self) -> None:
+    async def on_stop(self) -> None:
         pass
 
     def post_run(self) -> None:
@@ -42,7 +42,7 @@ class Leaf(Module):
     def events(self) -> Dict[Type, Callable]:
         return {}
 
-    def on_stop(self) -> None:
+    async def on_stop(self) -> None:
         pass
 
     def post_run(self) -> None:

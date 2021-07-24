@@ -76,7 +76,7 @@ class MxcConnector(Connector):
     async def on_run(self) -> None:
         pass
 
-    def on_stop(self) -> None:
+    async def on_stop(self) -> None:
         pass
 
     def post_run(self) -> None:

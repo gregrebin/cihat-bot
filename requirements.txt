@@ -5,3 +5,4 @@ pandas
 pandas_ta==0.3.02b
 bidict
 python-socketio==4.6.1
+aiohttp

@@ -7,6 +7,7 @@ from mocobot.connectors.test import TestConnector
 from mocobot.connectors.binance import BinanceConnector
 from mocobot.connectors.mxc import MxcConnector
 from mocobot.uis.socket import SocketUi
+from mocobot.uis.telegram import TelegramUi
 from mocobot.uis.test import TestUi
 
 
@@ -44,7 +45,7 @@ class Injector(FrameworkInjector):
                 "args": {},
                 "submodules": [
                     {"category": Connector, "name": "test_connector"},
-                    {"category": Ui, "name": "test_ui"}
+                    {"category": Ui, "name": "telegram_ui"}
                 ]
             }
         },
@@ -52,6 +53,11 @@ class Injector(FrameworkInjector):
         Ui: {
             "socket_ui": {
                 "type": SocketUi,
+                "args": {},
+                "submodules": []
+            },
+            "telegram_ui": {
+                "type": TelegramUi,
                 "args": {},
                 "submodules": []
             },

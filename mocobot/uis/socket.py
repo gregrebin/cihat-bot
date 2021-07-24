@@ -51,7 +51,7 @@ class SocketUi(Ui):
         await writer.drain()
         writer.close()
 
-    def on_stop(self) -> None:
+    async def on_stop(self) -> None:
         self.task.cancel()
         self.server.close()
 

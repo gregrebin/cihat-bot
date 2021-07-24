@@ -58,7 +58,7 @@ class TestUi(Ui):
             mode=Mode.PARALLEL
         ))
 
-    def on_stop(self) -> None:
+    async def on_stop(self) -> None:
         pass
 
     def post_run(self) -> None:

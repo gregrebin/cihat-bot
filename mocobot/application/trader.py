@@ -145,7 +145,7 @@ class Trader(Module):
     def _get_connectors(self, order: Single) -> List[Connector]:
         return self.get_submodule(Connector, exchange=order.exchange)
 
-    def on_stop(self) -> None:
+    async def on_stop(self) -> None:
         pass
 
     def post_run(self) -> None:
@@ -175,7 +175,7 @@ class Timer(Module):
     def events(self) -> Dict[Type, Callable]:
         return {}
 
-    def on_stop(self) -> None:
+    async def on_stop(self) -> None:
         pass
 
     def post_run(self) -> None:

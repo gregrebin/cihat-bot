@@ -28,7 +28,7 @@ class Application(Module):
         self.log("Changing config")
         pass
 
-    def on_stop(self) -> None:
+    async def on_stop(self) -> None:
         pass
 
     def post_run(self) -> None:
