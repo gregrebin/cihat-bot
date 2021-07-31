@@ -1,7 +1,8 @@
 from mocobot.application.runtime import Runtime
 import sys
+import asyncio
 
 
 if __name__ == '__main__':
-    Runtime().run(sys.argv)
+    asyncio.run(Runtime().start(sys.argv))
 
