@@ -73,8 +73,8 @@ class Module(ABC):
         self.scheduler.schedule(submodule.run())
         self.submodules.append(submodule)
 
-    def get_category(self, category: Type[SubModuleType]) -> List[SubModuleType]:
-        return [submodule for submodule in self.submodules if submodule.category is category]
+    # def get_category(self, category: Type[SubModuleType]) -> List[SubModuleType]:
+    #     return [submodule for submodule in self.submodules if submodule.category is category]
 
     def get_submodule(self, category: Type[SubModuleType], **attributes) -> List[SubModuleType]:
         return [submodule

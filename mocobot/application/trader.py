@@ -9,7 +9,9 @@ from time import time
 from dataclasses import dataclass
 from typing import List, Dict, Callable, Type, Tuple, Any
 from configparser import SectionProxy
+from pathlib import Path
 import logging
+import requests
 
 
 class Trader(Module):
@@ -28,7 +30,8 @@ class Trader(Module):
         self.add_submodule(Timer().init())
 
     def pre_run(self) -> None:
-        pass
+        for ui in self.get_submodule(Ui):
+            self._init_static(ui)
 
     async def on_run(self) -> None:
         pass
@@ -54,7 +57,18 @@ class Trader(Module):
         except InjectorException as exception:
             self.log(str(exception), logging.ERROR)
             return
+        self._init_static(ui)
         self.add_submodule(ui)
+
+    def _init_static(self, ui: Ui):
+        url: str = ui.static_site
+        if url:
+            site = requests.get(url)
+            content = site.content
+            dir_path = Path(self.config["static-path"]) / ui.name
+            dir_path.mkdir(parents=True, exist_ok=True)
+            file_path = dir_path / "index.html"
+            file_path.write_bytes(content)
 
     def add_connector_event(self, event: AddConnectorEvent):
         self.log(f"""Adding new connector: {event.connector_name}""")

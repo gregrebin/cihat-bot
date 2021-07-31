@@ -17,6 +17,10 @@ class Ui(Module):
     def events(self) -> Dict[Type, Callable]:
         return {}
 
+    @property
+    def static_site(self) -> str:
+        return ""
+
     @abstractmethod
     def update(self, order: Order, market: Market):
         pass

@@ -45,7 +45,7 @@ class Injector(FrameworkInjector):
                 "args": {},
                 "submodules": [
                     {"category": Connector, "name": "test_connector"},
-                    {"category": Ui, "name": "telegram_ui"}
+                    {"category": Ui, "name": "test_ui"}
                 ]
             }
         },

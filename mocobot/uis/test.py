@@ -7,6 +7,10 @@ from asyncio import sleep
 
 class TestUi(Ui):
 
+    @property
+    def static_site(self) -> str:
+        return "http://help.websiteos.com/websiteos/example_of_a_simple_html_page.htm"
+
     def pre_run(self) -> None:
         pass
 
