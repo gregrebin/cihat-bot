@@ -1,7 +1,8 @@
 from typing import Dict, Type, Callable
-
 from mocobot.framework.module import Module
+from mocobot.framework.runtime import Runtime
 import unittest
+import asyncio
 
 
 class Root(Module):
@@ -36,7 +37,29 @@ class Leaf(Module):
         pass
 
     async def on_run(self) -> None:
+        while self.is_running:
+            await asyncio.sleep(2)
+            self.log("running")
+
+    @property
+    def events(self) -> Dict[Type, Callable]:
+        return {}
+
+    async def on_stop(self) -> None:
         pass
+
+    def post_run(self) -> None:
+        pass
+
+
+class Corrupt(Module):
+
+    def pre_run(self) -> None:
+        pass
+
+    async def on_run(self) -> None:
+        await asyncio.sleep(3)
+        raise Exception()
 
     @property
     def events(self) -> Dict[Type, Callable]:
@@ -85,5 +108,19 @@ class TestModule(unittest.TestCase):
         self.assertEqual(two_leaves[0].name, "first")
         self.assertEqual(two_leaves[1].name, "third")
 
+    def test_errors(self):
+
+        async def run():
+
+            root = Root().init()
+            leaf1 = Leaf("first", 10).init()
+            corrupt = Corrupt({}, Corrupt, "corrupt").init()
+
+            root.add_submodule(leaf1)
+            root.add_submodule(corrupt)
+
+            await Runtime().run(root)
+
+        asyncio.run(run())
 
 
