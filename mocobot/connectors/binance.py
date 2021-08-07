@@ -36,6 +36,10 @@ class BinanceConnector(Connector):
         ORDER_STATUS_REJECTED: Status.REJECTED,
         ORDER_STATUS_EXPIRED: Status.REJECTED,
     }
+    SIDE = {
+        Command.BUY: SIDE_BUY,
+        Command.SELL: SIDE_SELL,
+    }
 
     def post_init(self) -> None:
         self.client: Client = Client(self.username, self.password)
@@ -91,8 +95,7 @@ class BinanceConnector(Connector):
         self.emit(event)
 
     def submit(self, order: Single) -> Recipe:
-        params = {"symbol": order.symbol, "newClientOrderId": order.uid,
-                  "side": SIDE_BUY if order.command is Command.BUY else SIDE_SELL}
+        params = {"symbol": order.symbol, "newClientOrderId": order.uid, "side": self.SIDE[order.command]}
 
         if order.price > 0:
             params["type"] = ORDER_TYPE_LIMIT
