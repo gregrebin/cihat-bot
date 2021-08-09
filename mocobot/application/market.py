@@ -1,7 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass, field, replace
 from enum import Enum, auto
-from typing import Tuple, Callable, TypeVar
+from typing import Tuple, Callable, TypeVar, Any
 from pandas import DataFrame, Timestamp, to_datetime
 
 
@@ -30,18 +30,18 @@ class Market:
 
     def add_candle(self, exchange: str, symbol: str, interval: Interval, candle: Candle) -> Market:
         charts = self.charts
-        chart = Chart(exchange=exchange, symbol=symbol, interval=interval)
-        if chart not in charts:
+        info = ChartInfo(exchange=exchange, symbol=symbol, interval=interval)
+        if info not in charts:
+            chart = Chart(info=info)
             chart = chart.add_candle(candle=candle)
             charts += (chart,)
         else:
-            charts = update_tuple(charts, chart, lambda c: c.add_candle(candle=candle))
+            charts = update_tuple(charts, info, lambda c: c.add_candle(candle=candle))
         return replace(self, charts=charts)
 
-    def __getitem__(self, item) -> DataFrame:
-        exchange, symbol, interval = item
+    def __getitem__(self, info: ChartInfo) -> DataFrame:
         for chart in self.charts:
-            if chart.exchange == exchange and chart.symbol == symbol and chart.interval == interval:
+            if chart == info:
                 return chart.candles
         return DataFrame()
 
@@ -49,9 +49,7 @@ class Market:
 @dataclass(frozen=True)
 class Chart:
 
-    exchange: str
-    symbol: str
-    interval: Interval
+    info: ChartInfo
     candles: DataFrame = field(default_factory=DataFrame, compare=False)
 
     def add_candle(self, candle: Candle) -> Chart:
@@ -65,6 +63,20 @@ class Chart:
             candles = self.candles.append(DataFrame(data=data, index=[index]))
             candles.sort_index(inplace=True)
         return replace(self, candles=candles)
+
+    def __eq__(self, other):
+        if isinstance(other, ChartInfo):
+            return self.info == other
+        else:
+            return super().__eq__(other)
+
+
+@dataclass(frozen=True)
+class ChartInfo:
+
+    exchange: str
+    symbol: str
+    interval: Interval
 
 
 @dataclass(frozen=True)
@@ -91,5 +103,5 @@ class Candle:
 Item = TypeVar("Item")
 
 
-def update_tuple(t: Tuple[Item, ...], item: Item, update: Callable[[Item], Item]) -> tuple:
+def update_tuple(t: Tuple[Item, ...], item: Any, update: Callable[[Item], Item]) -> tuple:
     return tuple(update(element) if element == item else element for element in t)

@@ -1,6 +1,6 @@
 from __future__ import annotations
 from mocobot.application.indicator import Indicator, Interval
-from mocobot.application.market import TimeFrame
+from mocobot.application.market import TimeFrame, ChartInfo
 from typing import List, Callable, Dict, Tuple, Generator, Set
 from uuid import uuid4, UUID
 from enum import Enum, auto
@@ -52,7 +52,11 @@ class Order(ABC):
         pass
 
     @abstractmethod
-    def get(self, pending: bool = True) -> Generator[Single, bool, None]:
+    def requirements(self) -> Generator[Requirement, None, None]:
+        pass
+
+    @abstractmethod
+    def get(self) -> Generator[Single, None, None]:
         pass
 
     @abstractmethod
@@ -89,7 +93,11 @@ class Empty(Order):
     def cancel(self, uid: str) -> Order:
         return self
 
-    def get(self, pending: bool = True) -> Generator[Single, bool, None]:
+    def requirements(self) -> Generator[Requirement, None, None]:
+        return
+        yield
+
+    def get(self) -> Generator[Single, None, None]:
         return
         yield
 
@@ -140,8 +148,15 @@ class Single(Order):
             return replace(self, to_cancel=True)
         return self
 
-    def get(self, pending: bool = True) -> Generator[Single, bool, None]:
-        if pending and self.status not in (Status.NEW, Status.SUBMITTED):
+    def requirements(self) -> Generator[Requirement, None, None]:
+        for indicator in self.indicators:
+            yield Requirement(
+                time=self.time,
+                info=ChartInfo(exchange=self.exchange, symbol=self.symbol, interval=indicator.interval)
+            )
+
+    def get(self) -> Generator[Single, None, None]:
+        if self.status not in (Status.NEW, Status.SUBMITTED):
             return
         yield self
 
@@ -186,13 +201,18 @@ class Multiple(Order):
         orders = tuple(order.cancel(uid) for order in self.orders)
         return replace(self, orders=orders)
 
-    def get(self, pending: bool = True) -> Generator[Single, bool, None]:
+    def requirements(self) -> Generator[Requirement, None, None]:
+        for order in self.orders:
+            for requirement in order.requirements():
+                yield requirement
+
+    def get(self) -> Generator[Single, None, None]:
         for order in self.orders:
             empty = True
-            for result in order.get(pending=pending):
+            for single in order.get():
                 empty = False
-                yield result
-            if pending and self.mode is Mode.SEQUENT and not empty:
+                yield single
+            if self.mode is Mode.SEQUENT and not empty:
                 break
 
     def set_eid(self, uid: str, eid: str) -> Order:
@@ -207,6 +227,13 @@ class Multiple(Order):
         tab = "\t" * depth
         orders = ",\n".join(tab + order._repr_(depth=depth+1) for order in self.orders)
         return f"[{self.mode.value}\n{orders}]"
+
+
+@dataclass(frozen=True)
+class Requirement:
+
+    time: int
+    info: ChartInfo
 
 
 # Parser formal grammar:
